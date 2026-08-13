@@ -18,7 +18,10 @@ export type ModalKey =
   | "edit-goals"
   | "edit-log"
   | "reminders"
-  | "share";
+  | "share"
+  | "challenges"
+  | "language"
+  | "theme-color";
 
 interface AppState {
   tab: TabKey;

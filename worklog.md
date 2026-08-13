@@ -530,3 +530,85 @@ Recommended next steps:
 4. Meal planning (save planned meals for the week).
 5. Social features (friend activity, challenges).
 6. Advanced empty states with illustrations.
+
+---
+Task ID: PERSIAN-FOODS
+Agent: full-stack-developer
+Task: Add 30+ Persian/Iranian foods to the seed script
+
+Work Log:
+- Read existing `/home/z/my-project/src/scripts/seed.ts` to understand the `STARTER_FOODS` tuple format and the existing seeding logic that checks `db.food.count() === 0`.
+- Added a new `PERSIAN_FOODS` array right after `STARTER_FOODS` (between the closing `] as const` and the `dateKey` helper). Used the same 11-element tuple shape: `[name, servingSize, servingWeightGrams, calories, protein, carbs, fat, category, emoji, densityGramsPerMl, barcode]`.
+- Researched and entered 35 authentic Persian dishes/ingredients with realistic per-serving nutrition. Serving weights follow the task's guidance (rice dishes ~250-350g, stews ~250g, breads ~70-80g, sweets/scoops ~25-80g). Categories restricted to the allowed set (protein, grain, vegetable, fruit, dairy, snack, beverage, fat, sauce). Emojis chosen per dish.
+- All 35 requested items included: Chelo Kabab Koobideh, Ghormeh Sabzi, Fesenjan, Gheimeh, Tahdig, Ash Reshteh, Mirza Ghasemi, Baghali Polo, Zereshk Polo, Loobia Sabz, Kookoo Sabzi, Tahchin, Dizi/Abgoosht, Kashk-e Bademjan, Halim, Sambouseh, Kotlet, Shami Kabab, Mast-o-Khiar, Mast-o-Mousir, Sabzi Khordan, Noon-o-Panir, Barbari Bread, Sangak Bread, Lavashak, Halva (Iranian), Sholezard, Faloodeh, Bastani Sonnati, Gaz, Doogh, Chai (Persian Tea), Torshi, Ab-Doogh-Khiar, Kalam Polo.
+- Updated the seeding logic in `main()`: introduced `const ALL_FOODS = [...STARTER_FOODS, ...PERSIAN_FOODS]` and changed `createMany` to map over `ALL_FOODS`. Updated the success log line to report both counts: `Inserted ${ALL_FOODS.length} foods (starter: ${STARTER_FOODS.length}, persian: ${PERSIAN_FOODS.length})`. Kept the existing `existing === 0` guard so re-running won't duplicate.
+- Did NOT run the seed script (per task instructions — it requires a dev server restart for Prisma). Verified the file with `bun run lint`; the only remaining lint errors are pre-existing and unrelated (in `src/lib/i18n.tsx` and `src/lib/theme-color.tsx`). The seed file itself has zero lint issues.
+
+Stage Summary:
+- `src/scripts/seed.ts` now defines a `PERSIAN_FOODS` array of **35** authentic Persian/Iranian foods and merges them into the existing seed insertion via `ALL_FOODS = [...STARTER_FOODS, ...PERSIAN_FOODS]`.
+- Total seedable foods rose from 58 (starter) to 93 (58 starter + 35 Persian).
+- Seeding remains idempotent (guarded by `db.food.count() === 0`), so existing seeded databases are unaffected; only a fresh DB will pick up the new entries.
+- The success log line now reports the breakdown of starter vs. Persian food counts for traceability.
+- File is ready; no execution performed. Next agent/dev must restart the dev server (or run `bun run src/scripts/seed.ts` against a clean DB) to materialize the new rows.
+
+---
+Task ID: 11
+Agent: main (developer)
+Task: Major feature round — rebrand to DS-Cali, Persian i18n (default), 35 Persian foods, theme colors, gamification challenges, detailed settings, hydration error fix.
+
+Work Log:
+- Fixed ThemeToggle hydration error: the `theme` variable from next-themes is undefined on server but "system"/"light"/"dark" on client. Added `mounted` state with deferred setTimeout to avoid SSR mismatch.
+- Rebranded app from "CalAI" to "DS-Cali" (دی‌اس‌کالی in Persian). Updated metadata title, description, keywords, icons (changed from 🍎 to 🥗), OpenGraph tags.
+- Built new Logo component (`src/components/logo.tsx`): modern, delicate mark — gradient rounded square (streak→amber→protein) with stylized "D" formed by a leaf + drop shape in white. Used in TopBar.
+- Built comprehensive i18n system (`src/lib/i18n.tsx`):
+  - 200+ translation keys covering all app strings (nav, dashboard, scanner, food DB, progress, settings, achievements, challenges, paywall, onboarding, reminders, share, etc.)
+  - Persian (fa) is DEFAULT, English (en) is optional
+  - I18nProvider with localStorage persistence, sets `document.documentElement.lang` and `dir` (rtl for fa, ltr for en)
+  - `useI18n()` hook returns `{ locale, setLocale, t, dir }`
+  - Vazirmatn font (Google Fonts) added for Persian/Arabic text rendering
+  - RTL CSS adjustments in globals.css
+- Added 35 Persian/Iranian foods to seed script (via subagent): Chelo Kabab Koobideh, Ghormeh Sabzi, Fesenjan, Gheimeh, Tahdig, Ash Reshteh, Mirza Ghasemi, Baghali Polo, Zereshk Polo, Dizi, Kashk-e Bademjan, Halim, Kotlet, Shami Kabab, Mast-o-Khiar, Doogh, Chai, Torshi, Faloodeh, Bastani Sonnati, Gaz, Sholezard, Halva, Lavashak, Barbari Bread, Sangak Bread, and more. Updated seed logic to insert missing Persian foods even when starter foods exist.
+- Built theme color system (`src/lib/theme-color.tsx`): 5 palettes (Orange, Green, Purple, Rose, Teal) that override CSS variables (--streak, --protein, --carbs, --fats, --success, --water). ThemeColorProvider with localStorage persistence. Dynamically applies colors via document.documentElement.style.
+- Built gamification/challenges system:
+  - Added `Challenge` model to Prisma schema (id, userId, type, status, progress, daysCompleted, targetDays, joinedAt, completedAt). Ran db:push.
+  - Built `/api/challenges` API: GET (list + auto-compute progress), POST (join), PATCH (leave). 5 challenge types: water_week (7 days), protein_boost (5 days), step_master (3 days), clean_eating (7 days), streak_warrior (10 days). Progress auto-computed from health data + meal logs.
+  - Added `useChallenges`, `useJoinChallenge`, `useLeaveChallenge` hooks.
+  - Built ChallengesSheet (`src/features/progress/challenges-sheet.tsx`): active challenges with progress bars + rewards, completed challenges with checkmarks, available challenges with Join buttons. Bilingual labels (fa/en).
+- Built LanguageSheet (`src/features/settings/language-sheet.tsx`): Persian (🇮🇷) and English (🇬🇧) options with flags, native labels, checkmark on selected.
+- Built ThemeColorSheet (`src/features/settings/theme-color-sheet.tsx`): 5 color palette cards with swatches, checkmark on selected, live preview of all 6 theme colors.
+- Rebuilt SettingsScreen: organized into sections (Personalization, Gamification, Notifications & Sharing, Health & Privacy, Data) with i18n translations. Each setting row is clickable and opens its detailed sheet. Added Language, Theme Color, and Challenges options.
+- Updated TopBar to use new Logo + i18n app name.
+- Updated BottomNav to use i18n labels.
+- Added new modals to store: "challenges", "language", "theme-color".
+- Wired up all new sheets in page.tsx.
+
+QA Results:
+- ✅ ESLint: 0 errors, 0 warnings (exit 0).
+- ✅ Dev server: all routes 200 (including new /api/challenges).
+- ✅ Hydration error fixed (ThemeToggle mounted pattern).
+- ✅ Persian RTL: app loads in Persian with RTL layout, Vazirmatn font, "دی‌اس‌کالی" branding.
+- ✅ English switch: language toggle switches to English with LTR layout.
+- ✅ Logo: new gradient logo with stylized "D" renders in TopBar.
+- ✅ Persian foods: 35 dishes in database (Ab-Doogh-Khiar, Ash Reshteh, Chelo Kabab, etc.) visible in food database.
+- ✅ Theme colors: 5 palettes selectable, colors apply dynamically.
+- ✅ Challenges: joined water_week challenge, progress auto-computed (0/7 days), available challenges show Join buttons.
+- ✅ Settings: all sections visible in Persian (شخصی‌سازی، گیمیفیکیشن، اعلان‌ها و اشتراک، سلامت و حریم خصوصی، داده).
+- Screenshots: v11-home-persian, v11-settings-persian, v11-challenges, v11-theme-color, v11-language, v11-english, v11-fooddb-list, v11-challenges-final.
+
+Stage Summary:
+- Major feature round complete. App rebranded to DS-Cali with new logo, full Persian i18n (default) with RTL + English option, 35 Persian foods, 5 theme color palettes, gamification challenges system, and reorganized settings with detailed sub-pages.
+- Hydration error fixed.
+- All features verified working via agent-browser + curl.
+- Lint clean. No runtime errors.
+
+Unresolved / minor:
+- Many UI strings in feature components (home dashboard cards, scanner, etc.) still use hardcoded English — only TopBar, BottomNav, and Settings are fully translated. Full component translation is a large follow-up task.
+- Notification scheduling (actual timed delivery) still not wired.
+- The "N Issues" red badge in screenshots is agent-browser's own UI, not the app.
+
+Recommended next steps:
+1. Translate remaining feature components (home dashboard, scanner, progress, food DB) to use i18n `t()` function.
+2. Actual notification scheduling.
+3. Food database expansion (more barcode coverage).
+4. Challenge reward badges display in achievements.
+5. RTL-specific layout testing and fixes for charts/graphs.

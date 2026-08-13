@@ -475,3 +475,85 @@ export function useMealSuggestions(slot?: string) {
     },
   });
 }
+
+export interface ChallengeData {
+  challenges: Array<{
+    id: string;
+    type: string;
+    status: string;
+    progress: number;
+    daysCompleted: number;
+    targetDays: number;
+    joinedAt: string;
+    completedAt: string | null;
+    def: {
+      targetDays: number;
+      labelFa: string;
+      labelEn: string;
+      descFa: string;
+      descEn: string;
+      emoji: string;
+      rewardFa: string;
+      rewardEn: string;
+    };
+  }>;
+  available: Array<{
+    type: string;
+    targetDays: number;
+    labelFa: string;
+    labelEn: string;
+    descFa: string;
+    descEn: string;
+    emoji: string;
+    rewardFa: string;
+    rewardEn: string;
+    joined: boolean;
+  }>;
+}
+
+export function useChallenges() {
+  return useQuery({
+    queryKey: ["challenges"],
+    queryFn: async () => {
+      const res = await fetch("/api/challenges");
+      if (!res.ok) throw new Error("Failed to load challenges");
+      return res.json() as Promise<ChallengeData>;
+    },
+  });
+}
+
+export function useJoinChallenge() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (type: string) => {
+      const res = await fetch("/api/challenges", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ type }),
+      });
+      if (!res.ok) throw new Error("Failed");
+      return res.json();
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["challenges"] });
+    },
+  });
+}
+
+export function useLeaveChallenge() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (data: { id?: string; type?: string }) => {
+      const res = await fetch("/api/challenges", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...data, action: "leave" }),
+      });
+      if (!res.ok) throw new Error("Failed");
+      return res.json();
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["challenges"] });
+    },
+  });
+}

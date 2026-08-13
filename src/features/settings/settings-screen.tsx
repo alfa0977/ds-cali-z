@@ -1,7 +1,11 @@
 "use client";
 import { useDashboard, useUpdateUser, useImportData } from "@/lib/hooks";
 import { useApp } from "@/lib/store";
-import { ChevronRight, Crown, Moon, Bell, Shield, Trash2, LogOut, Heart, Pencil, Download, FileText, Database, Upload, Share2 } from "lucide-react";
+import { useI18n } from "@/lib/i18n";
+import {
+  ChevronRight, Moon, Bell, Shield, Trash2, LogOut, Heart, Pencil,
+  Download, FileText, Upload, Share2, Globe, Palette, Trophy, HelpCircle,
+} from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { ProgressRing } from "@/components/progress-ring";
 import { toast } from "sonner";
@@ -10,6 +14,7 @@ import { useRef } from "react";
 export function SettingsScreen() {
   const { data } = useDashboard();
   const { setModal } = useApp();
+  const { locale, t } = useI18n();
   const user = data?.user;
   const importData = useImportData();
   const fileRef = useRef<HTMLInputElement>(null);
@@ -17,11 +22,11 @@ export function SettingsScreen() {
   function downloadExport(format: "json" | "csv") {
     const a = document.createElement("a");
     a.href = `/api/exportData?format=${format}`;
-    a.download = `calai-export-${new Date().toISOString().slice(0, 10)}.${format}`;
+    a.download = `ds-cali-export-${new Date().toISOString().slice(0, 10)}.${format}`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
-    toast.success(`Exporting data as ${format.toUpperCase()}…`);
+    toast.success(`${t("exportingData")} ${format.toUpperCase()}…`);
   }
 
   function onImportFile(e: React.ChangeEvent<HTMLInputElement>) {
@@ -33,7 +38,7 @@ export function SettingsScreen() {
         const json = JSON.parse(reader.result as string);
         importData.mutate(json);
       } catch {
-        toast.error("Invalid JSON file");
+        toast.error(t("invalidJsonFile"));
       }
     };
     reader.readAsText(file);
@@ -42,7 +47,7 @@ export function SettingsScreen() {
 
   return (
     <div className="space-y-4 px-4 pb-4">
-      <h1 className="px-1 text-3xl font-bold tracking-tight">Settings</h1>
+      <h1 className="px-1 text-3xl font-bold tracking-tight">{t("settings")}</h1>
 
       {/* profile card */}
       <button
@@ -63,64 +68,89 @@ export function SettingsScreen() {
       {user && (
         <div className="rounded-2xl bg-card p-4 shadow-ios">
           <div className="mb-3 flex items-center justify-between">
-            <h3 className="text-sm font-semibold">Daily goals</h3>
-            <button onClick={() => setModal("edit-goals")} className="text-xs font-medium text-muted-foreground">Edit</button>
+            <h3 className="text-sm font-semibold">{t("dailyGoals")}</h3>
+            <button onClick={() => setModal("edit-goals")} className="text-xs font-medium text-muted-foreground">{t("edit")}</button>
           </div>
           <div className="grid grid-cols-4 gap-2 text-center">
-            <GoalStat label="Cal" value={user.goals.calories} color="var(--streak)" />
-            <GoalStat label="Protein" value={user.goals.protein} unit="g" color="var(--protein)" />
-            <GoalStat label="Carbs" value={user.goals.carbs} unit="g" color="var(--carbs)" />
-            <GoalStat label="Fats" value={user.goals.fat} unit="g" color="var(--fats)" />
+            <GoalStat label={t("cal")} value={user.goals.calories} color="var(--streak)" />
+            <GoalStat label={t("proteinLeft").replace(" left", "").replace(" باقی", "")} value={user.goals.protein} unit="g" color="var(--protein)" />
+            <GoalStat label={t("carbsLeft").replace(" left", "").replace(" باقی", "")} value={user.goals.carbs} unit="g" color="var(--carbs)" />
+            <GoalStat label={t("fatsLeft").replace(" left", "").replace(" باقی", "")} value={user.goals.fat} unit="g" color="var(--fats)" />
           </div>
         </div>
       )}
 
-      {/* premium upsell */}
-      <button
-        onClick={() => setModal("paywall")}
-        className="flex w-full items-center gap-3 rounded-2xl bg-gradient-to-r from-amber-400 to-streak p-4 text-white shadow-ios"
-      >
-        <Crown className="h-6 w-6" />
-        <div className="flex-1 text-left">
-          <div className="text-sm font-bold">CalAI Premium</div>
-          <div className="text-xs text-white/80">Unlimited scans · Advanced analytics</div>
+      {/* Appearance & personalization */}
+      <div>
+        <h3 className="mb-2 px-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+          {locale === "fa" ? "شخصی‌سازی" : "Personalization"}
+        </h3>
+        <div className="overflow-hidden rounded-2xl bg-card shadow-ios">
+          <Row icon={Moon} label={t("appearance")} right={<ThemeToggle />} onClick={() => {}} />
+          <Divider />
+          <Row icon={Palette} label={t("themeColor")} right={<ChevronRight className="h-4 w-4 text-muted-foreground" />} onClick={() => setModal("theme-color")} />
+          <Divider />
+          <Row icon={Globe} label={t("language")} right={<span className="text-xs font-medium text-muted-foreground">{locale === "fa" ? "فارسی" : "English"}</span>} onClick={() => setModal("language")} />
         </div>
-        <ChevronRight className="h-5 w-5" />
-      </button>
+      </div>
 
-      {/* settings list */}
-      <div className="overflow-hidden rounded-2xl bg-card shadow-ios">
-        <Row icon={Moon} label="Appearance" right={<ThemeToggle />} />
-        <Divider />
-        <Row icon={Bell} label="Reminders" right={<ChevronRight className="h-4 w-4 text-muted-foreground" />} onClick={() => setModal("reminders")} />
-        <Divider />
-        <Row icon={Share2} label="Share progress" right={<ChevronRight className="h-4 w-4 text-muted-foreground" />} onClick={() => setModal("share")} />
-        <Divider />
-        <Row icon={Heart} label="Health connections" right={<span className="text-xs font-medium text-success">Connected</span>} />
-        <Divider />
-        <Row icon={Shield} label="Privacy & data" right={<ChevronRight className="h-4 w-4 text-muted-foreground" />} />
+      {/* Gamification */}
+      <div>
+        <h3 className="mb-2 px-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+          {locale === "fa" ? "گیمیفیکیشن" : "Gamification"}
+        </h3>
+        <div className="overflow-hidden rounded-2xl bg-card shadow-ios">
+          <Row icon={Trophy} label={t("challenges")} right={<ChevronRight className="h-4 w-4 text-muted-foreground" />} onClick={() => setModal("challenges")} />
+        </div>
+      </div>
+
+      {/* Notifications & sharing */}
+      <div>
+        <h3 className="mb-2 px-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+          {locale === "fa" ? "اعلان‌ها و اشتراک" : "Notifications & Sharing"}
+        </h3>
+        <div className="overflow-hidden rounded-2xl bg-card shadow-ios">
+          <Row icon={Bell} label={t("reminders")} right={<ChevronRight className="h-4 w-4 text-muted-foreground" />} onClick={() => setModal("reminders")} />
+          <Divider />
+          <Row icon={Share2} label={t("shareProgress")} right={<ChevronRight className="h-4 w-4 text-muted-foreground" />} onClick={() => setModal("share")} />
+        </div>
+      </div>
+
+      {/* Health & privacy */}
+      <div>
+        <h3 className="mb-2 px-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+          {locale === "fa" ? "سلامت و حریم خصوصی" : "Health & Privacy"}
+        </h3>
+        <div className="overflow-hidden rounded-2xl bg-card shadow-ios">
+          <Row icon={Heart} label={t("healthConnections")} right={<span className="text-xs font-medium text-success">{t("connected")}</span>} onClick={() => {}} />
+          <Divider />
+          <Row icon={Shield} label={t("privacyData")} right={<ChevronRight className="h-4 w-4 text-muted-foreground" />} onClick={() => {}} />
+        </div>
       </div>
 
       {/* data export */}
       <div>
-        <h3 className="mb-2 px-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Data</h3>
+        <h3 className="mb-2 px-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">{t("data")}</h3>
         <div className="overflow-hidden rounded-2xl bg-card shadow-ios">
-          <Row icon={FileText} label="Export as JSON" right={<ChevronRight className="h-4 w-4 text-muted-foreground" />} onClick={() => downloadExport("json")} />
+          <Row icon={FileText} label={t("exportJson")} right={<ChevronRight className="h-4 w-4 text-muted-foreground" />} onClick={() => downloadExport("json")} />
           <Divider />
-          <Row icon={Download} label="Export as CSV" right={<ChevronRight className="h-4 w-4 text-muted-foreground" />} onClick={() => downloadExport("csv")} />
+          <Row icon={Download} label={t("exportCsv")} right={<ChevronRight className="h-4 w-4 text-muted-foreground" />} onClick={() => downloadExport("csv")} />
           <Divider />
-          <Row icon={Upload} label="Import from JSON" right={<ChevronRight className="h-4 w-4 text-muted-foreground" />} onClick={() => fileRef.current?.click()} />
+          <Row icon={Upload} label={t("importJson")} right={<ChevronRight className="h-4 w-4 text-muted-foreground" />} onClick={() => fileRef.current?.click()} />
         </div>
         <input ref={fileRef} type="file" accept="application/json,.json" onChange={onImportFile} className="hidden" />
       </div>
 
       <div className="overflow-hidden rounded-2xl bg-card shadow-ios">
-        <Row icon={LogOut} label="Log out" danger />
+        <Row icon={LogOut} label={t("logOut")} danger onClick={() => {}} />
         <Divider />
-        <Row icon={Trash2} label="Delete account" danger />
+        <Row icon={Trash2} label={t("deleteAccount")} danger onClick={() => {}} />
       </div>
 
-      <p className="pt-2 text-center text-xs text-muted-foreground">CalAI v1.0.0 · Made with 💚</p>
+      <p className="flex items-center justify-center gap-1 pt-2 text-center text-xs text-muted-foreground">
+        <HelpCircle className="h-3 w-3" />
+        DS-Cali v1.0.0 · {locale === "fa" ? "ساخته‌شده با 💚" : "Made with 💚"}
+      </p>
     </div>
   );
 }

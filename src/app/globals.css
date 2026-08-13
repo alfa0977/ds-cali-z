@@ -141,10 +141,18 @@
   }
   body {
     @apply bg-background text-foreground;
+    font-family: var(--font-geist-sans), var(--font-vazirmatn), -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     font-feature-settings: "cv11", "ss01";
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
   }
+  /* Use Vazirmatn for Persian (RTL) */
+  html[lang="fa"] body {
+    font-family: var(--font-vazirmatn), var(--font-geist-sans), -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  }
+  /* RTL adjustments */
+  html[dir="rtl"] .-rotate-90 { transform: rotate(90deg); }
+  html[dir="rtl"] .lucide { /* icons stay readable in RTL */ }
   /* Hide scrollbars but keep scrollability (iOS feel) */
   .no-scrollbar::-webkit-scrollbar { display: none; }
   .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }

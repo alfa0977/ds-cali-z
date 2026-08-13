@@ -1,17 +1,19 @@
 "use client";
 import { Home, BarChart3, Settings, Plus } from "lucide-react";
 import { useApp, type TabKey } from "@/lib/store";
+import { useI18n } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 
-const TABS: { key: TabKey; label: string; icon: typeof Home }[] = [
-  { key: "home", label: "Home", icon: Home },
-  { key: "progress", label: "Progress", icon: BarChart3 },
-  { key: "settings", label: "Settings", icon: Settings },
+const TABS: { key: TabKey; labelKey: "home" | "progress" | "settings"; icon: typeof Home }[] = [
+  { key: "home", labelKey: "home", icon: Home },
+  { key: "progress", labelKey: "progress", icon: BarChart3 },
+  { key: "settings", labelKey: "settings", icon: Settings },
 ];
 
 export function BottomNav() {
   const { tab, setTab, setModal } = useApp();
+  const { t } = useI18n();
   return (
     <div className="absolute bottom-0 left-0 right-0 z-30">
       {/* FAB — orange brand color with glow */}
@@ -70,7 +72,7 @@ export function BottomNav() {
                     active ? "font-semibold text-streak" : "text-muted-foreground"
                   )}
                 >
-                  {label}
+                  {t(TABS.find((x) => x.key === key)!.labelKey)}
                 </span>
               </button>
             );

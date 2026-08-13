@@ -35,6 +35,7 @@ model User {
   healthDaily HealthDaily[]
   aiAnalyses  AiAnalysis[]
   favorites   Favorite[]
+  challenges  Challenge[]
   foods       Food[]      @relation("UserFoods")
 
   @@map("users")
@@ -162,4 +163,22 @@ model Favorite {
   @@unique([userId, name])
   @@index([userId])
   @@map("favorites")
+}
+
+model Challenge {
+  id          String   @id @default(cuid())
+  userId      String   @map("user_id")
+  type        String   // water_week | protein_boost | step_master | clean_eating | streak_warrior
+  status      String   @default("active") // active | completed | abandoned
+  progress    Int      @default(0) // 0-100
+  daysCompleted Int    @default(0)
+  targetDays  Int      @default(7)
+  joinedAt    DateTime @default(now()) @map("joined_at")
+  completedAt DateTime? @map("completed_at")
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@unique([userId, type, status])
+  @@index([userId])
+  @@map("challenges")
 }

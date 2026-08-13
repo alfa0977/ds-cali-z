@@ -20,6 +20,9 @@ import { FavoritesSheet } from "@/features/dashboard/favorites-sheet";
 import { GoalCelebration } from "@/features/dashboard/goal-celebration";
 import { RemindersSheet } from "@/features/settings/reminders-sheet";
 import { ShareSheet } from "@/features/settings/share-sheet";
+import { LanguageSheet } from "@/features/settings/language-sheet";
+import { ThemeColorSheet } from "@/features/settings/theme-color-sheet";
+import { ChallengesSheet } from "@/features/progress/challenges-sheet";
 import { PullToRefreshIndicator } from "@/components/pull-to-refresh-indicator";
 import { usePullToRefresh } from "@/lib/use-pull-to-refresh";
 import { PageTransition, SheetWrapper } from "@/components/motion";
@@ -116,6 +119,9 @@ export default function Home() {
               {modal === "edit-log" && <EditLogSheet />}
               {modal === "reminders" && <RemindersSheet />}
               {modal === "share" && <ShareSheet />}
+              {modal === "language" && <LanguageSheet />}
+              {modal === "theme-color" && <ThemeColorSheet />}
+              {modal === "challenges" && <ChallengesSheet />}
             </SheetWrapper>
           )}
         </AnimatePresence>

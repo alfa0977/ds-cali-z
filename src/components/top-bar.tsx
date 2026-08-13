@@ -1,16 +1,19 @@
 "use client";
 import { Flame } from "lucide-react";
 import { useDashboard } from "@/lib/hooks";
+import { useI18n } from "@/lib/i18n";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { Logo } from "@/components/logo";
 
 export function TopBar() {
   const { data } = useDashboard();
+  const { t } = useI18n();
   const streak = data?.user.streak ?? 0;
   return (
     <header className="flex items-center justify-between px-5 pt-3 pb-1">
       <div className="flex items-center gap-2">
-        <span className="text-2xl">🍎</span>
-        <h1 className="text-[22px] font-bold tracking-tight">CalAI</h1>
+        <Logo size={32} />
+        <h1 className="text-[20px] font-bold tracking-tight">{t("appName")}</h1>
       </div>
       <div className="flex items-center gap-2">
         <ThemeToggle />

@@ -65,6 +65,47 @@ const STARTER_FOODS = [
   ["Croissant", "1 medium", 57, 231, 4.7, 26, 12, "grain", "🥐", 0.4, null],
 ] as const;
 
+// Authentic Persian / Iranian dishes and ingredients.
+// Nutrition values are approximate, per typical serving sizes commonly eaten in Iran.
+const PERSIAN_FOODS = [
+  // name, serving, weight(g), cal, pro, carb, fat, category, emoji, density, barcode?
+  ["Chelo Kabab Koobideh", "1 plate", 350, 620, 35, 65, 22, "protein", "🍢", 0.95, null],
+  ["Ghormeh Sabzi", "1 bowl", 250, 280, 20, 12, 18, "protein", "🍲", 1.0, null],
+  ["Fesenjan", "1 bowl", 250, 450, 22, 20, 33, "protein", "🍲", 1.0, null],
+  ["Gheimeh", "1 bowl", 250, 320, 22, 25, 14, "protein", "🍲", 1.0, null],
+  ["Tahdig", "1 piece", 80, 180, 3, 28, 6, "grain", "🍚", 0.7, null],
+  ["Ash Reshteh", "1 bowl", 300, 250, 12, 35, 8, "snack", "🍜", 1.0, null],
+  ["Mirza Ghasemi", "1 plate", 200, 280, 10, 18, 20, "vegetable", "🍆", 0.95, null],
+  ["Baghali Polo", "1 plate", 250, 380, 12, 60, 11, "grain", "🍚", 0.85, null],
+  ["Zereshk Polo", "1 plate", 250, 350, 9, 65, 7, "grain", "🍚", 0.85, null],
+  ["Loobia Sabz", "1 bowl", 250, 220, 14, 20, 10, "vegetable", "🫛", 1.0, null],
+  ["Kookoo Sabzi", "1 slice", 150, 250, 14, 12, 17, "protein", "🥚", 0.95, null],
+  ["Tahchin", "1 slice", 200, 320, 12, 45, 10, "grain", "🍚", 0.9, null],
+  ["Dizi (Abgoosht)", "1 bowl", 300, 450, 28, 30, 25, "protein", "🍲", 1.0, null],
+  ["Kashk-e Bademjan", "1 plate", 200, 280, 10, 18, 20, "vegetable", "🍆", 0.95, null],
+  ["Halim", "1 bowl", 250, 380, 18, 45, 14, "protein", "🥣", 1.0, null],
+  ["Sambouseh", "1 piece", 70, 220, 6, 22, 12, "snack", "🥟", 0.8, null],
+  ["Kotlet", "1 piece", 80, 200, 14, 10, 12, "protein", "🍖", 1.05, null],
+  ["Shami Kabab", "1 piece", 80, 190, 13, 11, 11, "protein", "🍖", 1.05, null],
+  ["Mast-o-Khiar", "1 bowl", 150, 90, 6, 8, 4, "dairy", "🥒", 1.0, null],
+  ["Mast-o-Mousir", "1 bowl", 100, 70, 6, 6, 3, "dairy", "🥛", 1.0, null],
+  ["Sabzi Khordan", "1 basket", 50, 15, 1, 3, 0.2, "vegetable", "🌿", 0.4, null],
+  ["Noon-o-Panir", "1 serving", 80, 230, 9, 28, 9, "snack", "🧀", 0.7, null],
+  ["Barbari Bread", "1 piece", 80, 260, 8, 50, 3, "grain", "🍞", 0.4, null],
+  ["Sangak Bread", "1 piece", 70, 210, 7, 43, 2, "grain", "🍞", 0.45, null],
+  ["Lavashak", "1 piece", 30, 85, 0.5, 21, 0.2, "snack", "🍓", 0.9, null],
+  ["Halva (Iranian)", "1 piece", 60, 250, 3, 35, 11, "snack", "🍮", 1.0, null],
+  ["Sholezard", "1 bowl", 200, 320, 5, 60, 7, "snack", "🍚", 0.95, null],
+  ["Faloodeh", "1 cup", 150, 210, 1, 50, 0.5, "snack", "🍧", 0.8, null],
+  ["Bastani Sonnati", "1 scoop", 80, 190, 4, 22, 10, "snack", "🍨", 0.9, null],
+  ["Gaz", "1 piece", 25, 110, 1.5, 18, 4, "snack", "🍬", 0.85, null],
+  ["Doogh", "1 glass", 240, 90, 5, 8, 4, "beverage", "🥛", 1.02, null],
+  ["Chai (Persian Tea)", "1 cup", 240, 2, 0, 0.5, 0, "beverage", "☕", 1.0, null],
+  ["Torshi", "1 tbsp", 15, 5, 0.1, 1, 0, "vegetable", "🥒", 1.0, null],
+  ["Ab-Doogh-Khiar", "1 bowl", 300, 150, 8, 18, 5, "beverage", "🥣", 1.0, null],
+  ["Kalam Polo", "1 plate", 250, 380, 15, 50, 13, "grain", "🍚", 0.85, null],
+] as const;
+
 function dateKey(d: Date) {
   return d.toISOString().slice(0, 10);
 }
@@ -75,11 +116,12 @@ async function main() {
   const user = await ensureDemoUser();
   console.log(`  ✓ Demo user: ${user.id} (${user.displayName})`);
 
-  // Foods
+  // Foods — starter set + Persian/Iranian dishes
+  const ALL_FOODS = [...STARTER_FOODS, ...PERSIAN_FOODS];
   const existing = await db.food.count();
   if (existing === 0) {
     await db.food.createMany({
-      data: STARTER_FOODS.map((f) => ({
+      data: ALL_FOODS.map((f) => ({
         name: f[0] as string,
         servingSize: f[1] as string,
         servingWeightGrams: f[2] as number,
@@ -94,9 +136,34 @@ async function main() {
         source: "database",
       })),
     });
-    console.log(`  ✓ Inserted ${STARTER_FOODS.length} foods`);
+    console.log(
+      `  ✓ Inserted ${ALL_FOODS.length} foods (starter: ${STARTER_FOODS.length}, persian: ${PERSIAN_FOODS.length})`,
+    );
   } else {
-    console.log(`  ↪ Foods already seeded (${existing})`);
+    // Insert only Persian foods that don't exist yet
+    const existingNames = new Set((await db.food.findMany({ select: { name: true } })).map((f) => f.name));
+    const newPersian = PERSIAN_FOODS.filter((f) => !existingNames.has(f[0] as string));
+    if (newPersian.length > 0) {
+      await db.food.createMany({
+        data: newPersian.map((f) => ({
+          name: f[0] as string,
+          servingSize: f[1] as string,
+          servingWeightGrams: f[2] as number,
+          calories: f[3] as number,
+          protein: f[4] as number,
+          carbs: f[5] as number,
+          fat: f[6] as number,
+          category: f[7] as string,
+          emoji: f[8] as string,
+          densityGramsPerMl: f[9] as number,
+          barcode: (f[10] as string | null) ?? null,
+          source: "database",
+        })),
+      });
+      console.log(`  ✓ Inserted ${newPersian.length} Persian foods (${existing} already existed)`);
+    } else {
+      console.log(`  ↪ Foods already seeded (${existing})`);
+    }
   }
 
   // Health daily — last 7 days with realistic-ish data
