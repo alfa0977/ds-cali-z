@@ -8,6 +8,8 @@ export type ModalKey =
   | "barcode"
   | "result"
   | "food-db"
+  | "create-food"
+  | "meal-detail"
   | "add-workout"
   | "add-action"
   | "paywall"

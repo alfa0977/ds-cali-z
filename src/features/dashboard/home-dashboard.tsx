@@ -333,6 +333,137 @@ function RecentFeed() {
   );
 }
 
+// NEW: Meal categorization (breakfast/lunch/dinner/snacks)
+const MEAL_SLOTS = [
+  { key: "breakfast", label: "Breakfast", emoji: "🌅" },
+  { key: "lunch", label: "Lunch", emoji: "☀️" },
+  { key: "dinner", label: "Dinner", emoji: "🌙" },
+  { key: "snack", label: "Snacks", emoji: "🍿" },
+] as const;
+
+function MealsBySlot() {
+  const { data } = useDashboard();
+  const { setModal } = useApp();
+  const mealsBySlot = data?.mealsBySlot;
+  if (!mealsBySlot) return null;
+
+  return (
+    <div className="space-y-3">
+      {MEAL_SLOTS.map((slot) => {
+        const meals = mealsBySlot[slot.key as keyof typeof mealsBySlot] ?? [];
+        const slotCalories = meals.reduce((sum, m) => sum + (m.macros?.calories ?? 0), 0);
+        return (
+          <TapCard key={slot.key} className="rounded-2xl bg-card p-4 shadow-ios">
+            <div className="mb-2 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="text-lg">{slot.emoji}</span>
+                <h3 className="text-sm font-semibold">{slot.label}</h3>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-medium text-muted-foreground tabular-nums">
+                  {slotCalories > 0 ? `${slotCalories} cal` : "—"}
+                </span>
+                <button
+                  onClick={() => setModal("add-action")}
+                  className="flex h-7 w-7 items-center justify-center rounded-full bg-secondary text-muted-foreground transition-colors hover:text-foreground"
+                  aria-label={`Add to ${slot.label}`}
+                >
+                  <Plus className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+            {meals.length > 0 ? (
+              <div className="space-y-1.5">
+                {meals.map((m) => (
+                  <button
+                    key={m.id}
+                    onClick={() => {/* could open meal detail */}}
+                    className="flex w-full items-center gap-2 rounded-lg p-1.5 text-left transition-colors hover:bg-secondary/50"
+                  >
+                    <div className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-lg bg-secondary text-sm">
+                      {m.imageUrl ? <img src={m.imageUrl} alt="" className="h-8 w-8 object-cover" /> : "🍽️"}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="truncate text-xs font-medium">{m.title}</div>
+                      <div className="text-[10px] text-muted-foreground">
+                        {m.macros && (
+                          <>
+                            <span className="text-streak">{m.macros.calories} cal</span>
+                            <span className="mx-1">·</span>
+                            <span className="text-protein">P{Math.round(m.macros.protein)}</span>
+                            <span className="mx-0.5">·</span>
+                            <span className="text-carbs">C{Math.round(m.macros.carbs)}</span>
+                            <span className="mx-0.5">·</span>
+                            <span className="text-fats">F{Math.round(m.macros.fat)}</span>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                    <span className="text-[10px] text-muted-foreground">
+                      {new Date(m.timestamp).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <p className="py-1 text-xs text-muted-foreground/60">Nothing logged yet</p>
+            )}
+          </TapCard>
+        );
+      })}
+    </div>
+  );
+}
+
+// NEW: Consumed vs goal macro bars
+function MacroProgressBars() {
+  const { data } = useDashboard();
+  if (!data) return null;
+  const goals = data.user.goals;
+  const consumed = data.consumed;
+  const macros = [
+    { label: "Calories", consumed: consumed.calories, goal: goals.calories, unit: "", color: "var(--streak)", icon: Flame },
+    { label: "Protein", consumed: consumed.protein, goal: goals.protein, unit: "g", color: "var(--protein)", icon: Drumstick },
+    { label: "Carbs", consumed: consumed.carbs, goal: goals.carbs, unit: "g", color: "var(--carbs)", icon: Wheat },
+    { label: "Fats", consumed: consumed.fat, goal: goals.fat, unit: "g", color: "var(--fats)", icon: Droplets },
+  ];
+  return (
+    <TapCard className="rounded-2xl bg-card p-4 shadow-ios">
+      <h3 className="mb-3 text-sm font-semibold">Today's intake</h3>
+      <div className="space-y-3">
+        {macros.map((m, i) => {
+          const pct = m.goal > 0 ? Math.min(100, (m.consumed / m.goal) * 100) : 0;
+          const over = m.consumed > m.goal;
+          return (
+            <div key={m.label}>
+              <div className="mb-1 flex items-center justify-between text-xs">
+                <span className="flex items-center gap-1.5 font-medium">
+                  <m.icon className="h-3.5 w-3.5" style={{ color: m.color }} />
+                  {m.label}
+                </span>
+                <span className="tabular-nums text-muted-foreground">
+                  <span className="font-semibold text-foreground">{Math.round(m.consumed)}{m.unit}</span>
+                  {" / "}
+                  {m.goal}{m.unit}
+                </span>
+              </div>
+              <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
+                <motion.div
+                  initial={{ width: 0 }}
+                  animate={{ width: `${pct}%` }}
+                  transition={{ delay: 0.1 + i * 0.08, duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+                  className="h-full rounded-full"
+                  style={{ backgroundColor: over ? "var(--destructive)" : m.color }}
+                />
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </TapCard>
+  );
+}
+
 function DateNav() {
   const { selectedDate, setSelectedDate } = useApp();
   const today = new Date().toISOString().slice(0, 10);
@@ -431,6 +562,9 @@ export function HomeDashboard() {
         <MacroCard label="Fats" value={Math.max(0, goals.fat - consumed.fat)} goal={goals.fat} unit="g" color="var(--fats)" icon={Droplets} index={2} />
       </StaggerList>
 
+      {/* NEW: Consumed vs goal progress bars */}
+      <MacroProgressBars />
+
       {/* Weekly habit strip */}
       <TapCard className="rounded-2xl bg-card p-4 shadow-ios">
         <div className="mb-3 flex items-center justify-between">
@@ -449,7 +583,13 @@ export function HomeDashboard() {
       {/* Water */}
       <WaterCard />
 
-      {/* Recent feed */}
+      {/* NEW: Meals by slot (breakfast/lunch/dinner/snacks) */}
+      <div>
+        <h3 className="mb-2 px-1 text-base font-semibold">Meals</h3>
+        <MealsBySlot />
+      </div>
+
+      {/* Recent feed (all logs including water/workouts) */}
       <div>
         <div className="mb-2 flex items-center justify-between px-1">
           <h3 className="text-base font-semibold">Recently logged</h3>

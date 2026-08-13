@@ -143,6 +143,12 @@ export async function GET(req: NextRequest) {
         macros: l.macros ? parseMacros(l.macros) : null,
         workoutSummary: l.workoutSummary ? JSON.parse(l.workoutSummary) : null,
       })),
+      mealsBySlot: {
+        breakfast: dayLogs.filter((l) => l.type === "meal" && (l.mealSlot === "breakfast" || (!l.mealSlot && new Date(l.timestamp).getHours() < 11))).map((l) => ({ ...l, macros: l.macros ? parseMacros(l.macros) : null })),
+        lunch: dayLogs.filter((l) => l.type === "meal" && (l.mealSlot === "lunch" || (!l.mealSlot && new Date(l.timestamp).getHours() >= 11 && new Date(l.timestamp).getHours() < 16))).map((l) => ({ ...l, macros: l.macros ? parseMacros(l.macros) : null })),
+        dinner: dayLogs.filter((l) => l.type === "meal" && (l.mealSlot === "dinner" || (!l.mealSlot && new Date(l.timestamp).getHours() >= 16 && new Date(l.timestamp).getHours() < 22))).map((l) => ({ ...l, macros: l.macros ? parseMacros(l.macros) : null })),
+        snack: dayLogs.filter((l) => l.type === "meal" && l.mealSlot === "snack").map((l) => ({ ...l, macros: l.macros ? parseMacros(l.macros) : null })),
+      },
       weekHealth,
       monthHealth,
       macroTrend,

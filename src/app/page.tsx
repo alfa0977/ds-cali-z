@@ -9,16 +9,20 @@ import { BarcodeScannerSheet } from "@/features/scanner/barcode-scanner-sheet";
 import { AddWorkoutSheet } from "@/features/scanner/add-workout-sheet";
 import { EditLogSheet } from "@/features/scanner/edit-log-sheet";
 import { FoodDatabaseSheet } from "@/features/food-database/food-database-sheet";
+import { CreateFoodSheet } from "@/features/food-database/create-food-sheet";
 import { ProgressDashboard } from "@/features/progress/progress-dashboard";
 import { SettingsScreen } from "@/features/settings/settings-screen";
 import { PaywallSheet } from "@/features/paywall/paywall-sheet";
 import { EditProfileSheet, EditGoalsSheet } from "@/features/settings/edit-sheets";
+import { OnboardingFlow } from "@/features/onboarding/onboarding-flow";
 import { PageTransition, SheetWrapper } from "@/components/motion";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence } from "framer-motion";
 import { useEffect } from "react";
+import { useDashboard } from "@/lib/hooks";
 
 export default function Home() {
   const { tab, modal, setModal, setEditingLog } = useApp();
+  const { data, isLoading } = useDashboard();
 
   // Close modal on Escape
   useEffect(() => {
@@ -31,6 +35,11 @@ export default function Home() {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [setModal, setEditingLog]);
+
+  // Show onboarding if user hasn't completed it
+  if (!isLoading && data && !data.user.onboarded) {
+    return <OnboardingFlow />;
+  }
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -70,6 +79,7 @@ export default function Home() {
               {modal === "scanner" && <ScannerSheet />}
               {modal === "barcode" && <BarcodeScannerSheet />}
               {modal === "food-db" && <FoodDatabaseSheet />}
+              {modal === "create-food" && <CreateFoodSheet />}
               {modal === "add-workout" && <AddWorkoutSheet />}
               {modal === "paywall" && <PaywallSheet />}
               {modal === "edit-profile" && <EditProfileSheet />}

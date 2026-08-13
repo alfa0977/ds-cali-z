@@ -64,9 +64,9 @@ export function FoodDatabaseSheet() {
       </div>
 
       <div className="px-4 py-3">
-        <Button variant="outline" className="w-full rounded-full" onClick={() => setModal(null)}>
+        <Button variant="outline" className="w-full rounded-full" onClick={() => setModal("create-food")}>
           <Pencil className="mr-2 h-4 w-4" />
-          Log empty food
+          Create custom food
         </Button>
       </div>
 

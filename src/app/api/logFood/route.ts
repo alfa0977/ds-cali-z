@@ -28,7 +28,15 @@ export async function POST(req: NextRequest) {
     } else if (d.manualFood) {
       food = await db.food.create({
         data: {
-          ...d.manualFood,
+          name: d.manualFood.name,
+          servingSize: d.manualFood.servingSize,
+          servingWeightGrams: d.manualFood.servingWeightGrams,
+          calories: d.manualFood.calories,
+          protein: d.manualFood.protein,
+          carbs: d.manualFood.carbs,
+          fat: d.manualFood.fat,
+          emoji: d.manualFood.emoji ?? null,
+          category: d.manualFood.category ?? null,
           source: "user",
           createdBy: userId,
         },
@@ -55,6 +63,7 @@ export async function POST(req: NextRequest) {
         userId,
         source: "manual",
         title: food.name,
+        mealSlot: d.mealSlot ?? null,
         ingredients: JSON.stringify([
           {
             name: food.name,
@@ -74,6 +83,7 @@ export async function POST(req: NextRequest) {
         mealId: meal.id,
         macros: JSON.stringify(macros),
         title: food.name,
+        mealSlot: d.mealSlot ?? null,
         timestamp,
       },
     });

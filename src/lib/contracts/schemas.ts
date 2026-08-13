@@ -1,6 +1,8 @@
 // Zod schemas for all API request/response validation.
 import { z } from "zod";
 
+export const mealSlotSchema = z.enum(["breakfast", "lunch", "dinner", "snack"]);
+
 export const macrosSchema = z.object({
   calories: z.number().min(0),
   protein: z.number().min(0),
@@ -41,6 +43,7 @@ export const logMealRequestSchema = z.object({
   healthScore: z.number().min(0).max(100),
   imageUrl: z.string().optional(),
   title: z.string().optional(),
+  mealSlot: mealSlotSchema.optional(),
   corrected: z.boolean().default(false),
 });
 
@@ -53,6 +56,7 @@ export const searchFoodsRequestSchema = z.object({
 export const logFoodRequestSchema = z.object({
   foodId: z.string().optional(),
   servings: z.number().min(0.1).default(1),
+  mealSlot: mealSlotSchema.optional(),
   manualFood: z
     .object({
       name: z.string().min(1),
@@ -62,6 +66,8 @@ export const logFoodRequestSchema = z.object({
       protein: z.number().min(0),
       carbs: z.number().min(0),
       fat: z.number().min(0),
+      emoji: z.string().optional(),
+      category: z.string().optional(),
     })
     .optional(),
   timestamp: z.string().optional(),
@@ -100,6 +106,25 @@ export const updateUserRequestSchema = z.object({
   goals: goalsSchema.optional(),
   weightKg: z.number().min(0).optional(),
   heightCm: z.number().min(0).optional(),
+  age: z.number().min(1).max(120).optional(),
+  sex: z.enum(["male", "female", "other"]).optional(),
+  activityLevel: z
+    .enum(["sedentary", "light", "moderate", "active", "very_active"])
+    .optional(),
+  goal: z.enum(["lose", "maintain", "gain"]).optional(),
+  onboarded: z.boolean().optional(),
+});
+
+// Onboarding completes user profile + computes goals
+export const onboardRequestSchema = z.object({
+  displayName: z.string().min(1),
+  sex: z.enum(["male", "female", "other"]),
+  age: z.number().min(10).max(120),
+  heightCm: z.number().min(100).max(250),
+  weightKg: z.number().min(30).max(300),
+  activityLevel: z.enum(["sedentary", "light", "moderate", "active", "very_active"]),
+  goal: z.enum(["lose", "maintain", "gain"]),
+  targetWeightKg: z.number().min(30).max(300).optional(),
 });
 
 export const logWorkoutRequestSchema = z.object({

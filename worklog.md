@@ -167,3 +167,50 @@ Recommended next steps:
 4. Achievement badges + milestone celebrations.
 5. Pull-to-refresh on dashboard.
 6. Weekly/monthly calendar view for browsing past logs.
+
+---
+Task ID: 3
+Agent: main (developer)
+Task: Round 3 — onboarding flow, custom food creation, meal categorization, achievements, consumed-vs-goal bars.
+
+Work Log:
+- Extended Prisma schema: added `age`, `sex`, `activityLevel`, `goal`, `onboarded` to User model; added `mealSlot` to Meal and Log models. Ran `db:push` + `db:generate`.
+- Updated contracts: added `mealSlotSchema`, `onboardRequestSchema`, extended `updateUserRequestSchema` and `logMealRequestSchema`/`logFoodRequestSchema` to accept mealSlot + new user fields.
+- Built `/api/onboard` route: computes BMR via Mifflin-St Jeor equation, applies activity factor (sedentary 1.2 → very_active 1.9), adjusts for goal (lose -500, gain +400), calculates macro split (30% protein / 40% carbs / 30% fat), updates user profile + goals + onboarded flag.
+- Updated `/api/getUserDashboard`: returns `mealsBySlot` (breakfast/lunch/dinner/snack groupings with auto-categorization by timestamp hour if no explicit slot), `onboarded` flag, real streak calculation, and properly parsed macros in mealsBySlot (fixed NaN bug).
+- Updated `/api/logMeal` and `/api/logFood` to accept + persist `mealSlot`.
+- Added `useOnboard` hook.
+- Built OnboardingFlow (`src/features/onboarding/onboarding-flow.tsx`): 5-step wizard (Welcome → About you → Activity → Goal → Ready) with progress bar, animated transitions, feature highlights, sex/age/height/weight inputs, 5 activity levels with emojis, 3 goal options, and a success screen showing calculated daily goals.
+- Built CreateFoodSheet (`src/features/food-database/create-food-sheet.tsx`): custom food creation with name, emoji picker (20 choices), serving size, weight, calories, protein/carbs/fats fields.
+- Built AchievementsSection (`src/features/progress/achievements-section.tsx`): 8 gamification badges (First Scan, 3-Day Streak, Week Warrior, Monthly Master, 10K Steps, Hydrated, Meal Logger, Perfect Week) with unlocked/locked states, progress bars, and color-coded icons.
+- Enhanced HomeDashboard: added `MacroProgressBars` (consumed-vs-goal horizontal bars for calories/protein/carbs/fats with animated fill + over-goal red indicator), `MealsBySlot` (breakfast/lunch/dinner/snacks sections with per-slot calorie totals, food items with macro breakdown, and + add buttons), improved empty state.
+- Updated FoodDatabaseSheet: "Log empty food" button now opens CreateFoodSheet.
+- Updated page.tsx: shows OnboardingFlow when `user.onboarded === false`, wired up create-food + edit-log modals.
+- Fixed critical Prisma stale client issue: the dev server's module cache held an old PrismaClient that didn't know about new schema fields. Fixed by modifying db.ts to create a fresh client on each module load + restarting the dev server.
+
+QA Results:
+- ✅ ESLint: 0 errors, 0 warnings (exit 0).
+- ✅ Onboarding flow: tested end-to-end via browser — welcome → about you (Jordan, male, 28, 175cm, 72kg) → moderately active → lose weight → calculated goals (2102 cal, 158g protein, 210g carbs, 70g fat) → dashboard loaded with new goals.
+- ✅ Meals by slot: Breakfast/Lunch/Dinner/Snacks sections render with food items, calorie counts, and + buttons. Fixed NaN bug (macros now properly parsed in mealsBySlot).
+- ✅ Macro progress bars: consumed-vs-goal bars animate in with proper colors (over-goal = red).
+- ✅ Achievements: 8 badges render with 2 unlocked, progress bars on locked badges (3-Day Streak 67%, Week Warrior 29%, Monthly Master 7%).
+- ✅ Create food form: opens with name, emoji picker, serving fields, macro inputs.
+- Screenshots: v3-onb-final, v3-onb-complete-success, v3-home-new, v3-meals-final, v3-achievements-view, v3-create-food.
+
+Stage Summary:
+- Round 3 complete. The app now has a full onboarding flow with BMR-based goal calculation, custom food creation, meal categorization (breakfast/lunch/dinner/snacks), gamification achievements, and consumed-vs-goal progress bars.
+- All features verified working via agent-browser + curl.
+- Lint clean. No runtime errors.
+
+Unresolved / minor:
+- Dev server required manual restart to pick up Prisma schema changes (stale module cache). This is a one-time issue per schema change.
+- Meal detail view (clicking a meal to see full ingredient breakdown) is stubbed but not fully implemented.
+- Meal image persistence to /download folder not yet done (still using data URLs / external URLs).
+
+Recommended next steps:
+1. Meal detail view with full ingredient breakdown + edit from there.
+2. Pull-to-refresh on dashboard.
+3. Weekly/monthly calendar view for browsing past logs.
+4. Meal image persistence to /download folder.
+5. Favorites/recents for quick food logging.
+6. Nutrition insights panel (e.g., "You're consistently under your protein goal").

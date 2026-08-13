@@ -28,6 +28,7 @@ export async function POST(req: NextRequest) {
         healthScore: d.healthScore,
         imageUrl: d.imageUrl ?? null,
         title: d.title ?? null,
+        mealSlot: d.mealSlot ?? null,
       },
     });
 
@@ -39,6 +40,7 @@ export async function POST(req: NextRequest) {
         macros: JSON.stringify(d.macros),
         title: d.title ?? null,
         imageUrl: d.imageUrl ?? null,
+        mealSlot: d.mealSlot ?? null,
         corrected: d.corrected,
         timestamp: new Date(),
       },

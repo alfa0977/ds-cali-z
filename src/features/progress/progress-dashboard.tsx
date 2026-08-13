@@ -4,6 +4,7 @@ import { useDashboard } from "@/lib/hooks";
 import { ProgressRing } from "@/components/progress-ring";
 import { AnimatedNumber } from "@/components/animated-number";
 import { TapCard, StaggerList, StaggerItem } from "@/components/motion";
+import { AchievementsSection } from "@/features/progress/achievements-section";
 import { Scale, Calendar, Flag, Pencil, TrendingUp, Flame, Drumstick, Wheat, Droplets } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
@@ -121,6 +122,9 @@ export function ProgressDashboard() {
           Great job! Consistency is key, and you're mastering it! 💪
         </p>
       </motion.div>
+
+      {/* NEW: Achievements */}
+      <AchievementsSection />
 
       {/* weekly summary */}
       <TapCard className="rounded-2xl bg-card p-4 shadow-ios">

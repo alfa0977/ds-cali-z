@@ -11,6 +11,11 @@ export interface DashboardData {
     goals: { calories: number; protein: number; carbs: number; fat: number };
     weightKg: number | null;
     heightCm: number | null;
+    age: number | null;
+    sex: string | null;
+    activityLevel: string | null;
+    goal: string | null;
+    onboarded: boolean;
     subscriptionStatus: string;
     streak: number;
   };
@@ -44,9 +49,16 @@ export interface DashboardData {
     } | null;
     imageUrl: string | null;
     title: string | null;
+    mealSlot: string | null;
     timestamp: string;
     corrected: boolean;
   }>;
+  mealsBySlot: {
+    breakfast: DashboardData["dayLogs"];
+    lunch: DashboardData["dayLogs"];
+    dinner: DashboardData["dayLogs"];
+    snack: DashboardData["dayLogs"];
+  };
   weekHealth: Array<{
     date: string;
     steps: number;
@@ -289,6 +301,33 @@ export function useUpdateLog() {
     },
     onSuccess: () => toast.success("Entry updated"),
     onError: () => toast.error("Failed to update"),
+    onSettled: () => qc.invalidateQueries({ queryKey: ["dashboard"] }),
+  });
+}
+
+export function useOnboard() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (data: {
+      displayName: string;
+      sex: "male" | "female" | "other";
+      age: number;
+      heightCm: number;
+      weightKg: number;
+      activityLevel: "sedentary" | "light" | "moderate" | "active" | "very_active";
+      goal: "lose" | "maintain" | "gain";
+      targetWeightKg?: number;
+    }) => {
+      const res = await fetch("/api/onboard", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+      if (!res.ok) throw new Error("Onboarding failed");
+      return res.json();
+    },
+    onSuccess: () => toast.success("Welcome to CalAI! 🎉"),
+    onError: () => toast.error("Failed to complete onboarding"),
     onSettled: () => qc.invalidateQueries({ queryKey: ["dashboard"] }),
   });
 }
