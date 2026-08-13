@@ -1,8 +1,5 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+// Cal-AI Clone — Prisma schema
+// Maps the Firestore collections from docs/DATA_MODEL.md to SQLite models.
 
 generator client {
   provider = "prisma-client-js"
@@ -14,19 +11,126 @@ datasource db {
 }
 
 model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  name      String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id                 String   @id @default("demo")
+  email              String   @default("demo@cal-ai.app")
+  displayName        String?  @map("display_name")
+  avatarUrl          String?  @map("avatar_url")
+  // goals stored as JSON: { calories, protein, carbs, fat }
+  goals              String   @default("{\"calories\":2500,\"protein\":150,\"carbs\":250,\"fat\":70}")
+  weightKg           Float?   @map("weight_kg")
+  heightCm           Float?   @map("height_cm")
+  subscriptionStatus String   @default("none") @map("subscription_status")
+  revenueCatId       String?  @map("revenue_cat_id")
+  streak             Int      @default(0)
+  createdAt          DateTime @default(now()) @map("created_at")
+  lastLoginAt        DateTime @default(now()) @map("last_login_at")
+
+  meals       Meal[]
+  logs        Log[]
+  healthDaily HealthDaily[]
+  aiAnalyses  AiAnalysis[]
+  foods       Food[]      @relation("UserFoods")
+
+  @@map("users")
 }
 
-model Post {
-  id        String   @id @default(cuid())
-  title     String
-  content   String?
-  published Boolean  @default(false)
-  authorId  String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+model Food {
+  id                String   @id @default(cuid())
+  name              String
+  servingSize       String   @map("serving_size")
+  servingWeightGrams Float   @map("serving_weight_grams")
+  calories          Float
+  protein           Float
+  carbs             Float
+  fat               Float
+  source            String   @default("database") // database | user | ai
+  barcode           String?
+  densityGramsPerMl Float?   @map("density_grams_per_ml")
+  category          String?  // e.g. fruit, vegetable, grain, protein, dairy, snack, beverage
+  emoji             String?
+  createdBy         String?  @map("created_by")
+  createdAt         DateTime @default(now()) @map("created_at")
+
+  user User? @relation("UserFoods", fields: [createdBy], references: [id])
+
+  @@index([name])
+  @@index([barcode])
+  @@map("foods")
+}
+
+model Meal {
+  id           String   @id @default(cuid())
+  userId       String   @map("user_id")
+  source       String   @default("ai") // ai | manual | barcode
+  // ingredients: JSON array of { name, estimatedWeightGrams, volumeMl?, confidence }
+  ingredients  String   @default("[]")
+  // macros: JSON { calories, protein, carbs, fat }
+  macros       String   @default("{\"calories\":0,\"protein\":0,\"carbs\":0,\"fat\":0}")
+  healthScore  Int      @default(0) @map("health_score")
+  imageUrl     String?  @map("image_url")
+  depthMapUrl  String?  @map("depth_map_url")
+  title        String?
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id])
+  logs Log[]
+
+  @@index([userId, createdAt])
+  @@map("meals")
+}
+
+model Log {
+  id              String   @id @default(cuid())
+  userId          String   @map("user_id")
+  type            String   // meal | water | workout
+  mealId          String?  @map("meal_id")
+  // macros JSON { calories, protein, carbs, fat } for meals
+  macros          String?
+  waterMl         Int?     @map("water_ml")
+  // workoutSummary JSON { type, durationMinutes, intensity, caloriesBurned }
+  workoutSummary  String?  @map("workout_summary")
+  imageUrl        String?  @map("image_url")
+  title           String?
+  timestamp       DateTime @default(now())
+  corrected       Boolean  @default(false)
+
+  user User @relation(fields: [userId], references: [id])
+  meal Meal? @relation(fields: [mealId], references: [id])
+
+  @@index([userId, timestamp])
+  @@map("logs")
+}
+
+model HealthDaily {
+  id               String   @id @default(cuid())
+  userId           String   @map("user_id")
+  date             String   // YYYY-MM-DD
+  steps            Int      @default(0)
+  activeEnergyKcal Int      @default(0) @map("active_energy_kcal")
+  waterMl          Int      @default(0) @map("water_ml")
+  weightKg         Float?   @map("weight_kg")
+  // workouts JSON array
+  workouts         String   @default("[]")
+  updatedAt        DateTime @default(now()) @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@unique([userId, date])
+  @@index([userId, date])
+  @@map("health_daily")
+}
+
+model AiAnalysis {
+  id                String   @id @default(cuid())
+  userId            String   @map("user_id")
+  rawResponse       String   @map("raw_response") // JSON
+  correctedResponse String?  @map("corrected_response") // JSON
+  imageUrl          String   @map("image_url")
+  depthMapUrl       String?  @map("depth_map_url")
+  createdAt         DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId, createdAt])
+  @@map("ai_analyses")
 }
