@@ -271,3 +271,52 @@ Recommended next steps:
 4. Recents section (recently logged foods, distinct from favorites).
 5. Macro ratio visualization (pie chart of P/C/F split).
 6. Export/import data (CSV/JSON).
+
+---
+Task ID: 5
+Agent: main (developer)
+Task: Round 5 — macro ratio donut chart, weekly calendar, recents section, styling polish (premium cards, FAB, nav).
+
+Work Log:
+- Built DonutChart component (`src/components/donut-chart.tsx`): multi-segment SVG donut with animated segments (framer-motion staggered fill), configurable size/strokeWidth, center content slot. Used `reduce` for offset accumulation (avoids lint immutability error).
+- Built MacroRatioCard (`src/features/dashboard/macro-ratio-card.tsx`): donut chart showing protein/carbs/fats calorie contribution split (4 cal/g protein+carbs, 9 cal/g fat), center shows total kcal, legend with percentage + grams + mini progress bars per macro.
+- Built WeeklyCalendar (`src/features/dashboard/weekly-calendar.tsx`): 7-day grid with week navigation (chevron left/right, can browse past weeks), per-day calorie indicators (green dot = logged, red = over goal), selected day highlight, today highlight in streak color, future days disabled, summary bar showing selected day's total calories.
+- Built RecentsSection (`src/features/dashboard/recents-section.tsx`): horizontal scroll carousel of recently logged foods (distinct from favorites) — deduplicates by title, shows thumbnail + name + calories, one-tap quick log.
+- Added styling polish:
+  - `.card-premium` CSS class: subtle border (5% foreground) + elevated shadow (8px blur, 24px y-offset) for depth.
+  - `.glass` CSS class: backdrop-blur(20px) + saturate(180%) + semi-transparent background for glassmorphism.
+  - Hero calories card: upgraded to `card-premium`, rounded progress bar caps (h-2 instead of h-1.5), gradient fill (streak→amber when under, destructive→red when over), pill-shaped "eaten" + "burned" badges.
+  - FAB: changed from `bg-primary` (black) to `bg-streak` (orange #FF9500) with orange glow shadow, spring entrance animation (scale 0→1, rotate -90→0).
+  - Bottom nav: glassmorphism background (`.glass`), active tab indicator (animated layoutId pill in streak color), icon scale animation on active (1.1x spring), active text + icon in streak color.
+- Added new components to home dashboard render: MacroRatioCard (after macro triplet), WeeklyCalendar (after macro progress bars), RecentsSection (after favorites quick-add).
+
+QA Results:
+- ✅ ESLint: 0 errors, 0 warnings (exit 0).
+- ✅ Dev server: all routes 200.
+- ✅ Macro ratio donut: shows P 24% / C 45% / F 31% split with 1419 kcal center, animated segments.
+- ✅ Weekly calendar: shows Aug 9-15, day 13 selected, summary "Today 1419 cal", navigation works.
+- ✅ Recents: 4 food cards (Stack of pancakes, Greek Yogurt, Grilled Chicken, Pancakes) with thumbnails + calories.
+- ✅ Hero card: premium styling with gradient progress bar, pill badges, card-premium border + shadow.
+- ✅ FAB: orange (#FF9500) with glow shadow + spring entrance.
+- ✅ Bottom nav: glassmorphism bg, animated active indicator, streak-colored active state.
+- ✅ Dark mode: all new components render correctly in dark theme.
+- ✅ VLM rated 8.5/10 polish (light mode), noted the hero card gradient + premium styling as strengths.
+- Screenshots: v5-home-new, v5-macro-donut, v5-calendar-clean, v5-recents, v5-dark-final.
+
+Stage Summary:
+- Round 5 complete. Added macro ratio donut chart, weekly calendar view, recents section, and comprehensive styling polish (premium cards, glassmorphism, orange FAB with glow, animated bottom nav).
+- All features verified working.
+- Lint clean. No runtime errors.
+
+Unresolved / minor:
+- VLM noted FAB orange is more "Material Design" than iOS HIG (iOS prefers softer accent or systemBlue). Keeping orange as it matches the Cal-AI brand color from reference images.
+- Pull-to-refresh still not implemented.
+- Meal image persistence to /download folder still using external URLs/data URLs.
+
+Recommended next steps:
+1. Pull-to-refresh on dashboard (touch + overscroll).
+2. Meal image persistence to /download folder.
+3. Export/import data (CSV/JSON).
+4. Nutrition timeline view (hourly breakdown of the day).
+5. Water intake chart on Progress page.
+6. Goal achievement notifications/celebrations.

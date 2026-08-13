@@ -7,6 +7,9 @@ import { useDashboard, useLogWater } from "@/lib/hooks";
 import { useApp } from "@/lib/store";
 import { FavoritesQuickAdd } from "@/features/dashboard/favorites-quick-add";
 import { NutritionInsights } from "@/features/dashboard/nutrition-insights";
+import { MacroRatioCard } from "@/features/dashboard/macro-ratio-card";
+import { WeeklyCalendar } from "@/features/dashboard/weekly-calendar";
+import { RecentsSection } from "@/features/dashboard/recents-section";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
 
@@ -541,16 +544,22 @@ export function HomeDashboard() {
     <div className="space-y-4 px-4 pb-4">
       <DateNav />
 
-      {/* Calories hero card */}
-      <TapCard className="rounded-3xl bg-card p-5 shadow-ios">
+      {/* Calories hero card — premium styling */}
+      <TapCard className="card-premium rounded-3xl p-5">
         <div className="flex items-center justify-between">
           <div>
-            <div className="text-5xl font-bold tabular-nums tracking-tight">
+            <div className="text-5xl font-bold tabular-nums tracking-tight leading-none">
               <AnimatedNumber value={left} />
             </div>
-            <div className="text-sm text-muted-foreground">Calories left</div>
-            <div className="mt-2 text-xs text-muted-foreground">
-              <span className="font-medium text-foreground">{consumed.calories}</span> eaten · <span className="font-medium text-streak">{data.burned}</span> burned
+            <div className="mt-1.5 text-sm text-muted-foreground">Calories left</div>
+            <div className="mt-2 flex items-center gap-2 text-xs">
+              <span className="rounded-full bg-secondary px-2 py-0.5 font-medium">
+                <span className="text-foreground">{consumed.calories}</span>
+                <span className="text-muted-foreground"> eaten</span>
+              </span>
+              <span className="rounded-full bg-streak/10 px-2 py-0.5 font-medium text-streak">
+                {data.burned} burned
+              </span>
             </div>
           </div>
           <ProgressRing value={pct} size={96} strokeWidth={10} color="var(--streak)">
@@ -560,13 +569,18 @@ export function HomeDashboard() {
             </div>
           </ProgressRing>
         </div>
-        {/* progress bar under hero */}
-        <div className="mt-4 h-1.5 w-full overflow-hidden rounded-full bg-muted">
+        {/* progress bar under hero — rounded caps + gradient */}
+        <div className="mt-4 h-2 w-full overflow-hidden rounded-full bg-muted">
           <motion.div
             initial={{ width: 0 }}
             animate={{ width: `${Math.min(100, pct)}%` }}
             transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
-            className={cn("h-full rounded-full", pct > 100 ? "bg-destructive" : "bg-streak")}
+            className={cn(
+              "h-full rounded-full",
+              pct > 100
+                ? "bg-gradient-to-r from-destructive to-red-400"
+                : "bg-gradient-to-r from-streak to-amber-400"
+            )}
           />
         </div>
       </TapCard>
@@ -578,8 +592,14 @@ export function HomeDashboard() {
         <MacroCard label="Fats" value={Math.max(0, goals.fat - consumed.fat)} goal={goals.fat} unit="g" color="var(--fats)" icon={Droplets} index={2} />
       </StaggerList>
 
+      {/* NEW: Macro ratio donut chart */}
+      <MacroRatioCard />
+
       {/* NEW: Consumed vs goal progress bars */}
       <MacroProgressBars />
+
+      {/* NEW: Weekly calendar */}
+      <WeeklyCalendar />
 
       {/* Weekly habit strip */}
       <TapCard className="rounded-2xl bg-card p-4 shadow-ios">
@@ -601,6 +621,9 @@ export function HomeDashboard() {
 
       {/* NEW: Favorites quick-add */}
       <FavoritesQuickAdd />
+
+      {/* NEW: Recents section */}
+      <RecentsSection />
 
       {/* NEW: Meals by slot (breakfast/lunch/dinner/snacks) */}
       <div>
