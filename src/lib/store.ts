@@ -16,7 +16,9 @@ export type ModalKey =
   | "paywall"
   | "edit-profile"
   | "edit-goals"
-  | "edit-log";
+  | "edit-log"
+  | "reminders"
+  | "share";
 
 interface AppState {
   tab: TabKey;

@@ -1,15 +1,18 @@
 "use client";
-import { useDashboard, useUpdateUser } from "@/lib/hooks";
+import { useDashboard, useUpdateUser, useImportData } from "@/lib/hooks";
 import { useApp } from "@/lib/store";
-import { ChevronRight, Crown, Moon, Bell, Shield, Trash2, LogOut, Heart, Pencil, Download, FileText, Database } from "lucide-react";
+import { ChevronRight, Crown, Moon, Bell, Shield, Trash2, LogOut, Heart, Pencil, Download, FileText, Database, Upload, Share2 } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { ProgressRing } from "@/components/progress-ring";
 import { toast } from "sonner";
+import { useRef } from "react";
 
 export function SettingsScreen() {
   const { data } = useDashboard();
   const { setModal } = useApp();
   const user = data?.user;
+  const importData = useImportData();
+  const fileRef = useRef<HTMLInputElement>(null);
 
   function downloadExport(format: "json" | "csv") {
     const a = document.createElement("a");
@@ -19,6 +22,22 @@ export function SettingsScreen() {
     a.click();
     document.body.removeChild(a);
     toast.success(`Exporting data as ${format.toUpperCase()}…`);
+  }
+
+  function onImportFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const json = JSON.parse(reader.result as string);
+        importData.mutate(json);
+      } catch {
+        toast.error("Invalid JSON file");
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = "";
   }
 
   return (
@@ -73,7 +92,9 @@ export function SettingsScreen() {
       <div className="overflow-hidden rounded-2xl bg-card shadow-ios">
         <Row icon={Moon} label="Appearance" right={<ThemeToggle />} />
         <Divider />
-        <Row icon={Bell} label="Notifications" right={<ChevronRight className="h-4 w-4 text-muted-foreground" />} />
+        <Row icon={Bell} label="Reminders" right={<ChevronRight className="h-4 w-4 text-muted-foreground" />} onClick={() => setModal("reminders")} />
+        <Divider />
+        <Row icon={Share2} label="Share progress" right={<ChevronRight className="h-4 w-4 text-muted-foreground" />} onClick={() => setModal("share")} />
         <Divider />
         <Row icon={Heart} label="Health connections" right={<span className="text-xs font-medium text-success">Connected</span>} />
         <Divider />
@@ -87,7 +108,10 @@ export function SettingsScreen() {
           <Row icon={FileText} label="Export as JSON" right={<ChevronRight className="h-4 w-4 text-muted-foreground" />} onClick={() => downloadExport("json")} />
           <Divider />
           <Row icon={Download} label="Export as CSV" right={<ChevronRight className="h-4 w-4 text-muted-foreground" />} onClick={() => downloadExport("csv")} />
+          <Divider />
+          <Row icon={Upload} label="Import from JSON" right={<ChevronRight className="h-4 w-4 text-muted-foreground" />} onClick={() => fileRef.current?.click()} />
         </div>
+        <input ref={fileRef} type="file" accept="application/json,.json" onChange={onImportFile} className="hidden" />
       </div>
 
       <div className="overflow-hidden rounded-2xl bg-card shadow-ios">

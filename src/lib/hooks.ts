@@ -408,3 +408,21 @@ export function useMealDetail(id?: string) {
     enabled: !!id,
   });
 }
+
+export function useImportData() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (data: unknown) => {
+      const res = await fetch("/api/importData", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+      if (!res.ok) throw new Error("Import failed");
+      return res.json();
+    },
+    onSuccess: (data) => toast.success(`Imported ${data.imported?.meals ?? 0} meals, ${data.imported?.logs ?? 0} logs`),
+    onError: () => toast.error("Failed to import data"),
+    onSettled: () => qc.invalidateQueries({ queryKey: ["dashboard"] }),
+  });
+}
