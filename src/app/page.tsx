@@ -17,6 +17,7 @@ import { EditProfileSheet, EditGoalsSheet } from "@/features/settings/edit-sheet
 import { OnboardingFlow } from "@/features/onboarding/onboarding-flow";
 import { MealDetailSheet } from "@/features/scanner/meal-detail-sheet";
 import { FavoritesSheet } from "@/features/dashboard/favorites-sheet";
+import { GoalCelebration } from "@/features/dashboard/goal-celebration";
 import { PageTransition, SheetWrapper } from "@/components/motion";
 import { AnimatePresence } from "framer-motion";
 import { useEffect } from "react";
@@ -45,6 +46,7 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
+      <GoalCelebration />
       <div className="phone-frame bg-background flex flex-col overflow-hidden">
         {/* Top bar */}
         <TopBar />

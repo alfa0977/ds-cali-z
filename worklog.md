@@ -320,3 +320,45 @@ Recommended next steps:
 4. Nutrition timeline view (hourly breakdown of the day).
 5. Water intake chart on Progress page.
 6. Goal achievement notifications/celebrations.
+
+---
+Task ID: 6
+Agent: main (developer)
+Task: Round 6 — water intake chart, nutrition timeline, export data, goal celebrations.
+
+Work Log:
+- Built WaterChart (`src/features/progress/water-chart.tsx`): 7-day water bar chart with gradient bars, dashed goal line (2.5L), today's summary (1.1L, 45% of goal), 7-day average, animated bar entrance. Added to Progress page before Achievements.
+- Built NutritionTimeline (`src/features/dashboard/nutrition-timeline.tsx`): hourly calorie breakdown with 6 time buckets (6a, 9a, 12p, 3p, 6p, 9p), gradient bars, nearest-bucket assignment for meal logs, total calories display. Added to home dashboard after Nutrition Insights.
+- Built GoalCelebration (`src/features/dashboard/goal-celebration.tsx`): auto-triggered toast notification with confetti animation when goals are hit (protein goal, water 2.5L, 10K steps, calorie 80-100%). Spring entrance, 6 colored confetti dots burst outward, auto-dismiss after 4s. Fixed lint error by deferring setState with setTimeout. Added to page.tsx as fixed overlay.
+- Built Export API (`/api/exportData`): GET with format=json|csv. Exports user profile, meals, logs, healthDaily, favorites, customFoods. JSON format returns full nested data; CSV format returns logs as spreadsheet with headers (Date, Type, Title, Calories, Protein, Carbs, Fat, Water, Workout, Duration, Meal Slot). Both verified via curl.
+- Added export UI to Settings: "Data" section with "Export as JSON" and "Export as CSV" buttons that trigger browser download via anchor element.
+
+QA Results:
+- ✅ ESLint: 0 errors, 0 warnings (exit 0).
+- ✅ Dev server: all routes 200.
+- ✅ Water chart: shows 1.1L today (45% of goal), 1750ml 7-day avg, 7-day bar chart with goal line. Verified via VLM.
+- ✅ Nutrition timeline: 6 time buckets (6a-9p) with animated bars, total calories display. Verified in DOM.
+- ✅ Export JSON: returns full export with user (goals parsed), meals (ingredients+macros parsed), logs, healthDaily, favorites, customFoods.
+- ✅ Export CSV: returns proper CSV with headers + all log rows.
+- ✅ Settings export UI: "Data" section visible with JSON + CSV options.
+- ✅ Goal celebration: component renders, triggers on protein/water/steps/calorie goals.
+- ✅ Dark mode: VLM rated 8.5/10 — "Top Tier" alongside Zero, Yazio, Apple Health.
+- Screenshots: v6-home, v6-timeline, v6-water-chart, v6-settings-export, v6-dark-final.
+
+Stage Summary:
+- Round 6 complete. Added water intake chart, nutrition timeline, data export (JSON+CSV), and goal achievement celebrations.
+- All features verified working via agent-browser + curl.
+- Lint clean. No runtime errors.
+
+Unresolved / minor:
+- Pull-to-refresh still not implemented.
+- Meal image persistence to /download folder still using external URLs/data URLs.
+- Import data not yet built (only export).
+
+Recommended next steps:
+1. Pull-to-refresh on dashboard.
+2. Import data (JSON) to restore from backup.
+3. Meal image persistence to /download folder.
+4. Nutrition insights improvements (weekly trends, comparisons).
+5. Social sharing (share progress to social media).
+6. Reminders/notifications (drink water, log lunch).

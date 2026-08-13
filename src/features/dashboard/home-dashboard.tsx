@@ -10,6 +10,7 @@ import { NutritionInsights } from "@/features/dashboard/nutrition-insights";
 import { MacroRatioCard } from "@/features/dashboard/macro-ratio-card";
 import { WeeklyCalendar } from "@/features/dashboard/weekly-calendar";
 import { RecentsSection } from "@/features/dashboard/recents-section";
+import { NutritionTimeline } from "@/features/dashboard/nutrition-timeline";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
 
@@ -633,6 +634,9 @@ export function HomeDashboard() {
 
       {/* NEW: Nutrition insights */}
       <NutritionInsights />
+
+      {/* NEW: Nutrition timeline (hourly breakdown) */}
+      <NutritionTimeline />
 
       {/* Recent feed (all logs including water/workouts) */}
       <div>

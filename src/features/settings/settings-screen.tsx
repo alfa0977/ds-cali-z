@@ -1,14 +1,25 @@
 "use client";
 import { useDashboard, useUpdateUser } from "@/lib/hooks";
 import { useApp } from "@/lib/store";
-import { ChevronRight, Crown, Moon, Bell, Shield, Trash2, LogOut, Heart, Pencil } from "lucide-react";
+import { ChevronRight, Crown, Moon, Bell, Shield, Trash2, LogOut, Heart, Pencil, Download, FileText, Database } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { ProgressRing } from "@/components/progress-ring";
+import { toast } from "sonner";
 
 export function SettingsScreen() {
   const { data } = useDashboard();
   const { setModal } = useApp();
   const user = data?.user;
+
+  function downloadExport(format: "json" | "csv") {
+    const a = document.createElement("a");
+    a.href = `/api/exportData?format=${format}`;
+    a.download = `calai-export-${new Date().toISOString().slice(0, 10)}.${format}`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    toast.success(`Exporting data as ${format.toUpperCase()}…`);
+  }
 
   return (
     <div className="space-y-4 px-4 pb-4">
@@ -69,6 +80,16 @@ export function SettingsScreen() {
         <Row icon={Shield} label="Privacy & data" right={<ChevronRight className="h-4 w-4 text-muted-foreground" />} />
       </div>
 
+      {/* data export */}
+      <div>
+        <h3 className="mb-2 px-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Data</h3>
+        <div className="overflow-hidden rounded-2xl bg-card shadow-ios">
+          <Row icon={FileText} label="Export as JSON" right={<ChevronRight className="h-4 w-4 text-muted-foreground" />} onClick={() => downloadExport("json")} />
+          <Divider />
+          <Row icon={Download} label="Export as CSV" right={<ChevronRight className="h-4 w-4 text-muted-foreground" />} onClick={() => downloadExport("csv")} />
+        </div>
+      </div>
+
       <div className="overflow-hidden rounded-2xl bg-card shadow-ios">
         <Row icon={LogOut} label="Log out" danger />
         <Divider />
@@ -91,9 +112,9 @@ function GoalStat({ label, value, unit, color }: { label: string; value: number;
   );
 }
 
-function Row({ icon: Icon, label, right, danger }: { icon: typeof Moon; label: string; right?: React.ReactNode; danger?: boolean }) {
+function Row({ icon: Icon, label, right, danger, onClick }: { icon: typeof Moon; label: string; right?: React.ReactNode; danger?: boolean; onClick?: () => void }) {
   return (
-    <button className="flex w-full items-center gap-3 px-4 py-3.5 text-left transition-colors active:bg-secondary">
+    <button onClick={onClick} className="flex w-full items-center gap-3 px-4 py-3.5 text-left transition-colors active:bg-secondary">
       <Icon className={danger ? "h-5 w-5 text-destructive" : "h-5 w-5 text-muted-foreground"} />
       <span className={danger ? "flex-1 text-sm font-medium text-destructive" : "flex-1 text-sm font-medium"}>{label}</span>
       {right}
