@@ -426,3 +426,26 @@ export function useImportData() {
     onSettled: () => qc.invalidateQueries({ queryKey: ["dashboard"] }),
   });
 }
+
+/** Upload a meal image (data URL) to /download/meal-images and return the public path. */
+export async function uploadMealImage(image: string): Promise<string> {
+  // If it's already an http URL, no need to upload
+  if (image.startsWith("http")) return image;
+  // If it's a data URL, upload it
+  if (image.startsWith("data:image")) {
+    try {
+      const res = await fetch("/api/uploadImage", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ image }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        return data.url;
+      }
+    } catch (e) {
+      console.error("Image upload failed:", e);
+    }
+  }
+  return image;
+}

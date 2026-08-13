@@ -6,6 +6,7 @@ import { AnimatedNumber } from "@/components/animated-number";
 import { TapCard, StaggerList, StaggerItem } from "@/components/motion";
 import { AchievementsSection } from "@/features/progress/achievements-section";
 import { WaterChart } from "@/features/progress/water-chart";
+import { WorkoutHistory } from "@/features/progress/workout-history";
 import { Scale, Calendar, Flag, Pencil, TrendingUp, Flame, Drumstick, Wheat, Droplets } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
@@ -126,6 +127,9 @@ export function ProgressDashboard() {
 
       {/* NEW: Water intake chart */}
       <WaterChart />
+
+      {/* NEW: Workout history */}
+      <WorkoutHistory />
 
       {/* NEW: Achievements */}
       <AchievementsSection />

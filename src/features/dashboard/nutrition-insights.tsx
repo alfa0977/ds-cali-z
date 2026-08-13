@@ -115,10 +115,43 @@ export function NutritionInsights() {
     });
   }
 
+  // Protein trend comparison (NEW)
+  const trend = data.macroTrend ?? [];
+  const todayProtein = trend[trend.length - 1]?.protein ?? 0;
+  const avgProtein = trend.length > 0 ? Math.round(trend.reduce((a, b) => a + b.protein, 0) / trend.length) : 0;
+  if (trend.length >= 2 && avgProtein > 0 && todayProtein > 0) {
+    const proteinDiff = todayProtein - avgProtein;
+    if (Math.abs(proteinDiff) >= 20) {
+      insights.push({
+        type: proteinDiff > 0 ? "success" : "warning",
+        icon: proteinDiff > 0 ? TrendingUp : TrendingDown,
+        title: proteinDiff > 0 ? "Protein up this week" : "Protein down this week",
+        desc: `Today: ${Math.round(todayProtein)}g · 7-day avg: ${avgProtein}g (${proteinDiff > 0 ? "+" : ""}${Math.round(proteinDiff)}g)`,
+        color: "var(--protein)",
+      });
+    }
+  }
+
+  // Water trend comparison (NEW)
+  const weekWater = data.weekHealth ?? [];
+  const todayWaterMl = data.todayHealth?.waterMl ?? 0;
+  const avgWaterMl = weekWater.length > 0 ? Math.round(weekWater.reduce((a, b) => a + b.waterMl, 0) / weekWater.length) : 0;
+  if (weekWater.length >= 2 && avgWaterMl > 0 && todayWaterMl > 0) {
+    const waterDiff = todayWaterMl - avgWaterMl;
+    if (Math.abs(waterDiff) >= 500) {
+      insights.push({
+        type: waterDiff > 0 ? "success" : "info",
+        icon: waterDiff > 0 ? TrendingUp : TrendingDown,
+        title: waterDiff > 0 ? "Drinking more water 💧" : "Drink more water",
+        desc: `Today: ${Math.round(todayWaterMl / 100) / 10}L · 7-day avg: ${(avgWaterMl / 1000).toFixed(1)}L`,
+        color: "var(--water)",
+      });
+    }
+  }
+
   if (insights.length === 0) return null;
 
-  // Weekly trend comparison
-  const trend = data.macroTrend ?? [];
+  // Weekly calorie trend comparison
   const todayCal = trend[trend.length - 1]?.calories ?? 0;
   const avgCal = trend.length > 0 ? Math.round(trend.reduce((a, b) => a + b.calories, 0) / trend.length) : 0;
   const calDiff = todayCal - avgCal;

@@ -1,7 +1,7 @@
 "use client";
 import { useRef, useState } from "react";
 import { Camera, ImagePlus, X, ScanLine, Loader2, Apple, Barcode, Bookmark, Pencil } from "lucide-react";
-import { useAnalyzeMeal, useLogMeal } from "@/lib/hooks";
+import { useAnalyzeMeal, useLogMeal, uploadMealImage } from "@/lib/hooks";
 import { useApp } from "@/lib/store";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -208,14 +208,20 @@ function ResultCard({
     setIngredients((prev) => [...prev, { name: "New ingredient", estimatedWeightGrams: 50, confidence: 0.5 }]);
   }
 
-  function done() {
+  const [persisting, setPersisting] = useState(false);
+
+  async function done() {
+    setPersisting(true);
+    // Persist the image to /download/meal-images if it's a data URL
+    const persistedUrl = await uploadMealImage(image);
+    setPersisting(false);
     logMeal.mutate(
       {
         source: "ai",
         ingredients,
         macros: scaledMacros,
         healthScore: analysis.healthScore,
-        imageUrl: image,
+        imageUrl: persistedUrl,
         title: analysis.mealTitle ?? "Scanned meal",
         corrected: editing,
       },
@@ -304,8 +310,8 @@ function ResultCard({
           <Button variant="outline" className="flex-1 rounded-full" onClick={() => setEditing((e) => !e)}>
             {editing ? "Done editing" : "Fix Results"}
           </Button>
-          <Button className="flex-1 rounded-full" onClick={done} disabled={logMeal.isPending}>
-            {logMeal.isPending ? "Saving…" : "Done"}
+          <Button className="flex-1 rounded-full" onClick={done} disabled={logMeal.isPending || persisting}>
+            {persisting ? "Saving photo…" : logMeal.isPending ? "Saving…" : "Done"}
           </Button>
         </div>
       </div>

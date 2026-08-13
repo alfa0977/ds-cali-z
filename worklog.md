@@ -451,3 +451,44 @@ Recommended next steps:
 4. Nutrition insights: protein trend, water trend comparisons.
 5. Workout history view on Progress page.
 6. Dark mode auto-switching based on system preference.
+
+---
+Task ID: 9
+Agent: main (developer)
+Task: Round 9 — meal image persistence, workout history, dark mode auto-switching, protein/water trend insights.
+
+Work Log:
+- Built `/api/uploadImage` POST route: receives base64 data URL, saves to /download/meal-images/ with UUID filename, returns public path. HTTP URLs (Unsplash samples) pass through as-is.
+- Added `uploadMealImage` helper function in hooks.ts: checks if image is data URL, uploads to API, returns persisted path. HTTP URLs returned as-is.
+- Updated ScannerSheet ResultCard: `done()` now async — persists image via uploadMealImage before logging meal. Added "Saving photo…" button state during persistence.
+- Verified image upload via curl: 1x1 PNG test → saved to /download/meal-images/617b84f5-....png, returns {url, persisted, filename}.
+- Built WorkoutHistory component (`src/features/progress/workout-history.tsx`): summary stats (total calories + minutes), list of recent workouts with activity initial avatar, intensity color-coding, duration, calories, timestamp. Added to Progress page between WaterChart and Achievements.
+- Added dark mode auto-switching: ThemeProvider now uses `defaultTheme="system"` + `enableSystem`. ThemeToggle cycles through 3 modes: light → dark → system (with Monitor icon for system).
+- Enhanced NutritionInsights: added protein trend comparison ("Protein up/down this week" with today vs 7-day avg, triggers if ±20g difference) and water trend comparison ("Drinking more water 💧 / Drink more water" with today vs 7-day avg, triggers if ±500ml difference). Both use color-coded icons.
+
+QA Results:
+- ✅ ESLint: 0 errors, 0 warnings (exit 0).
+- ✅ Dev server: all routes 200.
+- ✅ Image upload: tested via curl — file saved to /download/meal-images/, returns public URL.
+- ✅ Workout history: shows 1 workout (Running, 30 min, high intensity, 320 cal, 3:14 PM) + summary stats (320 cal, 30 min). Verified via VLM.
+- ✅ Theme cycling: dark → light → system → dark. Verified via class check.
+- ✅ Enhanced insights: shows "Protein up this week" + "Eating more than usual" + "Over calorie goal" + "Protein goal hit". Water trend triggers when diff ≥500ml.
+- Screenshots: v9-workout-history, v9-insights-trends, v9-final.
+
+Stage Summary:
+- Round 9 complete. Added meal image persistence to /download folder, workout history view on Progress page, dark mode auto-switching (light/dark/system), and protein + water trend comparison insights.
+- All features verified working via agent-browser + curl.
+- Lint clean. No runtime errors.
+
+Unresolved / minor:
+- Notification scheduling (actual timed delivery) still not wired.
+- Food database could be expanded.
+- The "N Issues" red badge in screenshots is agent-browser's own UI, not the app.
+
+Recommended next steps:
+1. Actual notification scheduling (setTimeout-based delivery).
+2. Food database expansion (more foods, barcode coverage).
+3. Nutrition insights: streak comparisons, macro consistency scores.
+4. Meal planning / suggested meals based on remaining macros.
+5. Social features (friend activity, challenges).
+6. Advanced analytics (macro ratio trends over time, weekly reports).
