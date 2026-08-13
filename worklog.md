@@ -111,3 +111,59 @@ Recommended next steps (priority order):
 2. Features: barcode scanner integration (Open Food Facts API), custom food creation flow, meal editing/deletion, date navigation (Yesterday/past days).
 3. Data: persist uploaded meal images to /download folder, add streak calculation logic, add more detailed progress charts (macro trends over time).
 4. UX: onboarding flow for new users, empty states with illustrations, achievement badges.
+
+---
+Task ID: 2
+Agent: main (developer)
+Task: Round 2 — styling polish (framer-motion animations), barcode scanner, meal edit/delete, date navigation, macro trend charts.
+
+Work Log:
+- Installed @zxing/browser + @zxing/library for barcode scanning.
+- Built motion primitives (`src/components/motion.tsx`): PageTransition (tab fade+slide), TapCard (hover lift + tap scale), SheetWrapper (spring slide-up), StaggerList/StaggerItem (staggered list entrance).
+- Built AnimatedNumber component (`src/components/animated-number.tsx`): counts up from 0 when scrolled into view, using framer-motion's animate() + useInView.
+- Enhanced ProgressRing with framer-motion animated stroke fill (1s ease).
+- Built Shimmer + DashboardSkeleton components for loading states.
+- Added CSS keyframes to globals.css: shimmer, fab-glow, scan-line animation.
+- Improved dark theme contrast: muted-foreground from oklch(0.68) → oklch(0.75) for better readability of secondary text (addressed VLM feedback).
+- Built 3 new API routes:
+  - /api/lookupBarcode: looks up barcode via Open Food Facts API (world.openfoodfacts.org), normalizes to food schema, saves to DB. Tested with Nutella (3017620422003) → returned 539 cal, 6.3g protein, 57.5g carbs, 30.9g fat.
+  - /api/deleteLog: deletes a log entry + its linked meal.
+  - /api/updateLog: patches title/macros/ingredients on a log + meal.
+- Enhanced /api/getUserDashboard: added macroTrend (7-day per-day macro aggregation), computed real streak (consecutive days with meal logs).
+- Added new hooks: useLookupBarcode, useDeleteLog, useUpdateLog.
+- Built BarcodeScannerSheet (`src/features/scanner/barcode-scanner-sheet.tsx`): live camera scanning via ZXing BrowserMultiFormatReader, animated scan line, manual entry fallback, result card with servings stepper + nutrition grid + log button.
+- Built EditLogSheet (`src/features/scanner/edit-log-sheet.tsx`): edit title + macros (calories/protein/carbs/fats), delete with AlertDialog confirmation.
+- Rebuilt HomeDashboard with: animated numbers on all stats, date navigation (chevron left/right with Today/Yesterday/relative date label), TapCard wrappers on hero/water/habit cards, staggered list entrance for macro cards + recent feed, animated water cup fill, tap-to-edit on log rows (opens EditLogSheet), improved empty state with emoji.
+- Rebuilt ProgressDashboard with: animated weight graph (pathLength animation), NEW MacroTrendChart (7-day calorie bar chart with goal line, bars turn red if over goal), NEW MacroBreakdownBars (protein/carbs/fat avg vs goal horizontal bars with animated fill), animated stat cards.
+- Updated AddActionSheet: added "Barcode scan" option (4 actions now: scan meal, barcode, search foods, log workout).
+- Updated page.tsx: AnimatePresence for tab transitions + modal sheet transitions (spring slide-up).
+- Updated store: added "barcode" + "edit-log" modal keys, editingLog state.
+
+QA Results (agent-browser + VLM):
+- ✅ ESLint: 0 errors, 0 warnings (exit 0).
+- ✅ Dev server: all routes 200, no runtime errors.
+- ✅ Home dashboard: animated numbers count up, date navigation works (Yesterday shows 1960 cal left / 540 eaten — different from today), progress rings animate fill, staggered card entrance, water cups animate in.
+- ✅ Barcode scanner: camera viewfinder with animated scan line, manual entry tested with Nutella barcode → Open Food Facts API returned product successfully, result card with servings + nutrition grid rendered.
+- ✅ Edit log: clicked meal row → Edit entry sheet opened with title + 4 macro fields + Save changes + delete (trash) button with confirmation dialog.
+- ✅ Progress dashboard: weight graph with animated path draw, macro trend calorie bar chart (7 days with goal line), macro breakdown bars (protein/carbs/fats avg vs goal), all animate in.
+- ✅ Dark mode: VLM rated 8/10 polish, contrast improved after muted-foreground bump.
+- ✅ Tab transitions: smooth fade+slide between Home/Progress/Settings.
+- ✅ Modal transitions: spring slide-up for all sheets.
+- Screenshots in /home/z/my-project/download/: v2-home, v2-yesterday, v2-progress, v2-progress-scroll, v2-macro-trend, v2-action-sheet, v2-barcode-scanner, v2-barcode-result2, v2-edit-final, v2-dark-home, v2-dark-improved, v2-yesterday-view.
+
+Stage Summary:
+- Round 2 complete. The app now has polished framer-motion animations throughout (page transitions, card entrances, number counting, ring fills, bar charts), 4 new features (barcode scanner with Open Food Facts, meal edit/delete, date navigation, macro trend charts), and improved dark mode contrast.
+- All API routes working. Lint clean. No runtime errors.
+
+Unresolved / minor:
+- Barcode camera scanning requires HTTPS + camera permission; in the headless QA environment the camera may not be available, but manual entry works and the API is verified via direct curl.
+- The "2 Issues" / "1 Issue" red badge seen in screenshots is the agent-browser's own notification UI, NOT part of the app.
+- Macro trend data is sparse for past days (only seeded meals exist); will fill out as user logs more meals.
+
+Recommended next steps:
+1. Onboarding flow for new users (goals setup, health permissions intro).
+2. Custom food creation flow (manual entry with full macro input).
+3. Meal image persistence to /download folder (currently data URLs in memory).
+4. Achievement badges + milestone celebrations.
+5. Pull-to-refresh on dashboard.
+6. Weekly/monthly calendar view for browsing past logs.

@@ -61,6 +61,13 @@ export interface DashboardData {
     waterMl: number;
     activeEnergyKcal: number;
   }>;
+  macroTrend: Array<{
+    date: string;
+    calories: number;
+    protein: number;
+    carbs: number;
+    fat: number;
+  }>;
   recentLogs: DashboardData["dayLogs"];
   daysLogged: number;
 }
@@ -228,6 +235,60 @@ export function useUpdateUser() {
     },
     onSuccess: () => toast.success("Profile updated"),
     onError: () => toast.error("Failed to update profile"),
+    onSettled: () => qc.invalidateQueries({ queryKey: ["dashboard"] }),
+  });
+}
+
+export function useLookupBarcode() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (code: string) => {
+      const res = await fetch(`/api/lookupBarcode?code=${encodeURIComponent(code)}`);
+      if (!res.ok) {
+        const e = await res.json().catch(() => ({}));
+        throw new Error(e.error || "Product not found");
+      }
+      return res.json();
+    },
+    onSuccess: () => toast.success("Product found!"),
+    onError: (e: Error) => toast.error(e.message),
+    onSettled: () => qc.invalidateQueries({ queryKey: ["dashboard"] }),
+  });
+}
+
+export function useDeleteLog() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const res = await fetch(`/api/deleteLog?id=${id}`, { method: "DELETE" });
+      if (!res.ok) throw new Error("Failed to delete");
+      return res.json();
+    },
+    onSuccess: () => toast.success("Entry deleted"),
+    onError: () => toast.error("Failed to delete"),
+    onSettled: () => qc.invalidateQueries({ queryKey: ["dashboard"] }),
+  });
+}
+
+export function useUpdateLog() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (data: {
+      logId: string;
+      title?: string;
+      macros?: { calories: number; protein: number; carbs: number; fat: number };
+      ingredients?: Array<{ name: string; estimatedWeightGrams: number; confidence: number; volumeMl?: number }>;
+    }) => {
+      const res = await fetch("/api/updateLog", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+      if (!res.ok) throw new Error("Failed to update");
+      return res.json();
+    },
+    onSuccess: () => toast.success("Entry updated"),
+    onError: () => toast.error("Failed to update"),
     onSettled: () => qc.invalidateQueries({ queryKey: ["dashboard"] }),
   });
 }

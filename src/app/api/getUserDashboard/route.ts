@@ -66,6 +66,53 @@ export async function GET(req: NextRequest) {
       orderBy: { date: "asc" },
     });
 
+    // Macro trends: last 7 days of meal logs aggregated per day
+    const trendStart = new Date(dayStart);
+    trendStart.setDate(trendStart.getDate() - 6);
+    const trendLogs = await db.log.findMany({
+      where: {
+        userId,
+        type: "meal",
+        timestamp: { gte: trendStart, lte: dayEnd },
+      },
+      orderBy: { timestamp: "asc" },
+    });
+    const macroTrend: Array<{ date: string; calories: number; protein: number; carbs: number; fat: number }> = [];
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date(trendStart);
+      d.setDate(trendStart.getDate() + (6 - i));
+      const key = d.toISOString().slice(0, 10);
+      const dayLogs = trendLogs.filter((l) => l.timestamp.toISOString().slice(0, 10) === key);
+      const sum = { calories: 0, protein: 0, carbs: 0, fat: 0 };
+      for (const l of dayLogs) {
+        if (l.macros) {
+          const m = parseMacros(l.macros);
+          sum.calories += m.calories;
+          sum.protein += m.protein;
+          sum.carbs += m.carbs;
+          sum.fat += m.fat;
+        }
+      }
+      macroTrend.push({ date: key, ...sum });
+    }
+
+    // Streak info: consecutive days with at least one meal log, ending today
+    const allMealLogs = await db.log.findMany({
+      where: { userId, type: "meal" },
+      select: { timestamp: true },
+    });
+    const loggedDays = new Set(allMealLogs.map((l) => l.timestamp.toISOString().slice(0, 10)));
+    let streak = 0;
+    for (let i = 0; i < 365; i++) {
+      const d = new Date(dayStart);
+      d.setDate(d.getDate() - i);
+      if (loggedDays.has(d.toISOString().slice(0, 10))) {
+        streak++;
+      } else if (i > 0) {
+        break;
+      }
+    }
+
     // Recent feed: last 20 logs across all days
     const recentLogs = await db.log.findMany({
       where: { userId },
@@ -80,6 +127,7 @@ export async function GET(req: NextRequest) {
       user: {
         ...user,
         goals: parseMacros(user.goals),
+        streak,
       },
       todayHealth: todayHealth
         ? {
@@ -97,6 +145,7 @@ export async function GET(req: NextRequest) {
       })),
       weekHealth,
       monthHealth,
+      macroTrend,
       recentLogs: recentLogs.map((l) => ({
         ...l,
         macros: l.macros ? parseMacros(l.macros) : null,

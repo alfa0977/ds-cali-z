@@ -1,45 +1,36 @@
 "use client";
-import { Flame, Footprints, Dumbbell, Minus, Plus, Droplets, Wheat, Drumstick } from "lucide-react";
+import { Flame, Footprints, Dumbbell, Minus, Plus, Droplets, Wheat, Drumstick, ChevronLeft, ChevronRight, Pencil } from "lucide-react";
 import { ProgressRing } from "@/components/progress-ring";
+import { AnimatedNumber } from "@/components/animated-number";
+import { TapCard, StaggerList, StaggerItem } from "@/components/motion";
 import { useDashboard, useLogWater } from "@/lib/hooks";
 import { useApp } from "@/lib/store";
 import { cn } from "@/lib/utils";
+import { motion } from "framer-motion";
 
 const WEEKDAYS = ["S", "M", "T", "W", "T", "F", "S"];
 
 function MacroCard({
-  label,
-  value,
-  goal,
-  unit,
-  color,
-  icon: Icon,
-  over,
+  label, value, goal, unit, color, icon: Icon, index,
 }: {
-  label: string;
-  value: number;
-  goal: number;
-  unit: string;
-  color: string;
-  icon: typeof Wheat;
-  over?: boolean;
+  label: string; value: number; goal: number; unit: string; color: string; icon: typeof Wheat; index: number;
 }) {
   const pct = goal > 0 ? Math.min(100, (value / goal) * 100) : 0;
   return (
-    <div className="flex flex-col items-center gap-1.5 rounded-2xl bg-card p-3 shadow-ios">
-      <ProgressRing value={pct} size={52} strokeWidth={5} color={color}>
-        <Icon className="h-5 w-5" style={{ color }} />
-      </ProgressRing>
-      <div className="text-center">
-        <div className="text-base font-bold leading-tight tabular-nums">
-          {value}
-          <span className="text-xs font-medium text-muted-foreground">{unit}</span>
-        </div>
-        <div className="text-[11px] text-muted-foreground">
-          {label} {over && value > goal ? <span className="text-destructive">over</span> : "left"}
+    <StaggerItem>
+      <div className="flex flex-col items-center gap-1.5 rounded-2xl bg-card p-3 shadow-ios">
+        <ProgressRing value={pct} size={52} strokeWidth={5} color={color}>
+          <Icon className="h-5 w-5" style={{ color }} />
+        </ProgressRing>
+        <div className="text-center">
+          <div className="text-base font-bold leading-tight tabular-nums">
+            <AnimatedNumber value={value} />
+            <span className="text-xs font-medium text-muted-foreground">{unit}</span>
+          </div>
+          <div className="text-[11px] text-muted-foreground">{label} left</div>
         </div>
       </div>
-    </div>
+    </StaggerItem>
   );
 }
 
@@ -64,11 +55,17 @@ function WeekStrip() {
   return (
     <div className="flex items-center justify-between px-1">
       {days.map((d, i) => (
-        <div key={i} className="flex flex-col items-center gap-1.5">
+        <motion.div
+          key={i}
+          initial={{ opacity: 0, scale: 0.8 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ delay: i * 0.04, duration: 0.3 }}
+          className="flex flex-col items-center gap-1.5"
+        >
           <span className="text-[11px] font-medium text-muted-foreground">{d.letter}</span>
           <div
             className={cn(
-              "flex h-9 w-9 items-center justify-center rounded-full border-2 text-[11px] font-semibold transition-colors",
+              "flex h-10 w-10 items-center justify-center rounded-full border-2 text-[11px] font-semibold transition-colors",
               d.isToday
                 ? "border-foreground bg-foreground text-background"
                 : d.logged
@@ -80,7 +77,7 @@ function WeekStrip() {
           >
             {d.logged && !d.isToday ? "✓" : new Date(d.date + "T00:00:00").getDate()}
           </div>
-        </div>
+        </motion.div>
       ))}
     </div>
   );
@@ -98,7 +95,7 @@ function StepsCard() {
       </ProgressRing>
       <div className="text-center">
         <div className="text-lg font-bold tabular-nums">
-          {steps.toLocaleString()}
+          <AnimatedNumber value={steps} />
           <span className="text-xs font-normal text-muted-foreground">/{goal.toLocaleString()}</span>
         </div>
         <div className="text-[11px] text-muted-foreground">Steps today</div>
@@ -116,7 +113,9 @@ function CaloriesBurnedCard() {
     <div className="flex flex-col rounded-2xl bg-card p-4 shadow-ios">
       <div className="flex items-center gap-1.5">
         <Flame className="h-4 w-4 text-streak" fill="currentColor" />
-        <span className="text-lg font-bold tabular-nums">{burned}</span>
+        <span className="text-lg font-bold tabular-nums">
+          <AnimatedNumber value={burned} />
+        </span>
       </div>
       <div className="mb-2 text-[11px] text-muted-foreground">Calories burned</div>
       <div className="space-y-1.5">
@@ -153,11 +152,14 @@ function WaterCard() {
   const flOz = Math.round((waterMl / 29.574) * 10) / 10;
   const logWater = useLogWater();
   return (
-    <div className="rounded-2xl bg-card p-4 shadow-ios">
+    <TapCard className="rounded-2xl bg-card p-4 shadow-ios">
       <div className="flex items-center gap-3">
-        <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-water/15">
+        <motion.div
+          whileTap={{ scale: 0.9 }}
+          className="flex h-11 w-11 items-center justify-center rounded-xl bg-water/15"
+        >
           <Droplets className="h-6 w-6 text-water" />
-        </div>
+        </motion.div>
         <div className="flex-1">
           <div className="text-sm font-semibold">Water</div>
           <div className="text-xs text-muted-foreground tabular-nums">
@@ -165,26 +167,31 @@ function WaterCard() {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <button
+          <motion.button
+            whileTap={{ scale: 0.85 }}
             aria-label="Remove water"
             onClick={() => logWater.mutate(-250)}
-            className="flex h-9 w-9 items-center justify-center rounded-full border-2 border-foreground text-foreground transition-transform active:scale-90"
+            className="flex h-9 w-9 items-center justify-center rounded-full border-2 border-foreground text-foreground"
           >
             <Minus className="h-4 w-4" />
-          </button>
-          <button
+          </motion.button>
+          <motion.button
+            whileTap={{ scale: 0.85 }}
             aria-label="Add water"
             onClick={() => logWater.mutate(250)}
-            className="flex h-9 w-9 items-center justify-center rounded-full bg-foreground text-background transition-transform active:scale-90"
+            className="flex h-9 w-9 items-center justify-center rounded-full bg-foreground text-background"
           >
             <Plus className="h-4 w-4" />
-          </button>
+          </motion.button>
         </div>
       </div>
       <div className="mt-3 flex items-center justify-center gap-1.5">
         {Array.from({ length: Math.ceil(goalMl / 250) }).map((_, i) => (
-          <div
+          <motion.div
             key={i}
+            initial={{ scaleX: 0 }}
+            animate={{ scaleX: 1 }}
+            transition={{ delay: i * 0.03 }}
             className={cn(
               "h-1.5 w-6 rounded-full transition-colors",
               i < cups ? "bg-water" : "bg-muted"
@@ -192,7 +199,7 @@ function WaterCard() {
           />
         ))}
       </div>
-    </div>
+    </TapCard>
   );
 }
 
@@ -210,83 +217,98 @@ interface DashboardLog {
   } | null;
   imageUrl: string | null;
   timestamp: string;
+  mealId: string | null;
 }
 
-function LogRow({ log }: { log: DashboardLog }) {
-  const time = new Date(log.timestamp).toLocaleTimeString([], {
-    hour: "numeric",
-    minute: "2-digit",
-  });
-  if (log.type === "water") {
-    return (
-      <div className="flex items-center gap-3 rounded-2xl bg-card p-3 shadow-ios">
-        <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-water/15">
-          <Droplets className="h-5 w-5 text-water" />
-        </div>
-        <div className="flex-1">
-          <div className="text-sm font-semibold">Water</div>
-          <div className="text-xs text-muted-foreground">+{log.waterMl} ml</div>
-        </div>
-        <span className="text-xs text-muted-foreground">{time}</span>
-      </div>
-    );
+function LogRow({ log, index }: { log: DashboardLog; index: number }) {
+  const { setModal, setEditingLog } = useApp();
+  const time = new Date(log.timestamp).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+
+  function openEdit() {
+    if (log.type === "water") return; // water can't be edited, only deleted via...
+    setEditingLog({
+      id: log.id,
+      type: log.type,
+      title: log.title,
+      macros: log.macros,
+      mealId: log.mealId,
+    });
+    setModal("edit-log");
   }
-  if (log.type === "workout" && log.workoutSummary) {
-    const w = log.workoutSummary;
-    return (
-      <div className="flex items-center gap-3 rounded-2xl bg-card p-3 shadow-ios">
-        <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-secondary">
-          <Dumbbell className="h-5 w-5" />
-        </div>
-        <div className="flex-1">
-          <div className="text-sm font-semibold">{log.title ?? w.type}</div>
-          <div className="flex items-center gap-3 text-xs text-muted-foreground">
-            <span className="flex items-center gap-1">
-              <Flame className="h-3 w-3 text-streak" /> {w.caloriesBurned} cal
-            </span>
-            <span>{w.durationMinutes} min</span>
-            <span className="capitalize">{w.intensity}</span>
+
+  const content = (() => {
+    if (log.type === "water") {
+      return (
+        <>
+          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-water/15">
+            <Droplets className="h-5 w-5 text-water" />
           </div>
-        </div>
-        <span className="text-xs text-muted-foreground">{time}</span>
-      </div>
-    );
-  }
-  const m = log.macros;
-  return (
-    <div className="flex items-center gap-3 rounded-2xl bg-card p-3 shadow-ios">
-      <div className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-xl bg-secondary text-lg">
-        {log.imageUrl ? (
-          <img src={log.imageUrl} alt="" className="h-11 w-11 object-cover" />
-        ) : (
-          "🍽️"
-        )}
-      </div>
-      <div className="flex-1 min-w-0">
-        <div className="truncate text-sm font-semibold">{log.title ?? "Meal"}</div>
-        <div className="flex items-center gap-3 text-xs text-muted-foreground">
-          {m && (
-            <>
-              <span className="flex items-center gap-1">
-                <Flame className="h-3 w-3 text-streak" /> {m.calories}
-              </span>
-              <span className="flex items-center gap-1 text-protein">
-                <Drumstick className="h-3 w-3" /> {m.protein}g
-              </span>
-              <span className="flex items-center gap-1 text-carbs">
-                <Wheat className="h-3 w-3" /> {m.carbs}g
-              </span>
-              <span className="flex items-center gap-1 text-fats">
-                <Droplets className="h-3 w-3" /> {m.fat}g
-              </span>
-            </>
+          <div className="flex-1">
+            <div className="text-sm font-semibold">Water</div>
+            <div className="text-xs text-muted-foreground">+{log.waterMl} ml</div>
+          </div>
+        </>
+      );
+    }
+    if (log.type === "workout" && log.workoutSummary) {
+      const w = log.workoutSummary;
+      return (
+        <>
+          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-secondary">
+            <Dumbbell className="h-5 w-5" />
+          </div>
+          <div className="flex-1">
+            <div className="text-sm font-semibold">{log.title ?? w.type}</div>
+            <div className="flex items-center gap-3 text-xs text-muted-foreground">
+              <span className="flex items-center gap-1"><Flame className="h-3 w-3 text-streak" /> {w.caloriesBurned} cal</span>
+              <span>{w.durationMinutes} min</span>
+              <span className="capitalize">{w.intensity}</span>
+            </div>
+          </div>
+        </>
+      );
+    }
+    const m = log.macros;
+    return (
+      <>
+        <div className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-xl bg-secondary text-lg">
+          {log.imageUrl ? (
+            <img src={log.imageUrl} alt="" className="h-11 w-11 object-cover" />
+          ) : (
+            "🍽️"
           )}
         </div>
-      </div>
-      <span className="shrink-0 rounded-full bg-secondary px-2 py-0.5 text-[10px] text-muted-foreground">
-        {time}
-      </span>
-    </div>
+        <div className="flex-1 min-w-0">
+          <div className="truncate text-sm font-semibold">{log.title ?? "Meal"}</div>
+          <div className="flex items-center gap-3 text-xs text-muted-foreground">
+            {m && (
+              <>
+                <span className="flex items-center gap-1"><Flame className="h-3 w-3 text-streak" /> {m.calories}</span>
+                <span className="flex items-center gap-1 text-protein"><Drumstick className="h-3 w-3" /> {m.protein}g</span>
+                <span className="flex items-center gap-1 text-carbs"><Wheat className="h-3 w-3" /> {m.carbs}g</span>
+                <span className="flex items-center gap-1 text-fats"><Droplets className="h-3 w-3" /> {m.fat}g</span>
+              </>
+            )}
+          </div>
+        </div>
+      </>
+    );
+  })();
+
+  return (
+    <StaggerItem>
+      <motion.div
+        whileTap={{ scale: 0.98 }}
+        onClick={openEdit}
+        className="flex cursor-pointer items-center gap-3 rounded-2xl bg-card p-3 shadow-ios active:bg-secondary/50"
+      >
+        {content}
+        <div className="flex items-center gap-2">
+          {log.type !== "water" && <Pencil className="h-3.5 w-3.5 text-muted-foreground/60" />}
+          <span className="shrink-0 rounded-full bg-secondary px-2 py-0.5 text-[10px] text-muted-foreground">{time}</span>
+        </div>
+      </motion.div>
+    </StaggerItem>
   );
 }
 
@@ -295,33 +317,68 @@ function RecentFeed() {
   const logs = data?.dayLogs ?? [];
   if (logs.length === 0) {
     return (
-      <div className="rounded-2xl bg-card p-6 text-center shadow-ios">
-        <p className="text-sm text-muted-foreground">No logs yet today.</p>
-        <p className="mt-0.5 text-xs text-muted-foreground/70">Tap + to scan or add food.</p>
+      <div className="rounded-2xl bg-card p-8 text-center shadow-ios">
+        <div className="mb-2 text-4xl">🍽️</div>
+        <p className="text-sm font-medium text-foreground">No logs yet today</p>
+        <p className="mt-0.5 text-xs text-muted-foreground">Tap the + button to scan a meal or add food.</p>
       </div>
     );
   }
   return (
-    <div className="space-y-2">
-      {logs.map((log) => (
-        <LogRow key={log.id} log={log} />
+    <StaggerList className="space-y-2">
+      {logs.map((log, i) => (
+        <LogRow key={log.id} log={log} index={i} />
       ))}
+    </StaggerList>
+  );
+}
+
+function DateNav() {
+  const { selectedDate, setSelectedDate } = useApp();
+  const today = new Date().toISOString().slice(0, 10);
+  const isToday = selectedDate === today;
+  const isYesterday = selectedDate === new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+  const label = isToday ? "Today" : isYesterday ? "Yesterday" : new Date(selectedDate + "T00:00:00").toLocaleDateString([], { month: "short", day: "numeric" });
+
+  function shift(days: number) {
+    const d = new Date(selectedDate + "T00:00:00");
+    d.setDate(d.getDate() + days);
+    const key = d.toISOString().slice(0, 10);
+    if (key <= today) setSelectedDate(key);
+  }
+
+  return (
+    <div className="flex items-center justify-center gap-3">
+      <motion.button whileTap={{ scale: 0.9 }} onClick={() => shift(-1)} className="flex h-8 w-8 items-center justify-center rounded-full bg-secondary">
+        <ChevronLeft className="h-4 w-4" />
+      </motion.button>
+      <div className="min-w-24 text-center">
+        <div className="text-sm font-bold">{label}</div>
+        <div className="text-[10px] text-muted-foreground">{new Date(selectedDate + "T00:00:00").toLocaleDateString([], { weekday: "long" })}</div>
+      </div>
+      <motion.button
+        whileTap={{ scale: 0.9 }}
+        onClick={() => shift(1)}
+        disabled={isToday}
+        className="flex h-8 w-8 items-center justify-center rounded-full bg-secondary disabled:opacity-30"
+      >
+        <ChevronRight className="h-4 w-4" />
+      </motion.button>
     </div>
   );
 }
 
 export function HomeDashboard() {
-  const { data, isLoading } = useDashboard();
-  const { setModal } = useApp();
+  const { selectedDate, setModal } = useApp();
+  const { data, isLoading } = useDashboard(selectedDate);
 
   if (isLoading || !data) {
     return (
       <div className="space-y-4 px-4 py-2">
+        <div className="h-8 animate-pulse rounded-full bg-card" />
         <div className="h-40 animate-pulse rounded-3xl bg-card" />
         <div className="grid grid-cols-3 gap-2">
-          {[0, 1, 2].map((i) => (
-            <div key={i} className="h-28 animate-pulse rounded-2xl bg-card" />
-          ))}
+          {[0, 1, 2].map((i) => <div key={i} className="h-28 animate-pulse rounded-2xl bg-card" />)}
         </div>
         <div className="h-24 animate-pulse rounded-2xl bg-card" />
       </div>
@@ -333,60 +390,66 @@ export function HomeDashboard() {
   const left = Math.max(0, goals.calories - consumed.calories);
   const pct = goals.calories > 0 ? (consumed.calories / goals.calories) * 100 : 0;
 
-  const proteinLeft = Math.max(0, goals.protein - consumed.protein);
-  const carbsLeft = Math.max(0, goals.carbs - consumed.carbs);
-  const fatLeft = Math.max(0, goals.fat - consumed.fat);
-
   return (
     <div className="space-y-4 px-4 pb-4">
-      <div className="flex items-center gap-2">
-        <button className="rounded-full bg-secondary px-4 py-1.5 text-sm font-semibold">
-          Today
-        </button>
-        <button className="rounded-full px-4 py-1.5 text-sm font-medium text-muted-foreground">
-          Yesterday
-        </button>
-      </div>
+      <DateNav />
 
-      <div className="flex items-center justify-between rounded-3xl bg-card p-5 shadow-ios">
-        <div>
-          <div className="text-5xl font-bold tabular-nums tracking-tight">{left}</div>
-          <div className="text-sm text-muted-foreground">Calories left</div>
-          <div className="mt-2 text-xs text-muted-foreground">
-            {consumed.calories} eaten · {data.burned} burned
+      {/* Calories hero card */}
+      <TapCard className="rounded-3xl bg-card p-5 shadow-ios">
+        <div className="flex items-center justify-between">
+          <div>
+            <div className="text-5xl font-bold tabular-nums tracking-tight">
+              <AnimatedNumber value={left} />
+            </div>
+            <div className="text-sm text-muted-foreground">Calories left</div>
+            <div className="mt-2 text-xs text-muted-foreground">
+              <span className="font-medium text-foreground">{consumed.calories}</span> eaten · <span className="font-medium text-streak">{data.burned}</span> burned
+            </div>
           </div>
+          <ProgressRing value={pct} size={96} strokeWidth={10} color="var(--streak)">
+            <div className="flex flex-col items-center">
+              <Flame className="h-5 w-5 text-streak" fill="currentColor" />
+              <span className="mt-0.5 text-[10px] font-medium text-muted-foreground">{Math.round(pct)}%</span>
+            </div>
+          </ProgressRing>
         </div>
-        <ProgressRing value={pct} size={96} strokeWidth={10} color="var(--streak)">
-          <div className="flex flex-col items-center">
-            <Flame className="h-5 w-5 text-streak" fill="currentColor" />
-            <span className="mt-0.5 text-[10px] font-medium text-muted-foreground">
-              {Math.round(pct)}%
-            </span>
-          </div>
-        </ProgressRing>
-      </div>
+        {/* progress bar under hero */}
+        <div className="mt-4 h-1.5 w-full overflow-hidden rounded-full bg-muted">
+          <motion.div
+            initial={{ width: 0 }}
+            animate={{ width: `${Math.min(100, pct)}%` }}
+            transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
+            className={cn("h-full rounded-full", pct > 100 ? "bg-destructive" : "bg-streak")}
+          />
+        </div>
+      </TapCard>
 
-      <div className="grid grid-cols-3 gap-2">
-        <MacroCard label="Protein" value={proteinLeft} goal={goals.protein} unit="g" color="var(--protein)" icon={Drumstick} />
-        <MacroCard label="Carbs" value={carbsLeft} goal={goals.carbs} unit="g" color="var(--carbs)" icon={Wheat} />
-        <MacroCard label="Fats" value={fatLeft} goal={goals.fat} unit="g" color="var(--fats)" icon={Droplets} />
-      </div>
+      {/* Macro triplet */}
+      <StaggerList className="grid grid-cols-3 gap-2">
+        <MacroCard label="Protein" value={Math.max(0, goals.protein - consumed.protein)} goal={goals.protein} unit="g" color="var(--protein)" icon={Drumstick} index={0} />
+        <MacroCard label="Carbs" value={Math.max(0, goals.carbs - consumed.carbs)} goal={goals.carbs} unit="g" color="var(--carbs)" icon={Wheat} index={1} />
+        <MacroCard label="Fats" value={Math.max(0, goals.fat - consumed.fat)} goal={goals.fat} unit="g" color="var(--fats)" icon={Droplets} index={2} />
+      </StaggerList>
 
-      <div className="rounded-2xl bg-card p-4 shadow-ios">
+      {/* Weekly habit strip */}
+      <TapCard className="rounded-2xl bg-card p-4 shadow-ios">
         <div className="mb-3 flex items-center justify-between">
           <h3 className="text-sm font-semibold">Weekly habit</h3>
           <span className="text-xs text-muted-foreground">{data.daysLogged}/7 days</span>
         </div>
         <WeekStrip />
-      </div>
+      </TapCard>
 
+      {/* Steps + calories burned */}
       <div className="grid grid-cols-2 gap-3">
         <StepsCard />
         <CaloriesBurnedCard />
       </div>
 
+      {/* Water */}
       <WaterCard />
 
+      {/* Recent feed */}
       <div>
         <div className="mb-2 flex items-center justify-between px-1">
           <h3 className="text-base font-semibold">Recently logged</h3>

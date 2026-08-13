@@ -5,25 +5,32 @@ import { BottomNav } from "@/components/bottom-nav";
 import { HomeDashboard } from "@/features/dashboard/home-dashboard";
 import { AddActionSheet } from "@/features/dashboard/add-action-sheet";
 import { ScannerSheet } from "@/features/scanner/scanner-sheet";
+import { BarcodeScannerSheet } from "@/features/scanner/barcode-scanner-sheet";
 import { AddWorkoutSheet } from "@/features/scanner/add-workout-sheet";
+import { EditLogSheet } from "@/features/scanner/edit-log-sheet";
 import { FoodDatabaseSheet } from "@/features/food-database/food-database-sheet";
 import { ProgressDashboard } from "@/features/progress/progress-dashboard";
 import { SettingsScreen } from "@/features/settings/settings-screen";
 import { PaywallSheet } from "@/features/paywall/paywall-sheet";
 import { EditProfileSheet, EditGoalsSheet } from "@/features/settings/edit-sheets";
+import { PageTransition, SheetWrapper } from "@/components/motion";
+import { AnimatePresence, motion } from "framer-motion";
 import { useEffect } from "react";
 
 export default function Home() {
-  const { tab, modal, setModal } = useApp();
+  const { tab, modal, setModal, setEditingLog } = useApp();
 
   // Close modal on Escape
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
-      if (e.key === "Escape") setModal(null);
+      if (e.key === "Escape") {
+        setModal(null);
+        setEditingLog(null);
+      }
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [setModal]);
+  }, [setModal, setEditingLog]);
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -33,26 +40,44 @@ export default function Home() {
 
         {/* Scrollable content */}
         <main className="flex-1 overflow-y-auto thin-scrollbar pt-2 pb-28">
-          {tab === "home" && <HomeDashboard />}
-          {tab === "progress" && <ProgressDashboard />}
-          {tab === "settings" && <SettingsScreen />}
+          <AnimatePresence mode="wait">
+            {tab === "home" && (
+              <PageTransition key="home" k="home">
+                <HomeDashboard />
+              </PageTransition>
+            )}
+            {tab === "progress" && (
+              <PageTransition key="progress" k="progress">
+                <ProgressDashboard />
+              </PageTransition>
+            )}
+            {tab === "settings" && (
+              <PageTransition key="settings" k="settings">
+                <SettingsScreen />
+              </PageTransition>
+            )}
+          </AnimatePresence>
         </main>
 
         {/* Bottom nav + FAB */}
         <BottomNav />
 
         {/* Modals — full-screen overlays within the phone frame */}
-        {modal && (
-          <div className="absolute inset-0 z-50 animate-in fade-in duration-200">
-            {modal === "add-action" && <AddActionSheet />}
-            {modal === "scanner" && <ScannerSheet />}
-            {modal === "food-db" && <FoodDatabaseSheet />}
-            {modal === "add-workout" && <AddWorkoutSheet />}
-            {modal === "paywall" && <PaywallSheet />}
-            {modal === "edit-profile" && <EditProfileSheet />}
-            {modal === "edit-goals" && <EditGoalsSheet />}
-          </div>
-        )}
+        <AnimatePresence>
+          {modal && (
+            <SheetWrapper key={modal}>
+              {modal === "add-action" && <AddActionSheet />}
+              {modal === "scanner" && <ScannerSheet />}
+              {modal === "barcode" && <BarcodeScannerSheet />}
+              {modal === "food-db" && <FoodDatabaseSheet />}
+              {modal === "add-workout" && <AddWorkoutSheet />}
+              {modal === "paywall" && <PaywallSheet />}
+              {modal === "edit-profile" && <EditProfileSheet />}
+              {modal === "edit-goals" && <EditGoalsSheet />}
+              {modal === "edit-log" && <EditLogSheet />}
+            </SheetWrapper>
+          )}
+        </AnimatePresence>
       </div>
     </div>
   );

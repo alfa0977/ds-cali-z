@@ -1,5 +1,6 @@
 "use client";
 import { cn } from "@/lib/utils";
+import { motion } from "framer-motion";
 
 interface ProgressRingProps {
   value: number; // 0-100
@@ -10,6 +11,7 @@ interface ProgressRingProps {
   color?: string; // CSS color, overrides ring color
   children?: React.ReactNode;
   rounded?: boolean;
+  animateFill?: boolean;
 }
 
 /** Circular progress ring with optional center content (SVG). */
@@ -22,6 +24,7 @@ export function ProgressRing({
   color = "var(--foreground)",
   children,
   rounded = true,
+  animateFill = true,
 }: ProgressRingProps) {
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
@@ -47,7 +50,7 @@ export function ProgressRing({
           strokeWidth={strokeWidth}
           className={cn("stroke-muted", trackClassName)}
         />
-        <circle
+        <motion.circle
           cx={size / 2}
           cy={size / 2}
           r={radius}
@@ -55,9 +58,10 @@ export function ProgressRing({
           stroke={color}
           strokeWidth={strokeWidth}
           strokeDasharray={circumference}
-          strokeDashoffset={offset}
           strokeLinecap={rounded ? "round" : "butt"}
-          style={{ transition: "stroke-dashoffset 0.6s cubic-bezier(0.4,0,0.2,1)" }}
+          initial={{ strokeDashoffset: circumference }}
+          animate={{ strokeDashoffset: animateFill ? offset : offset }}
+          transition={{ duration: 1, ease: [0.22, 1, 0.36, 1] }}
         />
       </svg>
       {children && (

@@ -1,11 +1,12 @@
 "use client";
-import { X, Camera, Search, Dumbbell, Droplets, Pencil } from "lucide-react";
+import { X, Camera, Search, Dumbbell, Barcode } from "lucide-react";
 import { useApp } from "@/lib/store";
 
 const ACTIONS = [
   { key: "scanner", label: "Scan meal", desc: "AI-powered food recognition", icon: Camera, color: "var(--streak)" },
-  { key: "food-db", label: "Search foods", desc: "Browse the food database", icon: Search, color: "var(--water)" },
-  { key: "add-workout", label: "Log workout", desc: "Track your exercise", icon: Dumbbell, color: "var(--success)" },
+  { key: "barcode", label: "Barcode scan", desc: "Look up packaged foods", icon: Barcode, color: "var(--water)" },
+  { key: "food-db", label: "Search foods", desc: "Browse the food database", icon: Search, color: "var(--success)" },
+  { key: "add-workout", label: "Log workout", desc: "Track your exercise", icon: Dumbbell, color: "var(--protein)" },
 ] as const;
 
 export function AddActionSheet() {
