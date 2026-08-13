@@ -7,12 +7,19 @@ import { useLogWorkout } from "@/lib/hooks";
 import { cn } from "@/lib/utils";
 
 const TYPES = [
-  { label: "Running", icon: Footprints, mets: 9.8 },
-  { label: "Weight lifting", icon: Dumbbell, mets: 6 },
-  { label: "Cycling", icon: Bike, mets: 7.5 },
-  { label: "Cardio", icon: Heart, mets: 8 },
+  { label: "Running", icon: Footprints, mets: 9.8, emoji: "🏃" },
+  { label: "Weight lifting", icon: Dumbbell, mets: 6, emoji: "🏋️" },
+  { label: "Cycling", icon: Bike, mets: 7.5, emoji: "🚴" },
+  { label: "Cardio", icon: Heart, mets: 8, emoji: "💗" },
+  { label: "Walking", icon: Footprints, mets: 3.5, emoji: "🚶" },
+  { label: "Swimming", icon: Heart, mets: 8.3, emoji: "🏊" },
+  { label: "Yoga", icon: Heart, mets: 3, emoji: "🧘" },
+  { label: "HIIT", icon: Dumbbell, mets: 12, emoji: "🔥" },
 ];
 const INTENSITIES = ["low", "medium", "high"] as const;
+
+// Quick duration presets (minutes)
+const DURATION_PRESETS = [15, 30, 45, 60, 90];
 
 export function AddWorkoutSheet() {
   const { setModal } = useApp();
@@ -39,18 +46,18 @@ export function AddWorkoutSheet() {
 
       <div className="flex-1 overflow-y-auto px-4 pb-4">
         <p className="mb-2 text-xs font-semibold text-muted-foreground">Activity</p>
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-4 gap-2">
           {TYPES.map((t) => (
             <button
               key={t.label}
               onClick={() => setType(t.label)}
               className={cn(
-                "flex items-center gap-2 rounded-2xl border-2 p-3 transition-colors",
+                "flex flex-col items-center gap-1 rounded-2xl border-2 p-2.5 transition-colors",
                 type === t.label ? "border-foreground bg-card" : "border-border bg-card"
               )}
             >
-              <t.icon className="h-5 w-5" />
-              <span className="text-sm font-medium">{t.label}</span>
+              <span className="text-xl">{t.emoji}</span>
+              <span className="text-[10px] font-medium leading-tight text-center">{t.label}</span>
             </button>
           ))}
         </div>
@@ -63,6 +70,21 @@ export function AddWorkoutSheet() {
             <span className="ml-1 text-sm text-muted-foreground">min</span>
           </div>
           <button onClick={() => setDuration((d) => d + 5)} className="flex h-10 w-10 items-center justify-center rounded-full bg-foreground text-background text-lg font-bold">+</button>
+        </div>
+        {/* Quick duration presets */}
+        <div className="mt-2 flex gap-2">
+          {DURATION_PRESETS.map((p) => (
+            <button
+              key={p}
+              onClick={() => setDuration(p)}
+              className={cn(
+                "flex-1 rounded-full py-1.5 text-xs font-medium transition-colors",
+                duration === p ? "bg-foreground text-background" : "bg-secondary text-muted-foreground"
+              )}
+            >
+              {p}m
+            </button>
+          ))}
         </div>
 
         <p className="mb-2 mt-5 text-xs font-semibold text-muted-foreground">Intensity</p>

@@ -409,3 +409,45 @@ Recommended next steps:
 4. Food database expansion (more foods, barcode coverage).
 5. Workout history + exercise presets.
 6. Dark mode auto-switching based on system preference.
+
+---
+Task ID: 8
+Agent: main (developer)
+Task: Round 8 — browser notification integration, weekly trend insights, workout presets, styling polish.
+
+Work Log:
+- Built notification utility (`src/lib/notifications.ts`): `getNotificationPermission`, `requestNotificationPermission`, `showNotification`, `scheduleNotification` (time-based), `REMINDER_PRESETS`. Uses Apple emoji as notification icon/badge.
+- Enhanced RemindersSheet: added notification permission banner with "Enable" button, permission status indicator (green "Notifications enabled" + Test button), localStorage persistence of reminder states, test notification button, deferred setState to fix lint error.
+- Enhanced NutritionInsights: added weekly trend comparison insight that compares today's calories vs 7-day average:
+  - "Eating more than usual" (if +200 cal over avg, red, TrendingUp icon)
+  - "Eating less than usual" (if -200 cal under avg, green, TrendingDown icon)
+  - "Consistent intake" (if within ±200 cal, orange)
+  - Shows "Today: X cal · 7-day avg: Y cal (+/-Z cal)"
+- Enhanced AddWorkoutSheet: expanded from 4 to 8 activity types (added Walking, Swimming, Yoga, HIIT) with emoji icons, changed grid from 2-col to 4-col with emoji + label, added quick duration preset buttons (15m, 30m, 45m, 60m, 90m) below the stepper.
+
+QA Results:
+- ✅ ESLint: 0 errors, 0 warnings (exit 0).
+- ✅ Dev server: all routes 200.
+- ✅ Workout sheet: 8 activities with emojis (Running 🏃, Weight lifting 🏋️, Cycling 🚴, Cardio 💗, Walking 🚶, Swimming 🏊, Yoga 🧘, HIIT 🔥), 5 duration presets (15m/30m/45m/60m/90m). Verified via VLM.
+- ✅ Reminders: notification permission banner with "Enable" button, 4 reminder toggles, save button. Verified via VLM.
+- ✅ Weekly trend insight: shows "Eating more than usual 📈 — Today: 2559 cal · 7-day avg: 443 cal (+2116 cal)". Verified via VLM.
+- ✅ Dark mode: all new components render correctly.
+- Screenshots: v8-workout, v8-reminders, v8-insights-trend, v8-dark-proper.
+
+Stage Summary:
+- Round 8 complete. Added browser notification integration with permission flow, weekly trend comparison insights, expanded workout presets (8 activities + duration presets), and localStorage persistence for reminders.
+- All features verified working via agent-browser.
+- Lint clean. No runtime errors.
+
+Unresolved / minor:
+- Notification scheduling (actual timed delivery) not yet wired — only permission + show-on-demand.
+- Meal image persistence to /download folder still using external URLs/data URLs.
+- The "N Issues" red badge in screenshots is agent-browser's own UI, not the app.
+
+Recommended next steps:
+1. Meal image persistence to /download folder.
+2. Actual notification scheduling (setTimeout-based delivery).
+3. Food database expansion (more foods, barcode coverage).
+4. Nutrition insights: protein trend, water trend comparisons.
+5. Workout history view on Progress page.
+6. Dark mode auto-switching based on system preference.

@@ -117,6 +117,22 @@ export function NutritionInsights() {
 
   if (insights.length === 0) return null;
 
+  // Weekly trend comparison
+  const trend = data.macroTrend ?? [];
+  const todayCal = trend[trend.length - 1]?.calories ?? 0;
+  const avgCal = trend.length > 0 ? Math.round(trend.reduce((a, b) => a + b.calories, 0) / trend.length) : 0;
+  const calDiff = todayCal - avgCal;
+  const trendInsight: Insight | null = trend.length >= 2 && avgCal > 0 ? {
+    type: calDiff > 200 ? "warning" : calDiff < -200 ? "success" : "info",
+    icon: calDiff > 0 ? TrendingUp : TrendingDown,
+    title: calDiff > 200 ? "Eating more than usual" : calDiff < -200 ? "Eating less than usual" : "Consistent intake",
+    desc: `Today: ${todayCal} cal · 7-day avg: ${avgCal} cal (${calDiff > 0 ? "+" : ""}${calDiff} cal)`,
+    color: calDiff > 200 ? "var(--protein)" : calDiff < -200 ? "var(--success)" : "var(--carbs)",
+  } : null;
+
+  const allInsights = [...insights];
+  if (trendInsight) allInsights.splice(1, 0, trendInsight);
+
   return (
     <div>
       <h3 className="mb-2 flex items-center gap-1.5 px-1 text-base font-semibold">
@@ -124,7 +140,7 @@ export function NutritionInsights() {
         Insights
       </h3>
       <div className="space-y-2">
-        {insights.slice(0, 4).map((insight, i) => (
+        {allInsights.slice(0, 5).map((insight, i) => (
           <motion.div
             key={i}
             initial={{ opacity: 0, x: -10 }}
