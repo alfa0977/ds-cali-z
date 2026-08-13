@@ -7,6 +7,7 @@ import { TapCard, StaggerList, StaggerItem } from "@/components/motion";
 import { AchievementsSection } from "@/features/progress/achievements-section";
 import { WaterChart } from "@/features/progress/water-chart";
 import { WorkoutHistory } from "@/features/progress/workout-history";
+import { StreakStatistics } from "@/features/progress/streak-statistics";
 import { Scale, Calendar, Flag, Pencil, TrendingUp, Flame, Drumstick, Wheat, Droplets } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
@@ -133,6 +134,9 @@ export function ProgressDashboard() {
 
       {/* NEW: Achievements */}
       <AchievementsSection />
+
+      {/* NEW: Streak statistics */}
+      <StreakStatistics />
 
       {/* weekly summary */}
       <TapCard className="rounded-2xl bg-card p-4 shadow-ios">

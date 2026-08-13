@@ -492,3 +492,41 @@ Recommended next steps:
 4. Meal planning / suggested meals based on remaining macros.
 5. Social features (friend activity, challenges).
 6. Advanced analytics (macro ratio trends over time, weekly reports).
+
+---
+Task ID: 10
+Agent: main (developer)
+Task: Round 10 — smart meal suggestions, food category filters, streak statistics.
+
+Work Log:
+- Built `/api/mealSuggestions` GET route: analyzes remaining macros (calories/protein/carbs/fat), determines biggest macro gap by percentage, fetches foods from slot-appropriate categories sorted by the gap macro, scores foods by how well they fit remaining macros. Returns suggestions + favorites + remaining + biggestGap.
+- Added `useMealSuggestions` hook + `MealSuggestion` type.
+- Built MealSuggestions component (`src/features/dashboard/meal-suggestions.tsx`): horizontal scroll carousel of smart food recommendations, shows "Need more [macro]" label with color coding, each card shows emoji + name + calories + macro match indicator (e.g., "+27g" protein). Added to home dashboard after RecentsSection.
+- Built StreakStatistics component (`src/features/progress/streak-statistics.tsx`): big current streak display with flame icon, 4-stat grid (Current, Best, This week, Meals logged), weekly consistency bar with gradient fill. Added to Progress page after Achievements.
+- Enhanced FoodDatabaseSheet: added 10 category filter chips (All 🍽️, Protein 🍗, Grains 🌾, Veg 🥦, Fruit 🍎, Dairy 🥛, Snacks 🍫, Drinks ☕, Fats 🫒, Sauces 🍯) in a horizontal scrollable row below the tabs. Filtering by category works client-side.
+
+QA Results:
+- ✅ ESLint: 0 errors, 0 warnings (exit 0).
+- ✅ Dev server: all routes 200 (including new /api/mealSuggestions).
+- ✅ Smart suggestions: shows "Need more protein" with 4 food cards (Burger 540cal +27g, Greek Yogurt 130cal +17g, Pizza 285cal +12g, Sushi 250cal +9g). Verified via VLM.
+- ✅ Streak statistics: shows 2-day current streak, 6-day best, 7/7 this week, 7 meals logged, 100% consistency bar. Verified via VLM.
+- ✅ Food database category chips: 10 categories with emojis in scrollable row, "All" selected by default, filtering works. Verified via VLM.
+- Screenshots: v10-suggestions, v10-streak, v10-fooddb-chips.
+
+Stage Summary:
+- Round 10 complete. Added smart meal suggestions based on remaining macros, food category filter chips, and streak statistics.
+- All features verified working via agent-browser.
+- Lint clean. No runtime errors.
+
+Unresolved / minor:
+- Notification scheduling (actual timed delivery) still not wired.
+- Food database could be expanded further.
+- The "N Issues" red badge in screenshots is agent-browser's own UI, not the app.
+
+Recommended next steps:
+1. Actual notification scheduling (setTimeout-based delivery).
+2. Food database expansion (more foods, barcode coverage).
+3. Weekly macro ratio report / advanced analytics.
+4. Meal planning (save planned meals for the week).
+5. Social features (friend activity, challenges).
+6. Advanced empty states with illustrations.

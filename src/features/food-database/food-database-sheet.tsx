@@ -9,11 +9,25 @@ import { cn } from "@/lib/utils";
 
 const TABS = ["All", "My meals", "My foods", "Saved scans"] as const;
 
+const CATEGORIES = [
+  { key: "All", label: "All", emoji: "🍽️" },
+  { key: "protein", label: "Protein", emoji: "🍗" },
+  { key: "grain", label: "Grains", emoji: "🍚" },
+  { key: "vegetable", label: "Veg", emoji: "🥦" },
+  { key: "fruit", label: "Fruit", emoji: "🍎" },
+  { key: "dairy", label: "Dairy", emoji: "🥛" },
+  { key: "snack", label: "Snacks", emoji: "🍫" },
+  { key: "beverage", label: "Drinks", emoji: "☕" },
+  { key: "fat", label: "Fats", emoji: "🫒" },
+  { key: "sauce", label: "Sauces", emoji: "🍯" },
+] as const;
+
 export function FoodDatabaseSheet() {
   const { setModal } = useApp();
   const { data: foods, isLoading } = useSearchFoods();
   const [q, setQ] = useState("");
   const [tab, setTab] = useState<(typeof TABS)[number]>("All");
+  const [category, setCategory] = useState<string>("All");
   const logFood = useLogFood();
 
   const filtered = useMemo(() => {
@@ -22,8 +36,9 @@ export function FoodDatabaseSheet() {
     let list = foods;
     if (query) list = list.filter((f) => f.name.toLowerCase().includes(query));
     if (tab === "My foods") list = list.filter((f) => f.source === "user");
+    if (category !== "All") list = list.filter((f) => f.category === category);
     return list;
-  }, [foods, q, tab]);
+  }, [foods, q, tab, category]);
 
   return (
     <div className="flex h-full flex-col bg-background">
@@ -58,6 +73,25 @@ export function FoodDatabaseSheet() {
             >
               {t}
               {tab === t && <span className="absolute -bottom-px left-0 right-0 h-0.5 rounded-full bg-foreground" />}
+            </button>
+          ))}
+        </div>
+
+        {/* category filter chips */}
+        <div className="mt-3 flex gap-1.5 overflow-x-auto no-scrollbar pb-1">
+          {CATEGORIES.map((c) => (
+            <button
+              key={c.key}
+              onClick={() => setCategory(c.key)}
+              className={cn(
+                "flex shrink-0 items-center gap-1 rounded-full px-3 py-1.5 text-xs font-medium transition-colors",
+                category === c.key
+                  ? "bg-foreground text-background"
+                  : "bg-secondary text-muted-foreground"
+              )}
+            >
+              <span>{c.emoji}</span>
+              {c.label}
             </button>
           ))}
         </div>

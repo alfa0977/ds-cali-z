@@ -449,3 +449,29 @@ export async function uploadMealImage(image: string): Promise<string> {
   }
   return image;
 }
+
+export interface MealSuggestion {
+  id: string;
+  name: string;
+  emoji: string | null;
+  category: string | null;
+  calories: number;
+  protein: number;
+  carbs: number;
+  fat: number;
+  servingSize: string;
+  score: number;
+  foodId?: string;
+}
+
+export function useMealSuggestions(slot?: string) {
+  return useQuery({
+    queryKey: ["mealSuggestions", slot],
+    queryFn: async () => {
+      const params = slot ? `?slot=${slot}` : "";
+      const res = await fetch(`/api/mealSuggestions${params}`);
+      if (!res.ok) throw new Error("Failed to load suggestions");
+      return res.json();
+    },
+  });
+}

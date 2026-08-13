@@ -11,6 +11,7 @@ import { MacroRatioCard } from "@/features/dashboard/macro-ratio-card";
 import { WeeklyCalendar } from "@/features/dashboard/weekly-calendar";
 import { RecentsSection } from "@/features/dashboard/recents-section";
 import { NutritionTimeline } from "@/features/dashboard/nutrition-timeline";
+import { MealSuggestions } from "@/features/dashboard/meal-suggestions";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
 
@@ -625,6 +626,9 @@ export function HomeDashboard() {
 
       {/* NEW: Recents section */}
       <RecentsSection />
+
+      {/* NEW: Smart meal suggestions */}
+      <MealSuggestions />
 
       {/* NEW: Meals by slot (breakfast/lunch/dinner/snacks) */}
       <div>
