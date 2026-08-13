@@ -15,6 +15,8 @@ import { SettingsScreen } from "@/features/settings/settings-screen";
 import { PaywallSheet } from "@/features/paywall/paywall-sheet";
 import { EditProfileSheet, EditGoalsSheet } from "@/features/settings/edit-sheets";
 import { OnboardingFlow } from "@/features/onboarding/onboarding-flow";
+import { MealDetailSheet } from "@/features/scanner/meal-detail-sheet";
+import { FavoritesSheet } from "@/features/dashboard/favorites-sheet";
 import { PageTransition, SheetWrapper } from "@/components/motion";
 import { AnimatePresence } from "framer-motion";
 import { useEffect } from "react";
@@ -80,6 +82,8 @@ export default function Home() {
               {modal === "barcode" && <BarcodeScannerSheet />}
               {modal === "food-db" && <FoodDatabaseSheet />}
               {modal === "create-food" && <CreateFoodSheet />}
+              {modal === "meal-detail" && <MealDetailSheet />}
+              {modal === "favorites" && <FavoritesSheet />}
               {modal === "add-workout" && <AddWorkoutSheet />}
               {modal === "paywall" && <PaywallSheet />}
               {modal === "edit-profile" && <EditProfileSheet />}

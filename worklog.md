@@ -214,3 +214,60 @@ Recommended next steps:
 4. Meal image persistence to /download folder.
 5. Favorites/recents for quick food logging.
 6. Nutrition insights panel (e.g., "You're consistently under your protein goal").
+
+---
+Task ID: 4
+Agent: main (developer)
+Task: Round 4 — meal detail view, favorites/quick-add, nutrition insights, bug fixes.
+
+Work Log:
+- Extended Prisma schema: added `Favorite` model (id, userId, foodId, name, emoji, calories, protein, carbs, fat, servingSize, createdAt) with unique constraint on [userId, name]. Added `favorites` relation to User. Ran `db:push` + regenerated client.
+- Built 2 new API routes:
+  - `/api/favorites`: GET (list), POST (add/upsert), DELETE (remove) — with Zod validation.
+  - `/api/mealDetail?id=`: GET — returns full meal with parsed ingredients + macros.
+- Added 5 new hooks: `useFavorites`, `useAddFavorite`, `useRemoveFavorite`, `useMealDetail`, plus `Favorite` type.
+- Built MealDetailSheet (`src/features/scanner/meal-detail-sheet.tsx`): hero image with gradient overlay + time/title, 4-column nutrition grid (calories/protein/carbs/fats), health score ring with color-coded status, ingredient list with per-ingredient confidence bars (green >70%, orange >40%, red <40%), star button to add to favorites, edit + delete with confirmation dialog.
+- Built FavoritesSheet (`src/features/dashboard/favorites-sheet.tsx`): full favorites management — list with emoji, name, macros, quick-log (+) button, remove (trash) button, empty state with guidance.
+- Built FavoritesQuickAdd (`src/features/dashboard/favorites-quick-add.tsx`): horizontal scroll carousel of favorite food cards on the home dashboard for one-tap logging. Only shows when favorites exist.
+- Built NutritionInsights (`src/features/dashboard/nutrition-insights.tsx`): dynamic insights panel that analyzes current data and shows relevant tips:
+  - "Low on protein" (if <60% of goal + >500 cal consumed)
+  - "Protein goal hit! 💪" (if ≥100%)
+  - "Over calorie goal" (if >100%)
+  - "Right on track" (if 80-100%)
+  - "Stay hydrated" (if <50% of 2.5L)
+  - "Hydration goal met! 💧" (if ≥100%)
+  - "10K steps crushed! 🚶" / "Time for a walk?" (step-based)
+  - "X-day streak! 🔥" (if streak ≥3)
+  - Color-coded icons (success/warning/info).
+- Updated home dashboard: meals in MealsBySlot now open MealDetailSheet on click; LogRow opens meal-detail for meals (edit-log for workouts); added FavoritesQuickAdd + NutritionInsights sections.
+- Updated store: added `meal-detail` + `favorites` modal keys, `timestamp` field to editingLog.
+- Updated page.tsx: wired up MealDetailSheet + FavoritesSheet modals.
+- Fixed bugs: timestamp "Invalid Date" in meal detail (fallback to meal.createdAt), Prisma stale client (restarted dev server after schema change).
+
+QA Results:
+- ✅ ESLint: 0 errors, 0 warnings (exit 0).
+- ✅ Dev server: all routes 200 (including new /api/favorites, /api/mealDetail).
+- ✅ Meal detail: clicked "Greek Yogurt with Blueberries" → opened sheet with hero image, nutrition grid (215 cal, 19g protein, 30g carbs, 3g fat), health score ring (82, "Excellent nutritional balance"), 3 ingredients with confidence bars (Greek Yogurt 227g 90%, Blueberries 80g 85%, Honey 15g 70%).
+- ✅ Favorites: clicked star on meal detail → "Added to favorites" toast. Verified via curl: favorite stored in DB with macros. Quick Add section appeared on home dashboard with the favorited food card.
+- ✅ Nutrition Insights: shows "Low on protein" (55% of goal, suggests chicken/eggs/yogurt) + "Stay hydrated" (1130ml, aim for 2.5L) — dynamically generated from current data.
+- ✅ Dark mode: toggle works (verified class change), VLM rated 7.5/10 polish.
+- Screenshots: v4-home-insights, v4-insights-view, v4-meal-detail-view, v4-quick-add, v4-dark-proper.
+
+Stage Summary:
+- Round 4 complete. The app now has a full meal detail view with ingredient breakdown + confidence bars, a favorites system with quick-add carousel, and a dynamic nutrition insights panel.
+- All features verified working via agent-browser + curl.
+- Lint clean. No runtime errors.
+
+Unresolved / minor:
+- Pull-to-refresh not yet implemented (requires touch event handling).
+- Weekly calendar view not yet built.
+- Meal image persistence to /download folder still using external URLs/data URLs.
+- The "1 Issue" red badge in screenshots is agent-browser's own UI, not the app.
+
+Recommended next steps:
+1. Pull-to-refresh on dashboard (touch + overscroll).
+2. Weekly/monthly calendar view for browsing past logs.
+3. Meal image persistence to /download folder.
+4. Recents section (recently logged foods, distinct from favorites).
+5. Macro ratio visualization (pie chart of P/C/F split).
+6. Export/import data (CSV/JSON).

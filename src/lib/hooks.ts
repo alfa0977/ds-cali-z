@@ -331,3 +331,80 @@ export function useOnboard() {
     onSettled: () => qc.invalidateQueries({ queryKey: ["dashboard"] }),
   });
 }
+
+export interface Favorite {
+  id: string;
+  name: string;
+  emoji: string | null;
+  calories: number;
+  protein: number;
+  carbs: number;
+  fat: number;
+  servingSize: string | null;
+  foodId: string | null;
+}
+
+export function useFavorites() {
+  return useQuery({
+    queryKey: ["favorites"],
+    queryFn: async () => {
+      const res = await fetch("/api/favorites");
+      if (!res.ok) throw new Error("Failed to load favorites");
+      const data = await res.json();
+      return data.favorites as Favorite[];
+    },
+  });
+}
+
+export function useAddFavorite() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (data: {
+      foodId?: string;
+      name: string;
+      emoji?: string;
+      calories: number;
+      protein: number;
+      carbs: number;
+      fat: number;
+      servingSize?: string;
+    }) => {
+      const res = await fetch("/api/favorites", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+      if (!res.ok) throw new Error("Failed to add favorite");
+      return res.json();
+    },
+    onSuccess: () => toast.success("Added to favorites"),
+    onError: () => toast.error("Failed to add favorite"),
+    onSettled: () => qc.invalidateQueries({ queryKey: ["favorites"] }),
+  });
+}
+
+export function useRemoveFavorite() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const res = await fetch(`/api/favorites?id=${id}`, { method: "DELETE" });
+      if (!res.ok) throw new Error("Failed to remove");
+      return res.json();
+    },
+    onSuccess: () => toast.success("Removed from favorites"),
+    onError: () => toast.error("Failed to remove"),
+    onSettled: () => qc.invalidateQueries({ queryKey: ["favorites"] }),
+  });
+}
+
+export function useMealDetail(id?: string) {
+  return useQuery({
+    queryKey: ["meal", id],
+    queryFn: async () => {
+      const res = await fetch(`/api/mealDetail?id=${id}`);
+      if (!res.ok) throw new Error("Failed to load meal");
+      return res.json();
+    },
+    enabled: !!id,
+  });
+}

@@ -10,6 +10,7 @@ export type ModalKey =
   | "food-db"
   | "create-food"
   | "meal-detail"
+  | "favorites"
   | "add-workout"
   | "add-action"
   | "paywall"
@@ -28,6 +29,7 @@ interface AppState {
     title: string | null;
     macros: { calories: number; protein: number; carbs: number; fat: number } | null;
     mealId: string | null;
+    timestamp?: string;
   } | null;
   setTab: (t: TabKey) => void;
   setModal: (m: ModalKey) => void;

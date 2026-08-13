@@ -34,6 +34,7 @@ model User {
   logs        Log[]
   healthDaily HealthDaily[]
   aiAnalyses  AiAnalysis[]
+  favorites   Favorite[]
   foods       Food[]      @relation("UserFoods")
 
   @@map("users")
@@ -140,4 +141,25 @@ model AiAnalysis {
 
   @@index([userId, createdAt])
   @@map("ai_analyses")
+}
+
+model Favorite {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  foodId    String?  @map("food_id")
+  // For meals favorited (not just foods), store a snapshot
+  name      String
+  emoji     String?
+  calories  Float
+  protein   Float
+  carbs     Float
+  fat       Float
+  servingSize String?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@unique([userId, name])
+  @@index([userId])
+  @@map("favorites")
 }

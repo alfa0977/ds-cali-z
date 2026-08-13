@@ -5,6 +5,8 @@ import { AnimatedNumber } from "@/components/animated-number";
 import { TapCard, StaggerList, StaggerItem } from "@/components/motion";
 import { useDashboard, useLogWater } from "@/lib/hooks";
 import { useApp } from "@/lib/store";
+import { FavoritesQuickAdd } from "@/features/dashboard/favorites-quick-add";
+import { NutritionInsights } from "@/features/dashboard/nutrition-insights";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
 
@@ -224,8 +226,8 @@ function LogRow({ log, index }: { log: DashboardLog; index: number }) {
   const { setModal, setEditingLog } = useApp();
   const time = new Date(log.timestamp).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
 
-  function openEdit() {
-    if (log.type === "water") return; // water can't be edited, only deleted via...
+  function openDetail() {
+    if (log.type === "water") return;
     setEditingLog({
       id: log.id,
       type: log.type,
@@ -233,7 +235,8 @@ function LogRow({ log, index }: { log: DashboardLog; index: number }) {
       macros: log.macros,
       mealId: log.mealId,
     });
-    setModal("edit-log");
+    // Meals open meal-detail; workouts open edit-log
+    setModal(log.type === "meal" && log.mealId ? "meal-detail" : "edit-log");
   }
 
   const content = (() => {
@@ -299,7 +302,7 @@ function LogRow({ log, index }: { log: DashboardLog; index: number }) {
     <StaggerItem>
       <motion.div
         whileTap={{ scale: 0.98 }}
-        onClick={openEdit}
+        onClick={openDetail}
         className="flex cursor-pointer items-center gap-3 rounded-2xl bg-card p-3 shadow-ios active:bg-secondary/50"
       >
         {content}
@@ -343,9 +346,22 @@ const MEAL_SLOTS = [
 
 function MealsBySlot() {
   const { data } = useDashboard();
-  const { setModal } = useApp();
+  const { setModal, setEditingLog } = useApp();
   const mealsBySlot = data?.mealsBySlot;
   if (!mealsBySlot) return null;
+
+  function openMealDetail(m: { id: string; type: string; title: string | null; macros: { calories: number; protein: number; carbs: number; fat: number } | null; mealId: string | null; timestamp: string }) {
+    if (m.type === "meal" && m.mealId) {
+      setEditingLog({
+        id: m.id,
+        type: m.type,
+        title: m.title,
+        macros: m.macros,
+        mealId: m.mealId,
+      });
+      setModal("meal-detail");
+    }
+  }
 
   return (
     <div className="space-y-3">
@@ -377,7 +393,7 @@ function MealsBySlot() {
                 {meals.map((m) => (
                   <button
                     key={m.id}
-                    onClick={() => {/* could open meal detail */}}
+                    onClick={() => openMealDetail(m)}
                     className="flex w-full items-center gap-2 rounded-lg p-1.5 text-left transition-colors hover:bg-secondary/50"
                   >
                     <div className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-lg bg-secondary text-sm">
@@ -583,11 +599,17 @@ export function HomeDashboard() {
       {/* Water */}
       <WaterCard />
 
+      {/* NEW: Favorites quick-add */}
+      <FavoritesQuickAdd />
+
       {/* NEW: Meals by slot (breakfast/lunch/dinner/snacks) */}
       <div>
         <h3 className="mb-2 px-1 text-base font-semibold">Meals</h3>
         <MealsBySlot />
       </div>
+
+      {/* NEW: Nutrition insights */}
+      <NutritionInsights />
 
       {/* Recent feed (all logs including water/workouts) */}
       <div>
