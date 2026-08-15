@@ -4,11 +4,13 @@ import { Flame, Trophy, Target, Zap, Star, Award, TrendingUp, Apple } from "luci
 import { useDashboard } from "@/lib/hooks";
 import { TapCard } from "@/components/motion";
 import { cn } from "@/lib/utils";
+import { useI18n } from "@/lib/i18n";
+import { formatNumber } from "@/lib/date-utils";
 
 interface Badge {
   id: string;
-  label: string;
-  desc: string;
+  labelKey: "firstScan" | "streak3" | "weekWarrior" | "monthlyMaster" | "steps10k" | "hydrated" | "mealLogger" | "perfectWeek";
+  descKey: "firstScanDesc" | "streak3Desc" | "weekWarriorDesc" | "monthlyMasterDesc" | "steps10kDesc" | "hydratedDesc" | "mealLoggerDesc" | "perfectWeekDesc";
   icon: typeof Flame;
   unlocked: boolean;
   progress?: number; // 0-100
@@ -17,6 +19,7 @@ interface Badge {
 
 export function AchievementsSection() {
   const { data } = useDashboard();
+  const { locale, t } = useI18n();
   if (!data) return null;
 
   const streak = data.user.streak;
@@ -29,16 +32,16 @@ export function AchievementsSection() {
   const badges: Badge[] = [
     {
       id: "first-scan",
-      label: "First Scan",
-      desc: "Log your first meal with AI",
+      labelKey: "firstScan",
+      descKey: "firstScanDesc",
       icon: Apple,
       unlocked: totalScans > 0,
       color: "var(--streak)",
     },
     {
       id: "streak-3",
-      label: "3-Day Streak",
-      desc: "Log meals 3 days in a row",
+      labelKey: "streak3",
+      descKey: "streak3Desc",
       icon: Flame,
       unlocked: streak >= 3,
       progress: Math.min(100, (streak / 3) * 100),
@@ -46,8 +49,8 @@ export function AchievementsSection() {
     },
     {
       id: "streak-7",
-      label: "Week Warrior",
-      desc: "7-day logging streak",
+      labelKey: "weekWarrior",
+      descKey: "weekWarriorDesc",
       icon: Flame,
       unlocked: streak >= 7,
       progress: Math.min(100, (streak / 7) * 100),
@@ -55,8 +58,8 @@ export function AchievementsSection() {
     },
     {
       id: "streak-30",
-      label: "Monthly Master",
-      desc: "30-day logging streak",
+      labelKey: "monthlyMaster",
+      descKey: "monthlyMasterDesc",
       icon: Trophy,
       unlocked: streak >= 30,
       progress: Math.min(100, (streak / 30) * 100),
@@ -64,8 +67,8 @@ export function AchievementsSection() {
     },
     {
       id: "step-10k",
-      label: "10K Steps",
-      desc: "Hit 10,000 steps in a day",
+      labelKey: "steps10k",
+      descKey: "steps10kDesc",
       icon: TrendingUp,
       unlocked: stepsToday >= 10000,
       progress: Math.min(100, (stepsToday / 10000) * 100),
@@ -73,8 +76,8 @@ export function AchievementsSection() {
     },
     {
       id: "water-goal",
-      label: "Hydrated",
-      desc: "Drink 2.5L of water",
+      labelKey: "hydrated",
+      descKey: "hydratedDesc",
       icon: Zap,
       unlocked: waterToday >= 2500,
       progress: Math.min(100, (waterToday / 2500) * 100),
@@ -82,8 +85,8 @@ export function AchievementsSection() {
     },
     {
       id: "meals-10",
-      label: "Meal Logger",
-      desc: "Log 10 meals total",
+      labelKey: "mealLogger",
+      descKey: "mealLoggerDesc",
       icon: Star,
       unlocked: mealsCount >= 10,
       progress: Math.min(100, (mealsCount / 10) * 100),
@@ -91,8 +94,8 @@ export function AchievementsSection() {
     },
     {
       id: "week-complete",
-      label: "Perfect Week",
-      desc: "Log all 7 days this week",
+      labelKey: "perfectWeek",
+      descKey: "perfectWeekDesc",
       icon: Award,
       unlocked: daysLogged >= 7,
       progress: Math.min(100, (daysLogged / 7) * 100),
@@ -107,10 +110,10 @@ export function AchievementsSection() {
       <div className="mb-2 flex items-center justify-between px-1">
         <h3 className="text-base font-semibold flex items-center gap-1.5">
           <Trophy className="h-4 w-4 text-streak" />
-          Achievements
+          {t("achievements")}
         </h3>
         <span className="text-xs font-medium text-muted-foreground tabular-nums">
-          {unlockedCount}/{badges.length} unlocked
+          {formatNumber(unlockedCount, locale)}/{formatNumber(badges.length, locale)} {t("unlocked")}
         </span>
       </div>
       <div className="grid grid-cols-2 gap-3">
@@ -152,12 +155,12 @@ export function AchievementsSection() {
                     fillOpacity={badge.unlocked ? 0.2 : 0}
                   />
                 </div>
-                <div className="text-sm font-bold">{badge.label}</div>
-                <div className="text-[11px] text-muted-foreground leading-tight mt-0.5">{badge.desc}</div>
+                <div className="text-sm font-bold">{t(badge.labelKey)}</div>
+                <div className="text-[11px] text-muted-foreground leading-tight mt-0.5">{t(badge.descKey)}</div>
                 {badge.unlocked ? (
                   <div className="mt-2 flex items-center gap-1 text-[10px] font-semibold" style={{ color: badge.color }}>
                     <Star className="h-3 w-3" fill="currentColor" />
-                    UNLOCKED
+                    {t("unlockedLabel")}
                   </div>
                 ) : badge.progress != null ? (
                   <div className="mt-2">
@@ -171,11 +174,11 @@ export function AchievementsSection() {
                       />
                     </div>
                     <div className="mt-1 text-[10px] text-muted-foreground tabular-nums">
-                      {Math.round(badge.progress)}%
+                      {formatNumber(Math.round(badge.progress), locale)}%
                     </div>
                   </div>
                 ) : (
-                  <div className="mt-2 text-[10px] text-muted-foreground">Locked</div>
+                  <div className="mt-2 text-[10px] text-muted-foreground">{t("locked")}</div>
                 )}
               </div>
             </TapCard>

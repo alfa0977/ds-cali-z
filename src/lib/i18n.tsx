@@ -397,6 +397,114 @@ export const translations = {
   failedToLoadFavorites: { fa: "بارگذاری علاقه‌مندی‌ها ناموفق بود", en: "Failed to load favorites" },
   failedToImport: { fa: "ورود داده ناموفق بود", en: "Failed to import data" },
   failedToLoadDashboard: { fa: "بارگذاری داشبورد ناموفق بود", en: "Failed to load dashboard" },
+
+  // === NEW KEYS ADDED FOR PERSIAN FIX ===
+
+  // Macro labels (short)
+  protein: { fa: "پروتئین", en: "Protein" },
+  carbs: { fa: "کربوهیدرات", en: "Carbs" },
+  fats: { fa: "چربی", en: "Fats" },
+
+  // Insight descriptions (templated with {0}, {1}, {2})
+  lowProteinDesc: { fa: "تنها {0}٪ از هدف پروتئین. مرغ، تخم‌مرغ یا ماست یونانی امتحان کنید.", en: "Only {0}% of your protein goal. Try chicken, eggs, or Greek yogurt." },
+  proteinHitDesc: { fa: "امروز {0} گرم پروتئین مصرف کردید.", en: "You've reached {0}g of protein today." },
+  overCalorieDesc: { fa: "{0} کالری بیشتر از هدف روزانه.", en: "You're {0} cal over your daily target." },
+  rightOnTrackDesc: { fa: "{0}٪ تا هدف کالری. تعادل عالی!", en: "You're {0}% from your calorie goal. Great balance!" },
+  stayHydratedDesc: { fa: "{0} میلی‌لیتر آب مصرف شد. امروز را به ۲.۵ لیتر برسانید.", en: "You've had {0}ml of water. Aim for 2.5L today." },
+  hydrationMetDesc: { fa: "عالی! {0} میلی‌لیتر آب نوشیدید.", en: "Excellent! You've drunk {0}ml of water." },
+  stepsCrushedDesc: { fa: "امروز {0} گام برداشتید. عالی!", en: "You walked {0} steps today. Amazing!" },
+  timeForWalkDesc: { fa: "تا الان {0} گام. یک قدم زدن کوتاه به ۱۰هزار گام می‌رساند.", en: "Only {0} steps so far. A short walk could help you reach 10K." },
+  proteinUpDesc: { fa: "امروز: {0} گرم · میانگین ۷ روز: {1} گرم (+{2} گرم)", en: "Today: {0}g · 7-day avg: {1}g (+{2}g)" },
+  proteinDownDesc: { fa: "امروز: {0} گرم · میانگین ۷ روز: {1} گرم ({2} گرم)", en: "Today: {0}g · 7-day avg: {1}g ({2}g)" },
+  waterUpDesc: { fa: "امروز: {0} لیتر · میانگین ۷ روز: {1} لیتر", en: "Today: {0}L · 7-day avg: {1}L" },
+  waterDownDesc: { fa: "امروز: {0} لیتر · میانگین ۷ روز: {1} لیتر", en: "Today: {0}L · 7-day avg: {1}L" },
+  eatingMoreDesc: { fa: "امروز: {0} کال · میانگین ۷ روز: {1} کال (+{2} کال)", en: "Today: {0} cal · 7-day avg: {1} cal (+{2} cal)" },
+  eatingLessDesc: { fa: "امروز: {0} کال · میانگین ۷ روز: {1} کال ({2} کال)", en: "Today: {0} cal · 7-day avg: {1} cal ({2} cal)" },
+  consistentIntakeDesc: { fa: "امروز: {0} کال · میانگین ۷ روز: {1} کال", en: "Today: {0} cal · 7-day avg: {1} cal" },
+  dayStreakDesc: { fa: "{0} روز استمرار! 🔥", en: "{0}-day streak! 🔥" },
+
+  // Goal celebration
+  proteinGoalSmashed: { fa: "هدف پروتئین شکسته شد!", en: "Protein goal smashed!" },
+  proteinGoalSmashedDesc: { fa: "امروز {0} گرم پروتئین مصرف کردید.", en: "You hit {0}g of protein today." },
+  hydrationGoalMetDesc: { fa: "امروز {0} لیتر آب نوشیدید.", en: "You drank {0}L of water today." },
+  stepsCrushedGoalDesc: { fa: "امروز {0} گام برداشتید.", en: "You walked {0} steps today." },
+  rightOnTrackGoalDesc: { fa: "{0}٪ تا هدف کالری.", en: "You're {0}% to your calorie goal." },
+
+  // Nutrition timeline
+  todayTimeline: { fa: "جدول زمانی امروز", en: "Today's timeline" },
+  calTotal: { fa: "کال کل", en: "cal total" },
+
+  // Progress dashboard ranges
+  range90Days: { fa: "۹۰ روز", en: "90 Days" },
+  range6Months: { fa: "۶ ماه", en: "6 Months" },
+  range1Year: { fa: "۱ سال", en: "1 Year" },
+  rangeAllTime: { fa: "همه زمان‌ها", en: "All time" },
+  sevenDayAvg: { fa: "میانگین ۷ روز", en: "7-day avg" },
+  weightUnit: { fa: "کیلوگرم", en: "kg" },
+  goalLabel: { fa: "هدف:", en: "Goal:" },
+  cheatCount: { fa: "{0} تقلب", en: "{0} Cheat" },
+  todayLabel: { fa: "امروز", en: "today" },
+
+  // Scanner extras
+  doneEditing: { fa: "تأیید ویرایش", en: "Done editing" },
+  newIngredient: { fa: "ماده جدید", en: "New ingredient" },
+  meal: { fa: "وعده غذایی", en: "Meal" },
+
+  // Edit log sheet
+  editEntry: { fa: "ویرایش ورودی", en: "Edit entry" },
+  titleLabel: { fa: "عنوان", en: "Title" },
+  deleteThisEntry: { fa: "این ورودی حذف شود؟", en: "Delete this entry?" },
+  deleteEntryDesc: { fa: "این ورودی به‌همراه رکورد وعده آن برای همیشه حذف می‌شود. این کار قابل بازگشت نیست.", en: "This will permanently remove the entry and its meal record. This action cannot be undone." },
+  onlyMealMacrosDesc: { fa: "فقط ورودی‌های وعده می‌توانند درشت‌مغذی‌ها را ویرایش کنند. این ورودی {0} قابل حذف است.", en: "Only meal entries can have macros edited. This {0} entry can be deleted." },
+  loadingMealDetails: { fa: "در حال بارگذاری جزئیات وعده…", en: "Loading meal details…" },
+
+  // Reminders
+  gentleNudgesDesc: { fa: "یادآوری ملایم برای ثبت وعده‌ها و ماندن در مسیر.", en: "Gentle nudges to log your meals and stay on track." },
+  remindersSavedDesc: { fa: "{0} یادآوری ذخیره شد", en: "{0} reminders saved" },
+  remindersEnabledTitle: { fa: "یادآوری‌ها فعال شد! 🎉", en: "Reminders enabled! 🎉" },
+  remindersEnabledBody: { fa: "حالا یادآوری‌های ملایمی برای ثبت وعده‌ها دریافت می‌کنید.", en: "You'll now get gentle nudges to log your meals." },
+  testReminderTitle: { fa: "یادآوری آزمایشی 🔔", en: "Test reminder 🔔" },
+  testReminderBody: { fa: "یادآوری‌های شما این‌گونه نمایش داده می‌شوند!", en: "This is how your reminders will look!" },
+  tipLabel: { fa: "نکته:", en: "Tip:" },
+
+  // Share sheet
+  trackingMyNutrition: { fa: "در حال ثبت تغذیه با DS-Cali 🍎", en: "Tracking my nutrition with DS-Cali 🍎" },
+  myProgressTitle: { fa: "پیشرفت DS-Cali من", en: "My DS-Cali progress" },
+  shareTextTemplate: { fa: "من با DS-Cali تغذیه‌ام را ثبت می‌کنم! 🔥\n\nامروز: {0}/{1} کال ({2}٪)\nپروتئین: {3}گ/{4}گ\n{5}-روز استمرار 💪\n\n#DSCali #HealthyLiving", en: "I'm tracking my nutrition with DS-Cali! 🔥\n\nToday: {0}/{1} cal ({2}%)\nProtein: {3}g/{4}g\n{5}-day streak 💪\n\n#DSCali #HealthyLiving" },
+
+  // Edit sheets
+  weightKg: { fa: "وزن (کیلوگرم)", en: "Weight (kg)" },
+  heightCm: { fa: "قد (سانتی‌متر)", en: "Height (cm)" },
+  proteinG: { fa: "پروتئین (گ)", en: "Protein (g)" },
+  carbsG: { fa: "کربوهیدرات (گ)", en: "Carbs (g)" },
+  fatsG: { fa: "چربی (گ)", en: "Fats (g)" },
+  yourNamePlaceholder: { fa: "نام شما", en: "Your name" },
+
+  // Onboarding
+  welcomeToCalAI: { fa: "به DS-Cali خوش آمدید", en: "Welcome to DS-Cali" },
+  welcomeDesc: { fa: "با دید هوش مصنوعی وعده‌ها را ثبت کنید، به درشت‌مغذی‌های خود برسید و عادت‌های سالم بسازید — همه در یک اپ زیبا.", en: "Track meals with AI vision, hit your macros, and build healthy habits — all in one beautiful app." },
+  unitsCmKg: { fa: "واحدها: سانتی‌متر و کیلوگرم", en: "Units: cm and kg" },
+  sedentaryDesc: { fa: "کم یا بدون ورزش، کار پشت میز", en: "Little or no exercise, desk job" },
+  lightlyActiveDesc: { fa: "ورزش سبک ۱-۳ روز در هفته", en: "Light exercise 1-3 days/week" },
+  moderatelyActiveDesc: { fa: "ورزش متوسط ۳-۵ روز در هفته", en: "Moderate exercise 3-5 days/week" },
+  veryActiveDesc: { fa: "ورزش سنگین ۶-۷ روز در هفته", en: "Hard exercise 6-7 days/week" },
+  extraActiveDesc: { fa: "ورزش خیلی سنگین، کار فیزیکی", en: "Very hard exercise, physical job" },
+  loseWeightDesc: { fa: "کمبود ~۰.۵ کیلوگرم در هفته", en: "~0.5 kg/week deficit" },
+  maintainWeightDesc: { fa: "در وزن فعلی بمانید", en: "Stay at current weight" },
+  gainMuscleDesc: { fa: "اضافه ~۰.۴ کیلوگرم در هفته", en: "~0.4 kg/week surplus" },
+
+  // Quick log toast (food name + "logged")
+  loggedToast: { fa: "{0} ثبت شد", en: "{0} logged" },
+
+  // Food database extras
+  cat_all: { fa: "همه", en: "All" },
+  veg: { fa: "سبزی", en: "Veg" },
+  drinks: { fa: "نوشیدنی", en: "Drinks" },
+
+  // Need more (macro)
+  needMoreProtein: { fa: "نیاز به پروتئین بیشتر", en: "Need more protein" },
+  needMoreCarbs: { fa: "نیاز به کربوهیدرات بیشتر", en: "Need more carbs" },
+  needMoreFats: { fa: "نیاز به چربی بیشتر", en: "Need more fats" },
 } as const;
 
 export type TranslationKey = keyof typeof translations;

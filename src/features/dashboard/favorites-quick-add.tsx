@@ -5,11 +5,15 @@ import { useApp } from "@/lib/store";
 import { TapCard } from "@/components/motion";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
+import { useI18n } from "@/lib/i18n";
+import { formatNumber } from "@/lib/date-utils";
+import { translateFoodName } from "@/lib/food-translations";
 
 export function FavoritesQuickAdd() {
   const { data: favorites, isLoading } = useFavorites();
   const logFood = useLogFood();
   const { setModal } = useApp();
+  const { locale, t } = useI18n();
 
   if (isLoading) return null;
 
@@ -35,7 +39,7 @@ export function FavoritesQuickAdd() {
         },
       });
     }
-    toast.success(`${fav.name} logged`);
+    toast.success(t("loggedToast").replace("{0}", translateFoodName(fav.name, locale)));
   }
 
   return (
@@ -43,10 +47,10 @@ export function FavoritesQuickAdd() {
       <div className="mb-2 flex items-center justify-between px-1">
         <h3 className="flex items-center gap-1.5 text-base font-semibold">
           <Star className="h-4 w-4 text-streak" fill="currentColor" />
-          Quick add
+          {t("quickAdd")}
         </h3>
         <button onClick={() => setModal("favorites")} className="text-xs font-medium text-muted-foreground">
-          See all
+          {t("seeAll")}
         </button>
       </div>
       <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
@@ -65,10 +69,10 @@ export function FavoritesQuickAdd() {
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-secondary text-xl">
               ⭐
             </div>
-            <div className="max-w-[72px] truncate text-xs font-medium">{fav.name}</div>
+            <div className="max-w-[72px] truncate text-xs font-medium">{translateFoodName(fav.name, locale)}</div>
             <div className="flex items-center gap-0.5 text-[10px] text-muted-foreground">
               <Flame className="h-2.5 w-2.5 text-streak" />
-              {Math.round(fav.calories)}
+              {formatNumber(Math.round(fav.calories), locale)}
             </div>
           </motion.button>
         ))}

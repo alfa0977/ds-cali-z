@@ -7,6 +7,9 @@ import { useLookupBarcode, useLogFood } from "@/lib/hooks";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
+import { useI18n } from "@/lib/i18n";
+import { formatNumber } from "@/lib/date-utils";
+import { translateFoodName } from "@/lib/food-translations";
 
 export function BarcodeScannerSheet() {
   const { setModal } = useApp();
@@ -15,6 +18,7 @@ export function BarcodeScannerSheet() {
   const [manualCode, setManualCode] = useState("");
   const [scanning, setScanning] = useState(true);
   const lookup = useLookupBarcode();
+  const { t } = useI18n();
 
   useEffect(() => {
     if (!scanning || !videoRef.current) return;
@@ -33,14 +37,14 @@ export function BarcodeScannerSheet() {
       })
       .catch((e) => {
         console.error("Barcode scanner error:", e);
-        toast.error("Camera unavailable. Enter the barcode manually.");
+        toast.error(t("cameraUnavailable"));
         setScanning(false);
       });
     return () => {
       controlsRef.current?.stop();
       controlsRef.current = null;
     };
-  }, [scanning]);
+  }, [scanning, t]);
 
   function submitManual() {
     if (!manualCode.trim()) return;
@@ -57,7 +61,7 @@ export function BarcodeScannerSheet() {
         <button onClick={() => setModal(null)} className="flex h-9 w-9 items-center justify-center rounded-full bg-secondary">
           <X className="h-5 w-5" />
         </button>
-        <h2 className="text-base font-semibold">Barcode Scanner</h2>
+        <h2 className="text-base font-semibold">{t("barcodeScanner")}</h2>
         <div className="h-9 w-9" />
       </div>
 
@@ -80,7 +84,7 @@ export function BarcodeScannerSheet() {
         {lookup.isPending && (
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-black/60 backdrop-blur-sm">
             <Loader2 className="h-10 w-10 animate-spin text-white" />
-            <p className="text-sm font-medium text-white">Looking up product…</p>
+            <p className="text-sm font-medium text-white">{t("lookingUpProduct")}</p>
           </div>
         )}
         {!scanning && !lookup.isPending && !foundFood && (
@@ -90,7 +94,7 @@ export function BarcodeScannerSheet() {
               onClick={() => setScanning(true)}
               className="rounded-full bg-white px-4 py-2 text-sm font-semibold text-black"
             >
-              Resume scanning
+              {t("resumeScanning")}
             </button>
           </div>
         )}
@@ -98,7 +102,7 @@ export function BarcodeScannerSheet() {
 
       {/* manual entry */}
       <div className="px-4 py-3">
-        <p className="mb-2 text-xs font-medium text-muted-foreground">Or enter barcode manually:</p>
+        <p className="mb-2 text-xs font-medium text-muted-foreground">{t("orEnterBarcodeManually")}</p>
         <div className="flex gap-2">
           <Input
             value={manualCode}
@@ -137,6 +141,7 @@ function BarcodeResult({
 }) {
   const { setModal } = useApp();
   const logFood = useLogFood();
+  const { locale, t } = useI18n();
   const [servings, setServings] = useState(1);
   const macros = {
     calories: Math.round(food.calories * servings),
@@ -149,32 +154,32 @@ function BarcodeResult({
     <div className="flex-1 overflow-y-auto border-t border-border px-4 py-4">
       <div className="mb-3 flex items-center gap-1.5 text-xs font-medium text-success">
         <Barcode className="h-4 w-4" />
-        Product found
+        {t("productFound")}
       </div>
       <div className="flex items-center gap-3">
         <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-secondary text-3xl">
           {food.emoji ?? "📦"}
         </div>
         <div className="flex-1">
-          <h3 className="text-lg font-bold leading-tight">{food.name}</h3>
+          <h3 className="text-lg font-bold leading-tight">{translateFoodName(food.name, locale)}</h3>
           <p className="text-xs text-muted-foreground">{food.servingSize}</p>
         </div>
       </div>
 
       <div className="mt-4 flex items-center gap-3">
-        <span className="text-sm font-medium text-muted-foreground">Servings</span>
+        <span className="text-sm font-medium text-muted-foreground">{t("servings")}</span>
         <div className="flex items-center gap-3 rounded-full border border-border px-1 py-1">
           <button onClick={() => setServings((s) => Math.max(0.5, Math.round((s - 0.5) * 10) / 10))} className="flex h-7 w-7 items-center justify-center rounded-full bg-secondary font-bold">−</button>
-          <span className="min-w-6 text-center text-sm font-semibold tabular-nums">{servings}</span>
+          <span className="min-w-6 text-center text-sm font-semibold tabular-nums">{formatNumber(servings, locale)}</span>
           <button onClick={() => setServings((s) => Math.round((s + 0.5) * 10) / 10)} className="flex h-7 w-7 items-center justify-center rounded-full bg-foreground text-background font-bold">+</button>
         </div>
       </div>
 
       <div className="mt-4 grid grid-cols-2 gap-3">
-        <NutBox label="Calories" value={macros.calories} icon="🔥" color="text-streak" />
-        <NutBox label="Carbs" value={macros.carbs} unit="g" icon="🌾" color="text-carbs" />
-        <NutBox label="Protein" value={macros.protein} unit="g" icon="🍗" color="text-protein" />
-        <NutBox label="Fats" value={macros.fat} unit="g" icon="💧" color="text-fats" />
+        <NutBox label={t("calories")} value={macros.calories} icon="🔥" color="text-streak" />
+        <NutBox label={t("carbs")} value={macros.carbs} unit="g" icon="🌾" color="text-carbs" />
+        <NutBox label={t("protein")} value={macros.protein} unit="g" icon="🍗" color="text-protein" />
+        <NutBox label={t("fats")} value={macros.fat} unit="g" icon="💧" color="text-fats" />
       </div>
 
       <Button
@@ -188,13 +193,14 @@ function BarcodeResult({
           )
         }
       >
-        {logFood.isPending ? "Saving…" : "Log this food"}
+        {logFood.isPending ? t("saving") : t("logThisFood")}
       </Button>
     </div>
   );
 }
 
 function NutBox({ label, value, unit, icon, color }: { label: string; value: number; unit?: string; icon: string; color: string }) {
+  const { locale } = useI18n();
   return (
     <div className="rounded-2xl bg-secondary p-3">
       <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
@@ -202,7 +208,7 @@ function NutBox({ label, value, unit, icon, color }: { label: string; value: num
         {label}
       </div>
       <div className={`mt-0.5 text-xl font-bold tabular-nums ${color}`}>
-        {value}
+        {formatNumber(value, locale)}
         {unit && <span className="text-xs font-medium text-muted-foreground">{unit}</span>}
       </div>
     </div>

@@ -4,12 +4,16 @@ import { useApp } from "@/lib/store";
 import { useFavorites, useRemoveFavorite, useLogFood } from "@/lib/hooks";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
+import { useI18n } from "@/lib/i18n";
+import { formatNumber } from "@/lib/date-utils";
+import { translateFoodName } from "@/lib/food-translations";
 
 export function FavoritesSheet() {
   const { setModal } = useApp();
   const { data: favorites, isLoading } = useFavorites();
   const removeFav = useRemoveFavorite();
   const logFood = useLogFood();
+  const { locale, t } = useI18n();
 
   function quickLog(fav: { id: string; name: string; foodId: string | null; calories: number; protein: number; carbs: number; fat: number }) {
     if (fav.foodId) {
@@ -28,7 +32,7 @@ export function FavoritesSheet() {
         },
       });
     }
-    toast.success(`${fav.name} logged`);
+    toast.success(t("loggedToast").replace("{0}", translateFoodName(fav.name, locale)));
   }
 
   return (
@@ -39,18 +43,18 @@ export function FavoritesSheet() {
         </button>
         <h2 className="flex items-center gap-1.5 text-base font-semibold">
           <Star className="h-4 w-4 text-streak" fill="currentColor" />
-          Favorites
+          {t("favorites")}
         </h2>
         <div className="h-9 w-9" />
       </div>
 
       <div className="flex-1 overflow-y-auto thin-scrollbar px-4 pb-4">
-        {isLoading && <p className="py-8 text-center text-sm text-muted-foreground">Loading…</p>}
+        {isLoading && <p className="py-8 text-center text-sm text-muted-foreground">{t("loading")}</p>}
         {!isLoading && (!favorites || favorites.length === 0) && (
           <div className="flex flex-col items-center justify-center py-16 text-center">
             <div className="mb-3 text-5xl">⭐</div>
-            <p className="text-sm font-medium">No favorites yet</p>
-            <p className="mt-1 text-xs text-muted-foreground">Tap the star on any meal to save it here for quick logging.</p>
+            <p className="text-sm font-medium">{t("noFavoritesYet")}</p>
+            <p className="mt-1 text-xs text-muted-foreground">{t("tapStarToSave")}</p>
           </div>
         )}
         {favorites && favorites.length > 0 && (
@@ -67,12 +71,12 @@ export function FavoritesSheet() {
                   {fav.emoji ?? "⭐"}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="truncate text-sm font-semibold">{fav.name}</div>
+                  <div className="truncate text-sm font-semibold">{translateFoodName(fav.name, locale)}</div>
                   <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                    <span className="flex items-center gap-0.5"><Flame className="h-3 w-3 text-streak" />{Math.round(fav.calories)}</span>
-                    <span className="flex items-center gap-0.5 text-protein"><Drumstick className="h-3 w-3" />{Math.round(fav.protein)}g</span>
-                    <span className="flex items-center gap-0.5 text-carbs"><Wheat className="h-3 w-3" />{Math.round(fav.carbs)}g</span>
-                    <span className="flex items-center gap-0.5 text-fats"><Droplets className="h-3 w-3" />{Math.round(fav.fat)}g</span>
+                    <span className="flex items-center gap-0.5"><Flame className="h-3 w-3 text-streak" />{formatNumber(Math.round(fav.calories), locale)}</span>
+                    <span className="flex items-center gap-0.5 text-protein"><Drumstick className="h-3 w-3" />{formatNumber(Math.round(fav.protein), locale)}g</span>
+                    <span className="flex items-center gap-0.5 text-carbs"><Wheat className="h-3 w-3" />{formatNumber(Math.round(fav.carbs), locale)}g</span>
+                    <span className="flex items-center gap-0.5 text-fats"><Droplets className="h-3 w-3" />{formatNumber(Math.round(fav.fat), locale)}g</span>
                   </div>
                 </div>
                 <button

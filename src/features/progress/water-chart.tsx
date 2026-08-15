@@ -4,11 +4,14 @@ import { useDashboard } from "@/lib/hooks";
 import { TapCard } from "@/components/motion";
 import { AnimatedNumber } from "@/components/animated-number";
 import { motion } from "framer-motion";
+import { useI18n } from "@/lib/i18n";
+import { formatNumber, getWeekdayShort } from "@/lib/date-utils";
 
 const GOAL_ML = 2500;
 
 export function WaterChart() {
   const { data } = useDashboard();
+  const { locale, t } = useI18n();
   if (!data) return null;
 
   const week = data.weekHealth;
@@ -26,7 +29,7 @@ export function WaterChart() {
       date: key,
       waterMl: h?.waterMl ?? 0,
       isToday: key === today.toISOString().slice(0, 10),
-      dayLabel: d.toLocaleDateString([], { weekday: "short" }).charAt(0),
+      dayLabel: getWeekdayShort(d, locale).charAt(0),
     });
   }
 
@@ -44,9 +47,9 @@ export function WaterChart() {
       <div className="mb-3 flex items-center justify-between">
         <h3 className="flex items-center gap-1.5 text-sm font-semibold">
           <Droplets className="h-4 w-4 text-water" />
-          Water intake
+          {t("waterIntake")}
         </h3>
-        <span className="text-xs text-muted-foreground">Goal: {(GOAL_ML / 1000).toFixed(1)}L</span>
+        <span className="text-xs text-muted-foreground">{t("goalLabel")} {formatNumber((GOAL_ML / 1000).toFixed(1), locale)}L</span>
       </div>
 
       {/* today summary */}
@@ -55,11 +58,11 @@ export function WaterChart() {
           <div className="text-2xl font-bold tabular-nums text-water">
             <AnimatedNumber value={todayWater / 1000} decimals={1} />L
           </div>
-          <div className="text-[10px] text-muted-foreground">today ({Math.round(pct)}% of goal)</div>
+          <div className="text-[10px] text-muted-foreground">{t("todayLabel")} ({formatNumber(Math.round(pct), locale)}% {t("ofGoal")})</div>
         </div>
         <div className="text-right">
-          <div className="text-sm font-semibold tabular-nums">{avgWater}ml</div>
-          <div className="text-[10px] text-muted-foreground">7-day avg</div>
+          <div className="text-sm font-semibold tabular-nums">{formatNumber(avgWater, locale)}ml</div>
+          <div className="text-[10px] text-muted-foreground">{t("sevenDayAvg")}</div>
         </div>
       </div>
 
@@ -102,7 +105,7 @@ export function WaterChart() {
               </text>
               {d.waterMl > 0 && (
                 <text x={x + barW / 2} y={y - 3} textAnchor="middle" fontSize="8" fontWeight="600" fill="var(--foreground)">
-                  {d.waterMl >= 1000 ? `${(d.waterMl / 1000).toFixed(1)}L` : `${d.waterMl}`}
+                  {d.waterMl >= 1000 ? `${formatNumber((d.waterMl / 1000).toFixed(1), locale)}L` : `${formatNumber(d.waterMl, locale)}`}
                 </text>
               )}
             </g>

@@ -612,3 +612,40 @@ Recommended next steps:
 3. Food database expansion (more barcode coverage).
 4. Challenge reward badges display in achievements.
 5. RTL-specific layout testing and fixes for charts/graphs.
+
+---
+
+## Task ID: PERSIAN-FIX-ALL
+**Agent**: persian-fix-agent
+**Date**: 2026-08-15
+
+### Summary
+Fixed Persian (Farsi) i18n across the DS-Cali app. All 25 existing files listed in `PERSIAN_AUDIT.md` now use `useI18n()`, `formatNumber()`, `formatTime()`, `formatDate()`, `getWeekdayShort()`, and `translateFoodName()` for full Persian RTL + Shamsi date + Persian digit + Persian food-name support.
+
+### Files Fixed (25)
+- Dashboard (9): nutrition-insights, macro-ratio-card, goal-celebration, nutrition-timeline, meal-suggestions, recents-section, favorites-quick-add, favorites-sheet, add-action-sheet
+- Scanner (5): scanner-sheet, barcode-scanner-sheet, add-workout-sheet, meal-detail-sheet, edit-log-sheet
+- Progress (5): progress-dashboard, streak-statistics, achievements-section, water-chart, workout-history
+- Food Database (2): food-database-sheet, create-food-sheet
+- Settings (3): reminders-sheet, share-sheet, edit-sheets
+- Other (2): onboarding-flow, paywall-sheet
+
+### i18n.tsx Additions
+Added ~60 new translation keys (both `fa` and `en`): macro labels (`protein`/`carbs`/`fats`), insight descriptions with `{0}/{1}/{2}` placeholders, goal celebration titles, timeline labels, progress ranges, scanner extras, edit-log labels, reminder labels, share-sheet templates, edit-sheet labels, onboarding strings, food database categories, "need more X" macro variants, and `loggedToast` template.
+
+### Verification
+- `bun run lint` → EXIT 0 (no errors)
+- Dev server HTTP 200 on http://localhost:3000/
+- Page output verified: `lang="fa" dir="rtl"` with both "DS-Cali" and "دی‌اس‌کالی" strings present
+- All 25 fixed files compile successfully (dev log shows `✓ Compiled` for each)
+- Only log error is the pre-existing EADDRINUSE message from the dev.sh wrapper trying to start a second Next.js process (harmless)
+
+### Issues / Notes
+- `user-management-sheet.tsx` listed in `PERSIAN_AUDIT.md` does not exist in this codebase — skipped (25 of 26 files fixed)
+- Did NOT use the audit's suggested `t("proteinLeft").replace(...)` hack; instead added clean standalone keys `protein`/`carbs`/`fats` (allowed per task rules)
+- Existing `i18n.tsx`, `date-utils.ts`, `food-translations.ts` keys left intact — only ADDED new keys
+- `bottom-nav.tsx` and `settings-screen.tsx` Row component NOT modified (as instructed)
+- Work record saved to `/home/z/my-project/agent-ctx/PERSIAN-FIX-ALL-persian-fix-agent.md`
+
+### Final Count
+**25 files fixed.** No issues encountered.

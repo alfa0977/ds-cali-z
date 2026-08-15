@@ -12,11 +12,13 @@ import {
   showNotification,
   type NotificationPermission,
 } from "@/lib/notifications";
+import { useI18n } from "@/lib/i18n";
+import { formatNumber } from "@/lib/date-utils";
 
 interface Reminder {
   id: string;
-  label: string;
-  desc: string;
+  labelKey: "logBreakfast" | "logLunch" | "logDinner" | "drinkWater";
+  descKey: "startYourDayRight" | "dontForgetMiddayMeals" | "trackYourEveningMeal" | "stayHydratedEvery2h";
   time: string;
   icon: typeof Bell;
   color: string;
@@ -27,12 +29,13 @@ const STORAGE_KEY = "calai_reminders";
 
 export function RemindersSheet() {
   const { setModal } = useApp();
+  const { locale, t } = useI18n();
   const [permission, setPermission] = useState<NotificationPermission>("default");
   const [reminders, setReminders] = useState<Reminder[]>([
-    { id: "breakfast", label: "Log breakfast", desc: "Start your day right", time: "08:00", icon: Sun, color: "var(--carbs)", enabled: true },
-    { id: "lunch", label: "Log lunch", desc: "Don't forget midday meals", time: "12:30", icon: Utensils, color: "var(--protein)", enabled: true },
-    { id: "dinner", label: "Log dinner", desc: "Track your evening meal", time: "19:00", icon: Moon, color: "var(--fats)", enabled: false },
-    { id: "water", label: "Drink water", desc: "Stay hydrated every 2 hours", time: "Every 2h", icon: Droplets, color: "var(--water)", enabled: true },
+    { id: "breakfast", labelKey: "logBreakfast", descKey: "startYourDayRight", time: "08:00", icon: Sun, color: "var(--carbs)", enabled: true },
+    { id: "lunch", labelKey: "logLunch", descKey: "dontForgetMiddayMeals", time: "12:30", icon: Utensils, color: "var(--protein)", enabled: true },
+    { id: "dinner", labelKey: "logDinner", descKey: "trackYourEveningMeal", time: "19:00", icon: Moon, color: "var(--fats)", enabled: false },
+    { id: "water", labelKey: "drinkWater", descKey: "stayHydratedEvery2h", time: locale === "fa" ? "هر ۲ ساعت" : "Every 2h", icon: Droplets, color: "var(--water)", enabled: true },
   ]);
 
   // Load saved state + permission
@@ -62,16 +65,16 @@ export function RemindersSheet() {
     const result = await requestNotificationPermission();
     setPermission(result);
     if (result === "granted") {
-      showNotification("Reminders enabled! 🎉", { body: "You'll now get gentle nudges to log your meals." });
-      toast.success("Notifications enabled!");
+      showNotification(t("remindersEnabledTitle"), { body: t("remindersEnabledBody") });
+      toast.success(t("notificationsEnabledToast"));
     } else {
-      toast.error("Notification permission denied");
+      toast.error(t("notificationPermissionDenied"));
     }
   }
 
   function testNotification() {
-    showNotification("Test reminder 🔔", { body: "This is how your reminders will look!" });
-    toast.success("Test notification sent");
+    showNotification(t("testReminderTitle"), { body: t("testReminderBody") });
+    toast.success(t("testNotificationSent"));
   }
 
   function save() {
@@ -81,7 +84,7 @@ export function RemindersSheet() {
       reminders.forEach((r) => { state[r.id] = r.enabled; });
       localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
     } catch {}
-    toast.success(`${enabledCount} reminder${enabledCount !== 1 ? "s" : ""} saved`);
+    toast.success(t("remindersSavedDesc").replace("{0}", formatNumber(enabledCount, locale)));
     setModal(null);
   }
 
@@ -93,7 +96,7 @@ export function RemindersSheet() {
         </button>
         <h2 className="flex items-center gap-1.5 text-base font-semibold">
           <Bell className="h-4 w-4" />
-          Reminders
+          {t("reminders")}
         </h2>
         <div className="h-9 w-9" />
       </div>
@@ -108,11 +111,11 @@ export function RemindersSheet() {
           >
             <BellRing className="h-5 w-5 shrink-0 text-streak" />
             <div className="flex-1">
-              <div className="text-sm font-semibold text-streak">Enable notifications</div>
-              <div className="text-xs text-muted-foreground">Get gentle nudges to log meals</div>
+              <div className="text-sm font-semibold text-streak">{t("enableNotifications")}</div>
+              <div className="text-xs text-muted-foreground">{t("getGentleNudges")}</div>
             </div>
             <Button size="sm" className="rounded-full" onClick={enableNotifications}>
-              Enable
+              {t("enable")}
             </Button>
           </motion.div>
         )}
@@ -120,15 +123,15 @@ export function RemindersSheet() {
         {permission === "granted" && (
           <div className="mb-3 flex items-center gap-2 rounded-xl bg-success/10 px-3 py-2 text-xs text-success">
             <span className="h-2 w-2 rounded-full bg-success" />
-            Notifications enabled
+            {t("notificationsEnabled")}
             <button onClick={testNotification} className="ml-auto font-medium underline">
-              Test
+              {t("test")}
             </button>
           </div>
         )}
 
         <p className="mb-3 text-xs text-muted-foreground">
-          Gentle nudges to log your meals and stay on track.
+          {t("gentleNudgesDesc")}
         </p>
 
         <div className="space-y-2">
@@ -147,8 +150,8 @@ export function RemindersSheet() {
                 <r.icon className="h-5 w-5" style={{ color: r.color }} />
               </div>
               <div className="flex-1">
-                <div className="text-sm font-semibold">{r.label}</div>
-                <div className="text-xs text-muted-foreground">{r.desc}</div>
+                <div className="text-sm font-semibold">{t(r.labelKey)}</div>
+                <div className="text-xs text-muted-foreground">{t(r.descKey)}</div>
               </div>
               <div className="flex items-center gap-3">
                 <span className="text-xs font-medium text-muted-foreground tabular-nums">{r.time}</span>
@@ -160,14 +163,14 @@ export function RemindersSheet() {
 
         <div className="mt-4 rounded-2xl bg-secondary/50 p-3">
           <p className="text-xs text-muted-foreground">
-            💡 <span className="font-medium">Tip:</span> Reminders are saved on this device. Keep your browser open to receive notifications.
+            💡 <span className="font-medium">{t("tipLabel")}</span> {t("remindersTip")}
           </p>
         </div>
       </div>
 
       <div className="border-t border-border bg-card px-4 py-3 pb-safe">
         <Button className="w-full rounded-full py-3" size="lg" onClick={save}>
-          Save reminders
+          {t("saveReminders")}
         </Button>
       </div>
     </div>

@@ -4,6 +4,8 @@ import { useDashboard } from "@/lib/hooks";
 import { TapCard } from "@/components/motion";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
+import { useI18n } from "@/lib/i18n";
+import { formatNumber } from "@/lib/date-utils";
 
 interface Insight {
   type: "success" | "warning" | "info";
@@ -13,8 +15,17 @@ interface Insight {
   color: string;
 }
 
+function tpl(key: string, ...vals: (string | number)[]): string {
+  let out = key;
+  vals.forEach((v, i) => {
+    out = out.replace(`{${i}}`, String(v));
+  });
+  return out;
+}
+
 export function NutritionInsights() {
   const { data } = useDashboard();
+  const { locale, t } = useI18n();
   if (!data) return null;
 
   const goals = data.user.goals;
@@ -27,16 +38,16 @@ export function NutritionInsights() {
     insights.push({
       type: "warning",
       icon: TrendingDown,
-      title: "Low on protein",
-      desc: `You're at ${Math.round(proteinPct)}% of your protein goal. Try adding chicken, eggs, or Greek yogurt.`,
+      title: t("lowOnProtein"),
+      desc: tpl(t("lowProteinDesc"), formatNumber(Math.round(proteinPct), locale)),
       color: "var(--protein)",
     });
   } else if (proteinPct >= 100) {
     insights.push({
       type: "success",
       icon: CheckCircle2,
-      title: "Protein goal hit! 💪",
-      desc: `You've reached ${Math.round(consumed.protein)}g of protein today.`,
+      title: t("proteinGoalHit"),
+      desc: tpl(t("proteinHitDesc"), formatNumber(Math.round(consumed.protein), locale)),
       color: "var(--success)",
     });
   }
@@ -47,16 +58,16 @@ export function NutritionInsights() {
     insights.push({
       type: "warning",
       icon: AlertCircle,
-      title: "Over calorie goal",
-      desc: `You're ${Math.round(consumed.calories - goals.calories)} cal over your daily target.`,
+      title: t("overCalorieGoal"),
+      desc: tpl(t("overCalorieDesc"), formatNumber(Math.round(consumed.calories - goals.calories), locale)),
       color: "var(--destructive)",
     });
   } else if (calPct >= 80 && calPct <= 100) {
     insights.push({
       type: "success",
       icon: CheckCircle2,
-      title: "Right on track",
-      desc: `You're ${Math.round(100 - calPct)}% from your calorie goal. Great balance!`,
+      title: t("rightOnTrack"),
+      desc: tpl(t("rightOnTrackDesc"), formatNumber(Math.round(100 - calPct), locale)),
       color: "var(--success)",
     });
   }
@@ -69,16 +80,16 @@ export function NutritionInsights() {
     insights.push({
       type: "info",
       icon: TrendingDown,
-      title: "Stay hydrated",
-      desc: `You've had ${Math.round(waterMl)}ml of water. Aim for 2.5L today.`,
+      title: t("stayHydrated"),
+      desc: tpl(t("stayHydratedDesc"), formatNumber(Math.round(waterMl), locale)),
       color: "var(--water)",
     });
   } else if (waterPct >= 100) {
     insights.push({
       type: "success",
       icon: CheckCircle2,
-      title: "Hydration goal met! 💧",
-      desc: `Excellent! You've drunk ${Math.round(waterMl)}ml of water.`,
+      title: t("hydrationGoalMet"),
+      desc: tpl(t("hydrationMetDesc"), formatNumber(Math.round(waterMl), locale)),
       color: "var(--water)",
     });
   }
@@ -89,16 +100,16 @@ export function NutritionInsights() {
     insights.push({
       type: "success",
       icon: TrendingUp,
-      title: "10K steps crushed! 🚶",
-      desc: `You walked ${steps.toLocaleString()} steps today. Amazing!`,
+      title: t("stepsCrushed"),
+      desc: tpl(t("stepsCrushedDesc"), formatNumber(steps, locale)),
       color: "var(--success)",
     });
   } else if (steps < 5000 && new Date().getHours() >= 18) {
     insights.push({
       type: "info",
       icon: TrendingDown,
-      title: "Time for a walk?",
-      desc: `Only ${steps.toLocaleString()} steps so far. A short walk could help you reach 10K.`,
+      title: t("timeForWalk"),
+      desc: tpl(t("timeForWalkDesc"), formatNumber(steps, locale)),
       color: "var(--carbs)",
     });
   }
@@ -109,8 +120,8 @@ export function NutritionInsights() {
     insights.push({
       type: "success",
       icon: TrendingUp,
-      title: `${streak}-day streak! 🔥`,
-      desc: "Consistency is paying off. Keep logging to build your streak!",
+      title: tpl(t("dayStreakDesc"), formatNumber(streak, locale)),
+      desc: t("consistencyIsKey"),
       color: "var(--streak)",
     });
   }
@@ -125,8 +136,13 @@ export function NutritionInsights() {
       insights.push({
         type: proteinDiff > 0 ? "success" : "warning",
         icon: proteinDiff > 0 ? TrendingUp : TrendingDown,
-        title: proteinDiff > 0 ? "Protein up this week" : "Protein down this week",
-        desc: `Today: ${Math.round(todayProtein)}g · 7-day avg: ${avgProtein}g (${proteinDiff > 0 ? "+" : ""}${Math.round(proteinDiff)}g)`,
+        title: proteinDiff > 0 ? t("proteinUp") : t("proteinDown"),
+        desc: tpl(
+          proteinDiff > 0 ? t("proteinUpDesc") : t("proteinDownDesc"),
+          formatNumber(Math.round(todayProtein), locale),
+          formatNumber(avgProtein, locale),
+          formatNumber(Math.round(Math.abs(proteinDiff)), locale)
+        ),
         color: "var(--protein)",
       });
     }
@@ -142,8 +158,12 @@ export function NutritionInsights() {
       insights.push({
         type: waterDiff > 0 ? "success" : "info",
         icon: waterDiff > 0 ? TrendingUp : TrendingDown,
-        title: waterDiff > 0 ? "Drinking more water 💧" : "Drink more water",
-        desc: `Today: ${Math.round(todayWaterMl / 100) / 10}L · 7-day avg: ${(avgWaterMl / 1000).toFixed(1)}L`,
+        title: waterDiff > 0 ? t("drinkingMoreWater") : t("drinkMoreWater"),
+        desc: tpl(
+          t("waterUpDesc"),
+          formatNumber(Math.round(todayWaterMl / 100) / 10, locale),
+          formatNumber((avgWaterMl / 1000).toFixed(1), locale)
+        ),
         color: "var(--water)",
       });
     }
@@ -158,8 +178,13 @@ export function NutritionInsights() {
   const trendInsight: Insight | null = trend.length >= 2 && avgCal > 0 ? {
     type: calDiff > 200 ? "warning" : calDiff < -200 ? "success" : "info",
     icon: calDiff > 0 ? TrendingUp : TrendingDown,
-    title: calDiff > 200 ? "Eating more than usual" : calDiff < -200 ? "Eating less than usual" : "Consistent intake",
-    desc: `Today: ${todayCal} cal · 7-day avg: ${avgCal} cal (${calDiff > 0 ? "+" : ""}${calDiff} cal)`,
+    title: calDiff > 200 ? t("eatingMore") : calDiff < -200 ? t("eatingLess") : t("consistentIntake"),
+    desc: tpl(
+      calDiff > 200 ? t("eatingMoreDesc") : calDiff < -200 ? t("eatingLessDesc") : t("consistentIntakeDesc"),
+      formatNumber(todayCal, locale),
+      formatNumber(avgCal, locale),
+      formatNumber(Math.abs(calDiff), locale)
+    ),
     color: calDiff > 200 ? "var(--protein)" : calDiff < -200 ? "var(--success)" : "var(--carbs)",
   } : null;
 
@@ -170,7 +195,7 @@ export function NutritionInsights() {
     <div>
       <h3 className="mb-2 flex items-center gap-1.5 px-1 text-base font-semibold">
         <Lightbulb className="h-4 w-4 text-carbs" />
-        Insights
+        {t("insights")}
       </h3>
       <div className="space-y-2">
         {allInsights.slice(0, 5).map((insight, i) => (

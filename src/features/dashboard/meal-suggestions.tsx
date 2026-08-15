@@ -4,21 +4,29 @@ import { useMealSuggestions, useLogFood } from "@/lib/hooks";
 import { TapCard } from "@/components/motion";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
+import { useI18n } from "@/lib/i18n";
+import { formatNumber } from "@/lib/date-utils";
+import { translateFoodName } from "@/lib/food-translations";
 
 export function MealSuggestions() {
   const { data, isLoading } = useMealSuggestions("snack");
   const logFood = useLogFood();
+  const { locale, t } = useI18n();
 
   if (isLoading || !data?.suggestions?.length) return null;
 
-  const { suggestions, remaining, biggestGap } = data;
-  const gapLabel = biggestGap === "protein" ? "protein" : biggestGap === "carbs" ? "carbs" : "fats";
+  const { suggestions } = data;
+  const biggestGap = data.biggestGap;
+  const gapLabel =
+    biggestGap === "protein" ? t("needMoreProtein")
+    : biggestGap === "carbs" ? t("needMoreCarbs")
+    : t("needMoreFats");
   const gapColor = biggestGap === "protein" ? "var(--protein)" : biggestGap === "carbs" ? "var(--carbs)" : "var(--fats)";
 
   function log(s: { id: string; name: string; foodId?: string }) {
     logFood.mutate(
       { foodId: s.id },
-      { onSuccess: () => toast.success(`${s.name} logged`) }
+      { onSuccess: () => toast.success(t("loggedToast").replace("{0}", translateFoodName(s.name, locale))) }
     );
   }
 
@@ -27,10 +35,10 @@ export function MealSuggestions() {
       <div className="mb-2 flex items-center justify-between px-1">
         <h3 className="flex items-center gap-1.5 text-base font-semibold">
           <Sparkles className="h-4 w-4 text-streak" />
-          Smart suggestions
+          {t("smartSuggestions")}
         </h3>
         <span className="text-xs font-medium" style={{ color: gapColor }}>
-          Need more {gapLabel}
+          {gapLabel}
         </span>
       </div>
       <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
@@ -49,26 +57,26 @@ export function MealSuggestions() {
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-secondary text-xl">
               {s.emoji ?? "🍽️"}
             </div>
-            <div className="max-w-[80px] truncate text-xs font-medium">{s.name}</div>
+            <div className="max-w-[80px] truncate text-xs font-medium">{translateFoodName(s.name, locale)}</div>
             <div className="flex items-center gap-0.5 text-[10px] text-muted-foreground">
               <Flame className="h-2.5 w-2.5 text-streak" />
-              {Math.round(s.calories)} cal
+              {formatNumber(Math.round(s.calories), locale)} {t("cal")}
             </div>
             {/* macro match indicator */}
             <div className="flex items-center gap-0.5">
               {biggestGap === "protein" && (
                 <span className="rounded-full bg-protein/10 px-1 text-[9px] font-bold text-protein">
-                  +{Math.round(s.protein)}g
+                  +{formatNumber(Math.round(s.protein), locale)}g
                 </span>
               )}
               {biggestGap === "carbs" && (
                 <span className="rounded-full bg-carbs/10 px-1 text-[9px] font-bold text-carbs">
-                  +{Math.round(s.carbs)}g
+                  +{formatNumber(Math.round(s.carbs), locale)}g
                 </span>
               )}
               {biggestGap === "fat" && (
                 <span className="rounded-full bg-fats/10 px-1 text-[9px] font-bold text-fats">
-                  +{Math.round(s.fat)}g
+                  +{formatNumber(Math.round(s.fat), locale)}g
                 </span>
               )}
             </div>

@@ -6,12 +6,12 @@ import { useOnboard } from "@/lib/hooks";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
+import { useI18n } from "@/lib/i18n";
+import { formatNumber } from "@/lib/date-utils";
 
 type Sex = "male" | "female" | "other";
 type Activity = "sedentary" | "light" | "moderate" | "active" | "very_active";
 type Goal = "lose" | "maintain" | "gain";
-
-const STEPS = ["Welcome", "About you", "Activity", "Goal", "Ready"] as const;
 
 export function OnboardingFlow() {
   const [step, setStep] = useState(0);
@@ -23,9 +23,10 @@ export function OnboardingFlow() {
   const [activityLevel, setActivityLevel] = useState<Activity | null>(null);
   const [goal, setGoal] = useState<Goal | null>(null);
   const onboard = useOnboard();
+  const { locale, t } = useI18n();
 
   function next() {
-    if (step < STEPS.length - 1) setStep(step + 1);
+    if (step < 4) setStep(step + 1);
   }
   function back() {
     if (step > 0) setStep(step - 1);
@@ -54,11 +55,27 @@ export function OnboardingFlow() {
     (step === 3 && goal) ||
     step === 4;
 
+  const sexLabel = (s: Sex) => s === "male" ? t("male") : s === "female" ? t("female") : t("other");
+
+  const activities: { key: Activity; labelKey: "sedentary" | "lightlyActive" | "moderatelyActive" | "veryActive" | "extraActive"; descKey: "sedentaryDesc" | "lightlyActiveDesc" | "moderatelyActiveDesc" | "veryActiveDesc" | "extraActiveDesc"; emoji: string }[] = [
+    { key: "sedentary", labelKey: "sedentary", descKey: "sedentaryDesc", emoji: "🪑" },
+    { key: "light", labelKey: "lightlyActive", descKey: "lightlyActiveDesc", emoji: "🚶" },
+    { key: "moderate", labelKey: "moderatelyActive", descKey: "moderatelyActiveDesc", emoji: "🏃" },
+    { key: "active", labelKey: "veryActive", descKey: "veryActiveDesc", emoji: "💪" },
+    { key: "very_active", labelKey: "extraActive", descKey: "extraActiveDesc", emoji: "🔥" },
+  ];
+
+  const goals: { key: Goal; labelKey: "loseWeight" | "maintainWeight" | "gainMuscle"; descKey: "loseWeightDesc" | "maintainWeightDesc" | "gainMuscleDesc"; emoji: string; color: string }[] = [
+    { key: "lose", labelKey: "loseWeight", descKey: "loseWeightDesc", emoji: "📉", color: "var(--protein)" },
+    { key: "maintain", labelKey: "maintainWeight", descKey: "maintainWeightDesc", emoji: "⚖️", color: "var(--carbs)" },
+    { key: "gain", labelKey: "gainMuscle", descKey: "gainMuscleDesc", emoji: "📈", color: "var(--success)" },
+  ];
+
   return (
     <div className="phone-frame bg-background flex flex-col overflow-hidden">
       {step < 4 && (
         <div className="flex gap-1.5 px-6 pt-6">
-          {STEPS.slice(0, 4).map((_, i) => (
+          {Array.from({ length: 4 }).map((_, i) => (
             <div
               key={i}
               className={cn(
@@ -88,15 +105,15 @@ export function OnboardingFlow() {
               >
                 <Apple className="h-12 w-12 text-white" />
               </motion.div>
-              <h1 className="text-3xl font-bold tracking-tight">Welcome to CalAI</h1>
+              <h1 className="text-3xl font-bold tracking-tight">{t("welcomeToCalAI")}</h1>
               <p className="mt-3 max-w-xs text-sm text-muted-foreground">
-                Track meals with AI vision, hit your macros, and build healthy habits — all in one beautiful app.
+                {t("welcomeDesc")}
               </p>
               <div className="mt-8 space-y-3">
                 {[
-                  { icon: "📸", text: "Snap a photo, get instant nutrition" },
-                  { icon: "🎯", text: "Personalized macro goals" },
-                  { icon: "📊", text: "Track progress over time" },
+                  { icon: "📸", textKey: "snapPhotoInstantNutrition" },
+                  { icon: "🎯", textKey: "personalizedMacroGoals" },
+                  { icon: "📊", textKey: "trackProgressOverTime" },
                 ].map((f, i) => (
                   <motion.div
                     key={i}
@@ -106,7 +123,7 @@ export function OnboardingFlow() {
                     className="flex items-center gap-3 rounded-2xl bg-card p-3 shadow-ios"
                   >
                     <span className="text-2xl">{f.icon}</span>
-                    <span className="text-sm font-medium">{f.text}</span>
+                    <span className="text-sm font-medium">{t(f.textKey as "snapPhotoInstantNutrition")}</span>
                   </motion.div>
                 ))}
               </div>
@@ -122,45 +139,45 @@ export function OnboardingFlow() {
               className="space-y-5"
             >
               <div>
-                <h2 className="text-2xl font-bold">About you</h2>
-                <p className="text-sm text-muted-foreground">Let's personalize your experience</p>
+                <h2 className="text-2xl font-bold">{t("aboutYou")}</h2>
+                <p className="text-sm text-muted-foreground">{t("personalizeExperience")}</p>
               </div>
               <div className="space-y-1.5">
-                <label className="text-sm font-medium">Your name</label>
+                <label className="text-sm font-medium">{t("name")}</label>
                 <Input value={displayName} onChange={(e) => setDisplayName(e.target.value)} placeholder="Alex" className="rounded-xl bg-secondary border-0 h-12" />
               </div>
               <div className="space-y-1.5">
-                <label className="text-sm font-medium">Biological sex</label>
+                <label className="text-sm font-medium">{t("biologicalSex")}</label>
                 <div className="grid grid-cols-3 gap-2">
                   {(["male", "female", "other"] as Sex[]).map((s) => (
                     <button
                       key={s}
                       onClick={() => setSex(s)}
                       className={cn(
-                        "rounded-xl border-2 py-3 text-sm font-medium capitalize transition-colors",
+                        "rounded-xl border-2 py-3 text-sm font-medium transition-colors",
                         sex === s ? "border-foreground bg-card" : "border-border bg-card text-muted-foreground"
                       )}
                     >
-                      {s}
+                      {sexLabel(s)}
                     </button>
                   ))}
                 </div>
               </div>
               <div className="grid grid-cols-3 gap-3">
                 <div className="space-y-1.5">
-                  <label className="text-sm font-medium">Age</label>
+                  <label className="text-sm font-medium">{t("age")}</label>
                   <Input type="number" value={age} onChange={(e) => setAge(e.target.value)} placeholder="30" className="rounded-xl bg-secondary border-0 h-12" />
                 </div>
                 <div className="space-y-1.5">
-                  <label className="text-sm font-medium">Height</label>
+                  <label className="text-sm font-medium">{t("height")} ({t("cm")})</label>
                   <Input type="number" value={heightCm} onChange={(e) => setHeightCm(e.target.value)} placeholder="170" className="rounded-xl bg-secondary border-0 h-12" />
                 </div>
                 <div className="space-y-1.5">
-                  <label className="text-sm font-medium">Weight</label>
+                  <label className="text-sm font-medium">{t("weight")} ({t("kg")})</label>
                   <Input type="number" value={weightKg} onChange={(e) => setWeightKg(e.target.value)} placeholder="70" className="rounded-xl bg-secondary border-0 h-12" />
                 </div>
               </div>
-              <p className="text-xs text-muted-foreground">Units: cm and kg</p>
+              <p className="text-xs text-muted-foreground">{t("unitsCmKg")}</p>
             </motion.div>
           )}
 
@@ -173,17 +190,11 @@ export function OnboardingFlow() {
               className="space-y-5"
             >
               <div>
-                <h2 className="text-2xl font-bold">Activity level</h2>
-                <p className="text-sm text-muted-foreground">How active are you day-to-day?</p>
+                <h2 className="text-2xl font-bold">{t("activityLevel")}</h2>
+                <p className="text-sm text-muted-foreground">{t("howActiveDayToday")}</p>
               </div>
               <div className="space-y-2">
-                {([
-                  { key: "sedentary", label: "Sedentary", desc: "Little or no exercise, desk job", emoji: "🪑" },
-                  { key: "light", label: "Lightly active", desc: "Light exercise 1-3 days/week", emoji: "🚶" },
-                  { key: "moderate", label: "Moderately active", desc: "Moderate exercise 3-5 days/week", emoji: "🏃" },
-                  { key: "active", label: "Very active", desc: "Hard exercise 6-7 days/week", emoji: "💪" },
-                  { key: "very_active", label: "Extra active", desc: "Very hard exercise, physical job", emoji: "🔥" },
-                ] as { key: Activity; label: string; desc: string; emoji: string }[]).map((a) => (
+                {activities.map((a) => (
                   <button
                     key={a.key}
                     onClick={() => setActivityLevel(a.key)}
@@ -194,8 +205,8 @@ export function OnboardingFlow() {
                   >
                     <span className="text-2xl">{a.emoji}</span>
                     <div className="flex-1">
-                      <div className="text-sm font-semibold">{a.label}</div>
-                      <div className="text-xs text-muted-foreground">{a.desc}</div>
+                      <div className="text-sm font-semibold">{t(a.labelKey)}</div>
+                      <div className="text-xs text-muted-foreground">{t(a.descKey)}</div>
                     </div>
                     {activityLevel === a.key && <Check className="h-5 w-5 text-foreground" />}
                   </button>
@@ -213,15 +224,11 @@ export function OnboardingFlow() {
               className="space-y-5"
             >
               <div>
-                <h2 className="text-2xl font-bold">Your goal</h2>
-                <p className="text-sm text-muted-foreground">What do you want to achieve?</p>
+                <h2 className="text-2xl font-bold">{t("yourGoal")}</h2>
+                <p className="text-sm text-muted-foreground">{t("whatDoYouWantToAchieve")}</p>
               </div>
               <div className="space-y-2">
-                {([
-                  { key: "lose", label: "Lose weight", desc: "~0.5 kg/week deficit", emoji: "📉", color: "var(--protein)" },
-                  { key: "maintain", label: "Maintain weight", desc: "Stay at current weight", emoji: "⚖️", color: "var(--carbs)" },
-                  { key: "gain", label: "Gain muscle", desc: "~0.4 kg/week surplus", emoji: "📈", color: "var(--success)" },
-                ] as { key: Goal; label: string; desc: string; emoji: string; color: string }[]).map((g) => (
+                {goals.map((g) => (
                   <button
                     key={g.key}
                     onClick={() => setGoal(g.key)}
@@ -234,8 +241,8 @@ export function OnboardingFlow() {
                       {g.emoji}
                     </div>
                     <div className="flex-1">
-                      <div className="text-sm font-semibold">{g.label}</div>
-                      <div className="text-xs text-muted-foreground">{g.desc}</div>
+                      <div className="text-sm font-semibold">{t(g.labelKey)}</div>
+                      <div className="text-xs text-muted-foreground">{t(g.descKey)}</div>
                     </div>
                     {goal === g.key && <Check className="h-5 w-5 text-foreground" />}
                   </button>
@@ -259,9 +266,9 @@ export function OnboardingFlow() {
               >
                 <Check className="h-12 w-12 text-white" strokeWidth={3} />
               </motion.div>
-              <h1 className="text-3xl font-bold">You're all set!</h1>
+              <h1 className="text-3xl font-bold">{t("youreAllSet")}</h1>
               <p className="mt-3 max-w-xs text-sm text-muted-foreground">
-                Your personalized macro goals have been calculated. Start logging meals to hit your targets.
+                {t("yourDailyGoals")}
               </p>
               {onboard.data?.goals && (
                 <motion.div
@@ -270,12 +277,12 @@ export function OnboardingFlow() {
                   transition={{ delay: 0.3 }}
                   className="mt-6 w-full max-w-xs rounded-2xl bg-card p-4 shadow-ios"
                 >
-                  <div className="mb-3 text-sm font-semibold">Your daily goals</div>
+                  <div className="mb-3 text-sm font-semibold">{t("yourDailyGoals")}</div>
                   <div className="grid grid-cols-4 gap-2 text-center">
-                    <GoalStat label="Cal" value={onboard.data.goals.calories} color="var(--streak)" />
-                    <GoalStat label="Protein" value={onboard.data.goals.protein} unit="g" color="var(--protein)" />
-                    <GoalStat label="Carbs" value={onboard.data.goals.carbs} unit="g" color="var(--carbs)" />
-                    <GoalStat label="Fats" value={onboard.data.goals.fat} unit="g" color="var(--fats)" />
+                    <GoalStat label={t("cal")} value={onboard.data.goals.calories} color="var(--streak)" />
+                    <GoalStat label={t("protein")} value={onboard.data.goals.protein} unit="g" color="var(--protein)" />
+                    <GoalStat label={t("carbs")} value={onboard.data.goals.carbs} unit="g" color="var(--carbs)" />
+                    <GoalStat label={t("fats")} value={onboard.data.goals.fat} unit="g" color="var(--fats)" />
                   </div>
                 </motion.div>
               )}
@@ -298,13 +305,13 @@ export function OnboardingFlow() {
               disabled={!canProceed}
               onClick={step === 3 ? finish : next}
             >
-              {step === 0 ? "Get started" : step === 3 ? "Calculate my goals" : "Continue"}
+              {step === 0 ? t("getStarted") : step === 3 ? t("calculateMyGoals") : t("continue")}
               <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
           </div>
         ) : (
           <Button className="w-full rounded-full py-3" size="lg" onClick={() => window.location.reload()}>
-            Start tracking
+            {t("startTracking")}
             <ArrowRight className="ml-2 h-4 w-4" />
           </Button>
         )}
@@ -314,9 +321,10 @@ export function OnboardingFlow() {
 }
 
 function GoalStat({ label, value, unit, color }: { label: string; value: number; unit?: string; color: string }) {
+  const { locale } = useI18n();
   return (
     <div>
-      <div className="text-lg font-bold tabular-nums" style={{ color }}>{value}{unit}</div>
+      <div className="text-lg font-bold tabular-nums" style={{ color }}>{formatNumber(value, locale)}{unit}</div>
       <div className="text-[10px] text-muted-foreground">{label}</div>
     </div>
   );

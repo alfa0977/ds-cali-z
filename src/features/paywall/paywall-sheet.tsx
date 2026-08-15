@@ -3,22 +3,24 @@ import { X, Check, Crown, Sparkles } from "lucide-react";
 import { useApp } from "@/lib/store";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
+import { useI18n } from "@/lib/i18n";
 
-const FEATURES = [
-  { icon: "📸", title: "Unlimited AI scans", desc: "Scan every meal, no daily limits" },
-  { icon: "📊", title: "Advanced analytics", desc: "Deep insights & trends over time" },
-  { icon: "🎯", title: "Smart goals", desc: "AI-personalized macro targets" },
-  { icon: "🚫", title: "Ad-free experience", desc: "No interruptions, ever" },
-];
+const FEATURE_KEYS = [
+  { icon: "📸", titleKey: "unlimitedAiScans", descKey: "scanEveryMealNoLimits" },
+  { icon: "📊", titleKey: "advancedAnalytics", descKey: "deepInsightsTrends" },
+  { icon: "🎯", titleKey: "smartGoals", descKey: "aiPersonalizedMacroTargets" },
+  { icon: "🚫", titleKey: "adFreeExperience", descKey: "noInterruptionsEver" },
+] as const;
 
 const PLANS = [
-  { id: "yearly", label: "Yearly", price: "$59.99", per: "/year", save: "Save 50%", popular: true },
-  { id: "monthly", label: "Monthly", price: "$9.99", per: "/month", save: "", popular: false },
+  { id: "yearly", labelKey: "yearly" as const, price: "$59.99", perKey: "perYear" as const, saveKey: "save50" as const, popular: true },
+  { id: "monthly", labelKey: "monthly" as const, price: "$9.99", perKey: "perMonth" as const, saveKey: null, popular: false },
 ];
 
 export function PaywallSheet() {
   const { setModal } = useApp();
   const [selected, setSelected] = useState("yearly");
+  const { t } = useI18n();
   return (
     <div className="flex h-full flex-col bg-background">
       <div className="flex items-center justify-between px-4 pt-4">
@@ -32,17 +34,17 @@ export function PaywallSheet() {
           <div className="flex h-20 w-20 items-center justify-center rounded-3xl bg-gradient-to-br from-amber-400 to-streak shadow-fab">
             <Crown className="h-10 w-10 text-white" />
           </div>
-          <h2 className="mt-4 text-2xl font-bold">CalAI Premium</h2>
-          <p className="mt-1 text-sm text-muted-foreground">Unlock your full potential</p>
+          <h2 className="mt-4 text-2xl font-bold">{t("calaiPremium")}</h2>
+          <p className="mt-1 text-sm text-muted-foreground">{t("unlockYourFullPotential")}</p>
         </div>
 
         <div className="mt-6 space-y-3">
-          {FEATURES.map((f) => (
-            <div key={f.title} className="flex items-center gap-3 rounded-2xl bg-card p-3 shadow-ios">
+          {FEATURE_KEYS.map((f) => (
+            <div key={f.titleKey} className="flex items-center gap-3 rounded-2xl bg-card p-3 shadow-ios">
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-secondary text-xl">{f.icon}</div>
               <div className="flex-1">
-                <div className="text-sm font-semibold">{f.title}</div>
-                <div className="text-xs text-muted-foreground">{f.desc}</div>
+                <div className="text-sm font-semibold">{t(f.titleKey)}</div>
+                <div className="text-xs text-muted-foreground">{t(f.descKey)}</div>
               </div>
               <Check className="h-5 w-5 text-success" />
             </div>
@@ -63,18 +65,18 @@ export function PaywallSheet() {
               </div>
               <div className="flex-1 text-left">
                 <div className="flex items-center gap-2">
-                  <span className="text-sm font-semibold">{p.label}</span>
+                  <span className="text-sm font-semibold">{t(p.labelKey)}</span>
                   {p.popular && (
                     <span className="rounded-full bg-streak/15 px-2 py-0.5 text-[10px] font-bold text-streak">
-                      <Sparkles className="mr-0.5 inline h-2.5 w-2.5" />POPULAR
+                      <Sparkles className="mr-0.5 inline h-2.5 w-2.5" />{t("popular")}
                     </span>
                   )}
                 </div>
-                {p.save && <div className="text-xs text-success">{p.save}</div>}
+                {p.saveKey && <div className="text-xs text-success">{t(p.saveKey)}</div>}
               </div>
               <div className="text-right">
                 <span className="text-lg font-bold">{p.price}</span>
-                <span className="text-xs text-muted-foreground">{p.per}</span>
+                <span className="text-xs text-muted-foreground">{t(p.perKey)}</span>
               </div>
             </button>
           ))}
@@ -83,10 +85,10 @@ export function PaywallSheet() {
 
       <div className="border-t border-border bg-card px-6 py-4 pb-safe">
         <Button className="w-full rounded-full py-3 text-base" size="lg">
-          Start 7-day free trial
+          {t("start7DayFreeTrial")}
         </Button>
         <button className="mt-2 w-full text-center text-xs text-muted-foreground">
-          Restore purchases
+          {t("restorePurchases")}
         </button>
       </div>
     </div>

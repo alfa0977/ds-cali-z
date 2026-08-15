@@ -3,9 +3,12 @@ import { Drumstick, Wheat, Droplets } from "lucide-react";
 import { DonutChart } from "@/components/donut-chart";
 import { useDashboard } from "@/lib/hooks";
 import { TapCard } from "@/components/motion";
+import { useI18n } from "@/lib/i18n";
+import { formatNumber } from "@/lib/date-utils";
 
 export function MacroRatioCard() {
   const { data } = useDashboard();
+  const { locale, t } = useI18n();
   if (!data) return null;
 
   const consumed = data.consumed;
@@ -18,9 +21,9 @@ export function MacroRatioCard() {
   if (totalMacroCal === 0) return null;
 
   const segments = [
-    { label: "Protein", value: proteinCal, color: "var(--protein)" },
-    { label: "Carbs", value: carbsCal, color: "var(--carbs)" },
-    { label: "Fats", value: fatCal, color: "var(--fats)" },
+    { label: t("protein"), value: proteinCal, color: "var(--protein)" },
+    { label: t("carbs"), value: carbsCal, color: "var(--carbs)" },
+    { label: t("fats"), value: fatCal, color: "var(--fats)" },
   ];
 
   const proteinPct = Math.round((proteinCal / totalMacroCal) * 100);
@@ -29,18 +32,18 @@ export function MacroRatioCard() {
 
   return (
     <TapCard className="card-premium rounded-2xl p-4">
-      <h3 className="mb-3 text-sm font-semibold">Macro split</h3>
+      <h3 className="mb-3 text-sm font-semibold">{t("macroSplit")}</h3>
       <div className="flex items-center gap-4">
         <DonutChart segments={segments} size={110} strokeWidth={14}>
           <div className="text-center">
-            <div className="text-lg font-bold tabular-nums">{consumed.calories}</div>
-            <div className="text-[9px] text-muted-foreground">kcal</div>
+            <div className="text-lg font-bold tabular-nums">{formatNumber(consumed.calories, locale)}</div>
+            <div className="text-[9px] text-muted-foreground">{t("kcal")}</div>
           </div>
         </DonutChart>
         <div className="flex-1 space-y-2">
-          <MacroRow icon={Drumstick} label="Protein" pct={proteinPct} grams={consumed.protein} color="var(--protein)" />
-          <MacroRow icon={Wheat} label="Carbs" pct={carbsPct} grams={consumed.carbs} color="var(--carbs)" />
-          <MacroRow icon={Droplets} label="Fats" pct={fatPct} grams={consumed.fat} color="var(--fats)" />
+          <MacroRow icon={Drumstick} label={t("protein")} pct={proteinPct} grams={consumed.protein} color="var(--protein)" />
+          <MacroRow icon={Wheat} label={t("carbs")} pct={carbsPct} grams={consumed.carbs} color="var(--carbs)" />
+          <MacroRow icon={Droplets} label={t("fats")} pct={fatPct} grams={consumed.fat} color="var(--fats)" />
         </div>
       </div>
     </TapCard>

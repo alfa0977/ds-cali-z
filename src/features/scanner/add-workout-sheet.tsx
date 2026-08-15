@@ -5,6 +5,9 @@ import { useApp } from "@/lib/store";
 import { Button } from "@/components/ui/button";
 import { useLogWorkout } from "@/lib/hooks";
 import { cn } from "@/lib/utils";
+import { useI18n } from "@/lib/i18n";
+import { formatNumber } from "@/lib/date-utils";
+import { translateFoodName } from "@/lib/food-translations";
 
 const TYPES = [
   { label: "Running", icon: Footprints, mets: 9.8, emoji: "🏃" },
@@ -17,6 +20,7 @@ const TYPES = [
   { label: "HIIT", icon: Dumbbell, mets: 12, emoji: "🔥" },
 ];
 const INTENSITIES = ["low", "medium", "high"] as const;
+const INTENSITY_KEYS = { low: "low", medium: "medium", high: "high" } as const;
 
 // Quick duration presets (minutes)
 const DURATION_PRESETS = [15, 30, 45, 60, 90];
@@ -24,13 +28,14 @@ const DURATION_PRESETS = [15, 30, 45, 60, 90];
 export function AddWorkoutSheet() {
   const { setModal } = useApp();
   const logWorkout = useLogWorkout();
+  const { locale, t } = useI18n();
   const [type, setType] = useState("Running");
   const [duration, setDuration] = useState(30);
   const [intensity, setIntensity] = useState<(typeof INTENSITIES)[number]>("medium");
 
   // crude calorie estimate: METs * weight(kg) * hours
   const weightKg = 78;
-  const mets = TYPES.find((t) => t.label === type)?.mets ?? 6;
+  const mets = TYPES.find((tt) => tt.label === type)?.mets ?? 6;
   const intensityMult = intensity === "low" ? 0.8 : intensity === "high" ? 1.25 : 1;
   const calories = Math.round(mets * weightKg * (duration / 60) * intensityMult);
 
@@ -40,34 +45,34 @@ export function AddWorkoutSheet() {
         <button onClick={() => setModal(null)} className="flex h-9 w-9 items-center justify-center rounded-full bg-secondary">
           <X className="h-5 w-5" />
         </button>
-        <h2 className="text-base font-semibold">Log workout</h2>
+        <h2 className="text-base font-semibold">{t("logWorkout")}</h2>
         <div className="h-9 w-9" />
       </div>
 
       <div className="flex-1 overflow-y-auto px-4 pb-4">
-        <p className="mb-2 text-xs font-semibold text-muted-foreground">Activity</p>
+        <p className="mb-2 text-xs font-semibold text-muted-foreground">{t("activity")}</p>
         <div className="grid grid-cols-4 gap-2">
-          {TYPES.map((t) => (
+          {TYPES.map((tt) => (
             <button
-              key={t.label}
-              onClick={() => setType(t.label)}
+              key={tt.label}
+              onClick={() => setType(tt.label)}
               className={cn(
                 "flex flex-col items-center gap-1 rounded-2xl border-2 p-2.5 transition-colors",
-                type === t.label ? "border-foreground bg-card" : "border-border bg-card"
+                type === tt.label ? "border-foreground bg-card" : "border-border bg-card"
               )}
             >
-              <span className="text-xl">{t.emoji}</span>
-              <span className="text-[10px] font-medium leading-tight text-center">{t.label}</span>
+              <span className="text-xl">{tt.emoji}</span>
+              <span className="text-[10px] font-medium leading-tight text-center">{translateFoodName(tt.label, locale)}</span>
             </button>
           ))}
         </div>
 
-        <p className="mb-2 mt-5 text-xs font-semibold text-muted-foreground">Duration</p>
+        <p className="mb-2 mt-5 text-xs font-semibold text-muted-foreground">{t("duration")}</p>
         <div className="flex items-center justify-between rounded-2xl bg-card p-4 shadow-ios">
           <button onClick={() => setDuration((d) => Math.max(5, d - 5))} className="flex h-10 w-10 items-center justify-center rounded-full bg-secondary text-lg font-bold">−</button>
           <div className="text-center">
-            <span className="text-3xl font-bold tabular-nums">{duration}</span>
-            <span className="ml-1 text-sm text-muted-foreground">min</span>
+            <span className="text-3xl font-bold tabular-nums">{formatNumber(duration, locale)}</span>
+            <span className="ml-1 text-sm text-muted-foreground">{t("min")}</span>
           </div>
           <button onClick={() => setDuration((d) => d + 5)} className="flex h-10 w-10 items-center justify-center rounded-full bg-foreground text-background text-lg font-bold">+</button>
         </div>
@@ -82,30 +87,30 @@ export function AddWorkoutSheet() {
                 duration === p ? "bg-foreground text-background" : "bg-secondary text-muted-foreground"
               )}
             >
-              {p}m
+              {formatNumber(p, locale)}m
             </button>
           ))}
         </div>
 
-        <p className="mb-2 mt-5 text-xs font-semibold text-muted-foreground">Intensity</p>
+        <p className="mb-2 mt-5 text-xs font-semibold text-muted-foreground">{t("intensity")}</p>
         <div className="grid grid-cols-3 gap-2">
           {INTENSITIES.map((i) => (
             <button
               key={i}
               onClick={() => setIntensity(i)}
               className={cn(
-                "rounded-xl border-2 py-2.5 text-sm font-medium capitalize transition-colors",
+                "rounded-xl border-2 py-2.5 text-sm font-medium transition-colors",
                 intensity === i ? "border-foreground bg-card" : "border-border bg-card text-muted-foreground"
               )}
             >
-              {i}
+              {t(INTENSITY_KEYS[i] as "low")}
             </button>
           ))}
         </div>
 
         <div className="mt-5 rounded-2xl bg-streak/10 p-4 text-center">
-          <p className="text-xs text-muted-foreground">Estimated calories burned</p>
-          <p className="text-3xl font-bold text-streak tabular-nums">{calories}</p>
+          <p className="text-xs text-muted-foreground">{t("estimatedCaloriesBurned")}</p>
+          <p className="text-3xl font-bold text-streak tabular-nums">{formatNumber(calories, locale)}</p>
         </div>
       </div>
 
@@ -121,7 +126,7 @@ export function AddWorkoutSheet() {
             )
           }
         >
-          {logWorkout.isPending ? "Saving…" : "Log workout"}
+          {logWorkout.isPending ? t("saving") : t("logWorkout")}
         </Button>
       </div>
     </div>

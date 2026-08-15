@@ -4,10 +4,14 @@ import { useDashboard, useLogFood } from "@/lib/hooks";
 import { TapCard } from "@/components/motion";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
+import { useI18n } from "@/lib/i18n";
+import { formatNumber } from "@/lib/date-utils";
+import { translateFoodName } from "@/lib/food-translations";
 
 export function RecentsSection() {
   const { data } = useDashboard();
   const logFood = useLogFood();
+  const { locale, t } = useI18n();
 
   if (!data) return null;
 
@@ -39,14 +43,14 @@ export function RecentsSection() {
         emoji: "🔄",
       },
     });
-    toast.success(`${item.title} logged`);
+    toast.success(t("loggedToast").replace("{0}", translateFoodName(item.title, locale)));
   }
 
   return (
     <div>
       <div className="mb-2 flex items-center gap-1.5 px-1">
         <Clock className="h-4 w-4 text-muted-foreground" />
-        <h3 className="text-base font-semibold">Recent foods</h3>
+        <h3 className="text-base font-semibold">{t("recentFoods")}</h3>
       </div>
       <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
         {recents.map((item, i) => (
@@ -68,10 +72,10 @@ export function RecentsSection() {
                 "🔄"
               )}
             </div>
-            <div className="max-w-[72px] truncate text-xs font-medium">{item.title}</div>
+            <div className="max-w-[72px] truncate text-xs font-medium">{translateFoodName(item.title, locale)}</div>
             <div className="flex items-center gap-0.5 text-[10px] text-muted-foreground">
               <Flame className="h-2.5 w-2.5 text-streak" />
-              {item.macros?.calories ?? 0}
+              {formatNumber(item.macros?.calories ?? 0, locale)}
             </div>
           </motion.button>
         ))}

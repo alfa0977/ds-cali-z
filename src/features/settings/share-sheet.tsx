@@ -7,11 +7,14 @@ import { ProgressRing } from "@/components/progress-ring";
 import { useState } from "react";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
+import { useI18n } from "@/lib/i18n";
+import { formatNumber } from "@/lib/date-utils";
 
 export function ShareSheet() {
   const { setModal } = useApp();
   const { data } = useDashboard();
   const [copied, setCopied] = useState(false);
+  const { locale, t } = useI18n();
 
   if (!data) return null;
 
@@ -20,19 +23,25 @@ export function ShareSheet() {
   const streak = data.user.streak;
   const calPct = Math.round((consumed.calories / goals.calories) * 100);
 
-  const shareText = `I'm tracking my nutrition with CalAI! 🔥\n\nToday: ${consumed.calories}/${goals.calories} cal (${calPct}%)\nProtein: ${Math.round(consumed.protein)}g/${goals.protein}g\n${streak}-day streak 💪\n\n#CalAI #HealthyLiving`;
+  const shareText = t("shareTextTemplate")
+    .replace("{0}", formatNumber(consumed.calories, locale))
+    .replace("{1}", formatNumber(goals.calories, locale))
+    .replace("{2}", formatNumber(calPct, locale))
+    .replace("{3}", formatNumber(Math.round(consumed.protein), locale))
+    .replace("{4}", formatNumber(goals.protein, locale))
+    .replace("{5}", formatNumber(streak, locale));
 
   function copyLink() {
     navigator.clipboard.writeText(shareText).then(() => {
       setCopied(true);
-      toast.success("Copied to clipboard!");
+      toast.success(t("copiedToClipboard"));
       setTimeout(() => setCopied(false), 2000);
     });
   }
 
   function shareNative() {
     if (navigator.share) {
-      navigator.share({ title: "My CalAI progress", text: shareText }).catch(() => {});
+      navigator.share({ title: t("myProgressTitle"), text: shareText }).catch(() => {});
     } else {
       copyLink();
     }
@@ -52,7 +61,7 @@ export function ShareSheet() {
         </button>
         <h2 className="flex items-center gap-1.5 text-base font-semibold">
           <Share2 className="h-4 w-4" />
-          Share progress
+          {t("shareProgress")}
         </h2>
         <div className="h-9 w-9" />
       </div>
@@ -69,26 +78,26 @@ export function ShareSheet() {
             <div className="mb-3 flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <span className="text-2xl">🍎</span>
-                <span className="font-bold">CalAI</span>
+                <span className="font-bold">{t("appName")}</span>
               </div>
               <div className="flex items-center gap-1 rounded-full bg-streak/15 px-2 py-1 text-xs font-bold text-streak">
-                🔥 {streak} days
+                🔥 {formatNumber(streak, locale)} {t("days")}
               </div>
             </div>
             <div className="flex items-center gap-4">
               <ProgressRing value={calPct} size={80} strokeWidth={8} color="var(--streak)">
                 <div className="text-center">
-                  <div className="text-base font-bold tabular-nums">{calPct}%</div>
-                  <div className="text-[8px] text-muted-foreground">of goal</div>
+                  <div className="text-base font-bold tabular-nums">{formatNumber(calPct, locale)}%</div>
+                  <div className="text-[8px] text-muted-foreground">{t("ofGoal")}</div>
                 </div>
               </ProgressRing>
               <div className="flex-1 space-y-1.5">
-                <ShareStat label="Calories" value={`${consumed.calories}`} unit={`/${goals.calories}`} color="var(--streak)" />
-                <ShareStat label="Protein" value={`${Math.round(consumed.protein)}g`} unit={`/${goals.protein}g`} color="var(--protein)" />
-                <ShareStat label="Carbs" value={`${Math.round(consumed.carbs)}g`} unit={`/${goals.carbs}g`} color="var(--carbs)" />
+                <ShareStat label={t("calories")} value={`${formatNumber(consumed.calories, locale)}`} unit={`/${formatNumber(goals.calories, locale)}`} color="var(--streak)" />
+                <ShareStat label={t("protein")} value={`${formatNumber(Math.round(consumed.protein), locale)}g`} unit={`/${formatNumber(goals.protein, locale)}g`} color="var(--protein)" />
+                <ShareStat label={t("carbs")} value={`${formatNumber(Math.round(consumed.carbs), locale)}g`} unit={`/${formatNumber(goals.carbs, locale)}g`} color="var(--carbs)" />
               </div>
             </div>
-            <p className="mt-3 text-xs text-muted-foreground">Tracking my nutrition with CalAI 🍎</p>
+            <p className="mt-3 text-xs text-muted-foreground">{t("trackingMyNutrition")}</p>
           </div>
         </motion.div>
 
@@ -124,11 +133,11 @@ export function ShareSheet() {
         <div className="mt-4 space-y-2">
           <Button variant="outline" className="w-full rounded-full" onClick={shareNative}>
             <Share2 className="mr-2 h-4 w-4" />
-            Share via…
+            {t("shareVia")}
           </Button>
           <Button variant="outline" className="w-full rounded-full" onClick={copyLink}>
             {copied ? <Check className="mr-2 h-4 w-4 text-success" /> : <Link2 className="mr-2 h-4 w-4" />}
-            {copied ? "Copied!" : "Copy text"}
+            {copied ? t("copied") : t("copyText")}
           </Button>
         </div>
       </div>

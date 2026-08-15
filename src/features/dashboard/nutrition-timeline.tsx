@@ -4,11 +4,14 @@ import { useDashboard } from "@/lib/hooks";
 import { TapCard } from "@/components/motion";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
+import { useI18n } from "@/lib/i18n";
+import { formatNumber } from "@/lib/date-utils";
 
 const HOURS = [6, 9, 12, 15, 18, 21];
 
 export function NutritionTimeline() {
   const { data } = useDashboard();
+  const { locale, t } = useI18n();
   if (!data) return null;
 
   // Group meal logs by hour bucket
@@ -16,7 +19,7 @@ export function NutritionTimeline() {
   const buckets: Record<number, { calories: number; count: number; label: string }> = {};
 
   HOURS.forEach((h) => {
-    buckets[h] = { calories: 0, count: 0, label: hourLabel(h) };
+    buckets[h] = { calories: 0, count: 0, label: hourLabel(h, locale) };
   });
 
   for (const log of logs) {
@@ -43,9 +46,11 @@ export function NutritionTimeline() {
       <div className="mb-3 flex items-center justify-between">
         <h3 className="flex items-center gap-1.5 text-sm font-semibold">
           <Clock className="h-4 w-4" />
-          Today's timeline
+          {t("todayTimeline")}
         </h3>
-        <span className="text-xs text-muted-foreground tabular-nums">{totalCal} cal total</span>
+        <span className="text-xs text-muted-foreground tabular-nums">
+          {formatNumber(totalCal, locale)} {t("calTotal")}
+        </span>
       </div>
 
       <div className="flex items-end justify-between gap-2" style={{ height: 80 }}>
@@ -55,7 +60,7 @@ export function NutritionTimeline() {
           return (
             <div key={h} className="flex flex-1 flex-col items-center gap-1">
               <span className="text-[9px] font-semibold tabular-nums text-muted-foreground">
-                {b.calories > 0 ? b.calories : ""}
+                {b.calories > 0 ? formatNumber(b.calories, locale) : ""}
               </span>
               <div className="relative flex w-full flex-1 items-end justify-center">
                 <motion.div
@@ -78,9 +83,9 @@ export function NutritionTimeline() {
   );
 }
 
-function hourLabel(h: number): string {
-  if (h === 0) return "12a";
-  if (h < 12) return `${h}a`;
-  if (h === 12) return "12p";
-  return `${h - 12}p`;
+function hourLabel(h: number, locale: "fa" | "en"): string {
+  const num = h === 0 ? 12 : h <= 12 ? h : h - 12;
+  const suffix = h < 12 ? (locale === "fa" ? "ق" : "a") : locale === "fa" ? "ب" : "p";
+  const numStr = locale === "fa" ? formatNumber(num, locale) : String(num);
+  return `${numStr}${suffix}`;
 }

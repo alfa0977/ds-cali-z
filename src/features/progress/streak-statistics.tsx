@@ -4,9 +4,12 @@ import { useDashboard } from "@/lib/hooks";
 import { TapCard } from "@/components/motion";
 import { AnimatedNumber } from "@/components/animated-number";
 import { motion } from "framer-motion";
+import { useI18n } from "@/lib/i18n";
+import { formatNumber } from "@/lib/date-utils";
 
 export function StreakStatistics() {
   const { data } = useDashboard();
+  const { locale, t } = useI18n();
   if (!data) return null;
 
   const currentStreak = data.user.streak;
@@ -29,10 +32,10 @@ export function StreakStatistics() {
   const consistencyPct = Math.round((weekLogged / 7) * 100);
 
   const stats = [
-    { label: "Current", value: currentStreak, unit: "days", icon: Flame, color: "var(--streak)" },
-    { label: "Best", value: bestStreak, unit: "days", icon: Award, color: "var(--success)" },
-    { label: "This week", value: daysLogged, unit: "/7", icon: Calendar, color: "var(--carbs)" },
-    { label: "Meals logged", value: totalMeals, unit: "", icon: TrendingUp, color: "var(--protein)" },
+    { label: t("current"), value: currentStreak, unit: t("days"), icon: Flame, color: "var(--streak)" },
+    { label: t("best"), value: bestStreak, unit: t("days"), icon: Award, color: "var(--success)" },
+    { label: t("thisWeekSummary"), value: daysLogged, unit: "/7", icon: Calendar, color: "var(--carbs)" },
+    { label: t("mealsLogged"), value: totalMeals, unit: "", icon: TrendingUp, color: "var(--protein)" },
   ];
 
   return (
@@ -40,9 +43,9 @@ export function StreakStatistics() {
       <div className="mb-3 flex items-center justify-between">
         <h3 className="flex items-center gap-1.5 text-sm font-semibold">
           <Flame className="h-4 w-4 text-streak" fill="currentColor" />
-          Streak statistics
+          {t("streakStatistics")}
         </h3>
-        <span className="text-xs font-medium text-muted-foreground">{consistencyPct}% consistent</span>
+        <span className="text-xs font-medium text-muted-foreground">{formatNumber(consistencyPct, locale)}% {t("consistent")}</span>
       </div>
 
       {/* big current streak */}
@@ -58,7 +61,7 @@ export function StreakStatistics() {
           <div className="text-3xl font-bold tabular-nums text-streak">
             <AnimatedNumber value={currentStreak} />
           </div>
-          <div className="text-[10px] font-medium text-muted-foreground">day streak</div>
+          <div className="text-[10px] font-medium text-muted-foreground">{t("dayStreak")}</div>
         </div>
       </div>
 
@@ -74,7 +77,7 @@ export function StreakStatistics() {
           >
             <s.icon className="mx-auto mb-1 h-4 w-4" style={{ color: s.color }} />
             <div className="text-base font-bold tabular-nums">
-              {s.value}<span className="text-[10px] font-medium text-muted-foreground">{s.unit}</span>
+              {formatNumber(s.value, locale)}<span className="text-[10px] font-medium text-muted-foreground">{s.unit}</span>
             </div>
             <div className="text-[9px] text-muted-foreground">{s.label}</div>
           </motion.div>
@@ -84,8 +87,8 @@ export function StreakStatistics() {
       {/* consistency bar */}
       <div className="mt-3">
         <div className="mb-1 flex items-center justify-between text-[10px] text-muted-foreground">
-          <span>Weekly consistency</span>
-          <span className="tabular-nums">{weekLogged}/7 days</span>
+          <span>{t("weeklyConsistency")}</span>
+          <span className="tabular-nums">{formatNumber(weekLogged, locale)}/7 {t("days")}</span>
         </div>
         <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
           <motion.div

@@ -17,11 +17,13 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { useI18n } from "@/lib/i18n";
 
 export function EditLogSheet() {
   const { editingLog, setModal, setEditingLog } = useApp();
   const deleteLog = useDeleteLog();
   const updateLog = useUpdateLog();
+  const { t } = useI18n();
   const [title, setTitle] = useState(editingLog?.title ?? "");
   const [calories, setCalories] = useState(String(editingLog?.macros?.calories ?? 0));
   const [protein, setProtein] = useState(String(editingLog?.macros?.protein ?? 0));
@@ -66,7 +68,7 @@ export function EditLogSheet() {
         <button onClick={() => { setEditingLog(null); setModal(null); }} className="flex h-9 w-9 items-center justify-center rounded-full bg-secondary">
           <X className="h-5 w-5" />
         </button>
-        <h2 className="text-base font-semibold">Edit entry</h2>
+        <h2 className="text-base font-semibold">{t("editEntry")}</h2>
         <AlertDialog>
           <AlertDialogTrigger asChild>
             <button className="flex h-9 w-9 items-center justify-center rounded-full bg-destructive/10 text-destructive">
@@ -75,15 +77,15 @@ export function EditLogSheet() {
           </AlertDialogTrigger>
           <AlertDialogContent>
             <AlertDialogHeader>
-              <AlertDialogTitle>Delete this entry?</AlertDialogTitle>
+              <AlertDialogTitle>{t("deleteThisEntry")}</AlertDialogTitle>
               <AlertDialogDescription>
-                This will permanently remove the entry and its meal record. This action cannot be undone.
+                {t("deleteEntryDesc")}
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogCancel>{t("cancel")}</AlertDialogCancel>
               <AlertDialogAction onClick={remove} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                Delete
+                {t("delete")}
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
@@ -92,27 +94,27 @@ export function EditLogSheet() {
 
       <div className="flex-1 overflow-y-auto px-4 pb-4 space-y-4">
         <div className="space-y-1.5">
-          <Label>Title</Label>
+          <Label>{t("titleLabel")}</Label>
           <Input value={title} onChange={(e) => setTitle(e.target.value)} className="rounded-xl bg-secondary border-0" />
         </div>
 
         {editingLog.type === "meal" && editingLog.macros && (
           <>
             <div className="space-y-1.5">
-              <Label className="flex items-center gap-1.5"><Flame className="h-3.5 w-3.5 text-streak" /> Calories</Label>
+              <Label className="flex items-center gap-1.5"><Flame className="h-3.5 w-3.5 text-streak" /> {t("calories")}</Label>
               <Input type="number" value={calories} onChange={(e) => setCalories(e.target.value)} className="rounded-xl bg-secondary border-0" />
             </div>
             <div className="grid grid-cols-3 gap-3">
               <div className="space-y-1.5">
-                <Label className="flex items-center gap-1.5 text-protein"><Drumstick className="h-3.5 w-3.5" /> Protein</Label>
+                <Label className="flex items-center gap-1.5 text-protein"><Drumstick className="h-3.5 w-3.5" /> {t("protein")}</Label>
                 <Input type="number" value={protein} onChange={(e) => setProtein(e.target.value)} className="rounded-xl bg-secondary border-0" />
               </div>
               <div className="space-y-1.5">
-                <Label className="flex items-center gap-1.5 text-carbs"><Wheat className="h-3.5 w-3.5" /> Carbs</Label>
+                <Label className="flex items-center gap-1.5 text-carbs"><Wheat className="h-3.5 w-3.5" /> {t("carbs")}</Label>
                 <Input type="number" value={carbs} onChange={(e) => setCarbs(e.target.value)} className="rounded-xl bg-secondary border-0" />
               </div>
               <div className="space-y-1.5">
-                <Label className="flex items-center gap-1.5 text-fats"><Droplets className="h-3.5 w-3.5" /> Fats</Label>
+                <Label className="flex items-center gap-1.5 text-fats"><Droplets className="h-3.5 w-3.5" /> {t("fats")}</Label>
                 <Input type="number" value={fat} onChange={(e) => setFat(e.target.value)} className="rounded-xl bg-secondary border-0" />
               </div>
             </div>
@@ -121,7 +123,7 @@ export function EditLogSheet() {
 
         {editingLog.type !== "meal" && (
           <p className="rounded-xl bg-secondary p-3 text-sm text-muted-foreground">
-            Only meal entries can have macros edited. This {editingLog.type} entry can be deleted.
+            {t("onlyMealMacrosDesc").replace("{0}", editingLog.type)}
           </p>
         )}
       </div>
@@ -133,7 +135,7 @@ export function EditLogSheet() {
           disabled={updateLog.isPending}
           onClick={save}
         >
-          {updateLog.isPending ? "Saving…" : "Save changes"}
+          {updateLog.isPending ? t("saving") : t("saveChanges")}
         </Button>
       </div>
     </div>

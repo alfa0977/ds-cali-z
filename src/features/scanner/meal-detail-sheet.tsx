@@ -16,6 +16,9 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { motion } from "framer-motion";
+import { useI18n } from "@/lib/i18n";
+import { formatNumber, formatTime } from "@/lib/date-utils";
+import { translateFoodName } from "@/lib/food-translations";
 
 export function MealDetailSheet() {
   const { editingLog, setModal, setEditingLog } = useApp();
@@ -23,6 +26,7 @@ export function MealDetailSheet() {
   const { data: meal, isLoading } = useMealDetail(mealId);
   const addFavorite = useAddFavorite();
   const deleteLog = useDeleteLog();
+  const { locale, t } = useI18n();
 
   if (!editingLog) return null;
 
@@ -32,7 +36,7 @@ export function MealDetailSheet() {
   const imageUrl = meal?.imageUrl;
   const healthScore = meal?.healthScore ?? 0;
   const ts = editingLog.timestamp ?? meal?.createdAt;
-  const time = ts ? new Date(ts).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }) : "";
+  const time = ts ? formatTime(ts, locale) : "";
 
   function addFav() {
     if (!macros) return;
@@ -61,8 +65,8 @@ export function MealDetailSheet() {
         <button onClick={() => { setEditingLog(null); setModal(null); }} className="flex h-9 w-9 items-center justify-center rounded-full bg-secondary">
           <X className="h-5 w-5" />
         </button>
-        <h2 className="text-base font-semibold">Meal details</h2>
-        <button onClick={addFav} className="flex h-9 w-9 items-center justify-center rounded-full bg-secondary" aria-label="Add to favorites">
+        <h2 className="text-base font-semibold">{t("mealDetails")}</h2>
+        <button onClick={addFav} className="flex h-9 w-9 items-center justify-center rounded-full bg-secondary" aria-label={t("addToFavorites")}>
           <Star className="h-5 w-5" />
         </button>
       </div>
@@ -71,14 +75,14 @@ export function MealDetailSheet() {
         {/* hero image */}
         {imageUrl && (
           <div className="relative mx-4 mb-4 h-48 overflow-hidden rounded-2xl">
-            <img src={imageUrl} alt={title} className="h-full w-full object-cover" />
+            <img src={imageUrl} alt={translateFoodName(title, locale)} className="h-full w-full object-cover" />
             <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
             <div className="absolute bottom-3 left-3 right-3">
               <div className="flex items-center gap-1.5 text-white/90">
                 <Clock className="h-3.5 w-3.5" />
                 <span className="text-xs font-medium">{time}</span>
               </div>
-              <h1 className="text-xl font-bold text-white">{title}</h1>
+              <h1 className="text-xl font-bold text-white">{translateFoodName(title, locale)}</h1>
             </div>
           </div>
         )}
@@ -89,17 +93,17 @@ export function MealDetailSheet() {
               <Clock className="h-3.5 w-3.5" />
               <span className="text-xs">{time}</span>
             </div>
-            <h1 className="text-2xl font-bold">{title}</h1>
+            <h1 className="text-2xl font-bold">{translateFoodName(title, locale)}</h1>
           </div>
         )}
 
         {/* nutrition summary */}
         <div className="px-4">
           <div className="grid grid-cols-4 gap-2">
-            <NutCard label="Calories" value={macros?.calories ?? 0} unit="" icon={Flame} color="var(--streak)" />
-            <NutCard label="Protein" value={macros?.protein ?? 0} unit="g" icon={Drumstick} color="var(--protein)" />
-            <NutCard label="Carbs" value={macros?.carbs ?? 0} unit="g" icon={Wheat} color="var(--carbs)" />
-            <NutCard label="Fats" value={macros?.fat ?? 0} unit="g" icon={Droplets} color="var(--fats)" />
+            <NutCard label={t("calories")} value={macros?.calories ?? 0} unit="" icon={Flame} color="var(--streak)" />
+            <NutCard label={t("protein")} value={macros?.protein ?? 0} unit="g" icon={Drumstick} color="var(--protein)" />
+            <NutCard label={t("carbs")} value={macros?.carbs ?? 0} unit="g" icon={Wheat} color="var(--carbs)" />
+            <NutCard label={t("fats")} value={macros?.fat ?? 0} unit="g" icon={Droplets} color="var(--fats)" />
           </div>
         </div>
 
@@ -108,12 +112,12 @@ export function MealDetailSheet() {
           <div className="px-4 mt-3">
             <div className="flex items-center gap-3 rounded-2xl bg-card p-3 shadow-ios">
               <ProgressRing value={healthScore} size={48} strokeWidth={5} color={healthScore >= 70 ? "var(--success)" : healthScore >= 40 ? "var(--carbs)" : "var(--protein)"}>
-                <span className="text-xs font-bold">{healthScore}</span>
+                <span className="text-xs font-bold">{formatNumber(healthScore, locale)}</span>
               </ProgressRing>
               <div className="flex-1">
-                <div className="text-sm font-semibold">Health score</div>
+                <div className="text-sm font-semibold">{t("healthScore")}</div>
                 <div className="text-xs text-muted-foreground">
-                  {healthScore >= 70 ? "Excellent nutritional balance" : healthScore >= 40 ? "Moderate balance" : "Could be healthier"}
+                  {healthScore >= 70 ? t("excellentNutritionalBalance") : healthScore >= 40 ? t("moderateBalance") : t("couldBeHealthier")}
                 </div>
               </div>
             </div>
@@ -123,7 +127,7 @@ export function MealDetailSheet() {
         {/* ingredients */}
         {ingredients.length > 0 && (
           <div className="px-4 mt-4">
-            <h3 className="mb-2 text-sm font-semibold">Ingredients ({ingredients.length})</h3>
+            <h3 className="mb-2 text-sm font-semibold">{t("ingredients")} ({formatNumber(ingredients.length, locale)})</h3>
             <div className="space-y-2">
               {ingredients.map((ing: { name: string; estimatedWeightGrams: number; confidence: number; volumeMl?: number }, i: number) => (
                 <motion.div
@@ -134,13 +138,13 @@ export function MealDetailSheet() {
                   className="flex items-center gap-3 rounded-xl bg-card p-3 shadow-ios"
                 >
                   <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-secondary text-sm">
-                    {ing.name.charAt(0).toUpperCase()}
+                    {translateFoodName(ing.name, locale).charAt(0).toUpperCase()}
                   </div>
                   <div className="flex-1">
-                    <div className="text-sm font-medium">{ing.name}</div>
+                    <div className="text-sm font-medium">{translateFoodName(ing.name, locale)}</div>
                     <div className="text-xs text-muted-foreground">
-                      {Math.round(ing.estimatedWeightGrams)}g
-                      {ing.volumeMl && ` · ${Math.round(ing.volumeMl)}ml`}
+                      {formatNumber(Math.round(ing.estimatedWeightGrams), locale)}g
+                      {ing.volumeMl && ` · ${formatNumber(Math.round(ing.volumeMl), locale)}ml`}
                     </div>
                   </div>
                   <div className="flex items-center gap-1">
@@ -153,7 +157,7 @@ export function MealDetailSheet() {
                         }}
                       />
                     </div>
-                    <span className="text-[10px] text-muted-foreground tabular-nums">{Math.round(ing.confidence * 100)}%</span>
+                    <span className="text-[10px] text-muted-foreground tabular-nums">{formatNumber(Math.round(ing.confidence * 100), locale)}%</span>
                   </div>
                 </motion.div>
               ))}
@@ -162,31 +166,31 @@ export function MealDetailSheet() {
         )}
 
         {isLoading && !meal && (
-          <div className="px-4 py-8 text-center text-sm text-muted-foreground">Loading meal details…</div>
+          <div className="px-4 py-8 text-center text-sm text-muted-foreground">{t("loadingMealDetails")}</div>
         )}
 
         {/* actions */}
         <div className="px-4 mt-4 flex gap-3">
           <Button variant="outline" className="flex-1 rounded-full" onClick={() => setModal("edit-log")}>
             <Pencil className="mr-2 h-4 w-4" />
-            Edit
+            {t("edit")}
           </Button>
           <AlertDialog>
             <AlertDialogTrigger asChild>
               <Button variant="outline" className="flex-1 rounded-full text-destructive border-destructive/30 hover:bg-destructive/10">
                 <Trash2 className="mr-2 h-4 w-4" />
-                Delete
+                {t("delete")}
               </Button>
             </AlertDialogTrigger>
             <AlertDialogContent>
               <AlertDialogHeader>
-                <AlertDialogTitle>Delete this meal?</AlertDialogTitle>
-                <AlertDialogDescription>This permanently removes the meal and its log entry.</AlertDialogDescription>
+                <AlertDialogTitle>{t("deleteThisMeal")}</AlertDialogTitle>
+                <AlertDialogDescription>{t("thisPermanentlyRemoves")}</AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogCancel>{t("cancel")}</AlertDialogCancel>
                 <AlertDialogAction onClick={remove} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                  Delete
+                  {t("delete")}
                 </AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>
@@ -198,11 +202,12 @@ export function MealDetailSheet() {
 }
 
 function NutCard({ label, value, unit, icon: Icon, color }: { label: string; value: number; unit: string; icon: typeof Flame; color: string }) {
+  const { locale } = useI18n();
   return (
     <div className="rounded-2xl bg-card p-2.5 shadow-ios text-center">
       <Icon className="mx-auto h-4 w-4 mb-1" style={{ color }} />
       <div className="text-base font-bold tabular-nums" style={{ color }}>
-        {value}
+        {formatNumber(value, locale)}
         {unit && <span className="text-[10px] font-medium text-muted-foreground">{unit}</span>}
       </div>
       <div className="text-[10px] text-muted-foreground">{label}</div>

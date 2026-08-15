@@ -11,12 +11,15 @@ import { StreakStatistics } from "@/features/progress/streak-statistics";
 import { Scale, Calendar, Flag, Pencil, TrendingUp, Flame, Drumstick, Wheat, Droplets } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
+import { useI18n } from "@/lib/i18n";
+import { formatNumber, getWeekdayShort } from "@/lib/date-utils";
 
-const RANGES = ["90 Days", "6 Months", "1 Year", "All time"] as const;
+const RANGE_KEYS = ["range90Days", "range6Months", "range1Year", "rangeAllTime"] as const;
 
 export function ProgressDashboard() {
   const { data, isLoading } = useDashboard();
-  const [range, setRange] = useState<(typeof RANGES)[number]>("90 Days");
+  const { locale, t } = useI18n();
+  const [rangeIdx, setRangeIdx] = useState(0);
 
   if (isLoading || !data) {
     return (
@@ -44,7 +47,7 @@ export function ProgressDashboard() {
 
   return (
     <div className="space-y-4 px-4 pb-4">
-      <h1 className="px-1 text-3xl font-bold tracking-tight">Progress</h1>
+      <h1 className="px-1 text-3xl font-bold tracking-tight">{t("progress")}</h1>
 
       {/* two stat cards */}
       <StaggerList className="grid grid-cols-2 gap-3">
@@ -53,9 +56,9 @@ export function ProgressDashboard() {
             <ProgressRing value={goalPct} size={72} strokeWidth={8} color="var(--foreground)">
               <Scale className="h-6 w-6" />
             </ProgressRing>
-            <div className="mt-1 text-xs text-muted-foreground">Last weight</div>
+            <div className="mt-1 text-xs text-muted-foreground">{t("lastWeight")}</div>
             <div className="text-lg font-bold tabular-nums">
-              <AnimatedNumber value={lastWeight} decimals={1} /> kg
+              <AnimatedNumber value={lastWeight} decimals={1} /> {t("weightUnit")}
             </div>
           </div>
         </StaggerItem>
@@ -64,10 +67,10 @@ export function ProgressDashboard() {
             <ProgressRing value={Math.min(100, data.daysLogged * (100 / 7))} size={72} strokeWidth={8} color="var(--foreground)">
               <Calendar className="h-6 w-6" />
             </ProgressRing>
-            <div className="mt-1 text-xs text-muted-foreground">Days logged</div>
+            <div className="mt-1 text-xs text-muted-foreground">{t("daysLogged")}</div>
             <div className="flex items-center gap-1.5">
-              <span className="text-lg font-bold tabular-nums">{data.daysLogged} logged</span>
-              <span className="rounded-full bg-primary px-2 py-0.5 text-[10px] font-semibold text-primary-foreground">2 Cheat</span>
+              <span className="text-lg font-bold tabular-nums">{formatNumber(data.daysLogged, locale)} {t("daysLoggedShort")}</span>
+              <span className="rounded-full bg-primary px-2 py-0.5 text-[10px] font-semibold text-primary-foreground">{t("cheatCount").replace("{0}", "2")}</span>
             </div>
           </div>
         </StaggerItem>
@@ -75,16 +78,16 @@ export function ProgressDashboard() {
 
       {/* range selector */}
       <div className="flex gap-2 overflow-x-auto no-scrollbar">
-        {RANGES.map((r) => (
+        {RANGE_KEYS.map((r, idx) => (
           <button
             key={r}
-            onClick={() => setRange(r)}
+            onClick={() => setRangeIdx(idx)}
             className={cn(
               "shrink-0 rounded-full px-3 py-1.5 text-xs font-medium transition-colors",
-              range === r ? "bg-card shadow-ios" : "text-muted-foreground"
+              rangeIdx === idx ? "bg-card shadow-ios" : "text-muted-foreground"
             )}
           >
-            {r}
+            {t(r)}
           </button>
         ))}
       </div>
@@ -92,10 +95,10 @@ export function ProgressDashboard() {
       {/* goal progress chart */}
       <TapCard className="rounded-2xl bg-card p-4 shadow-ios">
         <div className="mb-3 flex items-center justify-between">
-          <h3 className="text-sm font-semibold">Goal Progress</h3>
+          <h3 className="text-sm font-semibold">{t("goalProgress")}</h3>
           <span className="flex items-center gap-1 rounded-full bg-secondary px-2 py-0.5 text-[11px] font-medium">
             <Flag className="h-3 w-3" />
-            {Math.round(goalPct)}% of goal
+            {formatNumber(Math.round(goalPct), locale)}% {t("ofGoal")}
             <Pencil className="h-3 w-3" />
           </span>
         </div>
@@ -104,13 +107,13 @@ export function ProgressDashboard() {
 
       {/* Macro trend charts (NEW) */}
       <div>
-        <h3 className="mb-2 px-1 text-base font-semibold">Macro trends (7 days)</h3>
+        <h3 className="mb-2 px-1 text-base font-semibold">{t("macroTrends")}</h3>
         <MacroTrendChart trend={data.macroTrend} goal={user.goals.calories} />
       </div>
 
       {/* Macro breakdown bars (NEW) */}
       <TapCard className="rounded-2xl bg-card p-4 shadow-ios">
-        <h3 className="mb-3 text-sm font-semibold">Avg daily macros (7 days)</h3>
+        <h3 className="mb-3 text-sm font-semibold">{t("avgDailyMacros")}</h3>
         <MacroBreakdownBars trend={data.macroTrend} goals={user.goals} />
       </TapCard>
 
@@ -122,7 +125,7 @@ export function ProgressDashboard() {
         className="rounded-2xl bg-success/10 p-4 text-center"
       >
         <p className="text-sm font-medium text-success">
-          Great job! Consistency is key, and you're mastering it! 💪
+          {t("greatJob")}
         </p>
       </motion.div>
 
@@ -140,26 +143,26 @@ export function ProgressDashboard() {
 
       {/* weekly summary */}
       <TapCard className="rounded-2xl bg-card p-4 shadow-ios">
-        <h3 className="mb-3 text-sm font-semibold">This week</h3>
+        <h3 className="mb-3 text-sm font-semibold">{t("thisWeekSummary")}</h3>
         <div className="grid grid-cols-3 gap-2 text-center">
           <div>
             <div className="flex items-center justify-center gap-1 text-xs text-muted-foreground">
-              <TrendingUp className="h-3 w-3" /> Avg steps
+              <TrendingUp className="h-3 w-3" /> {t("avgSteps")}
             </div>
             <div className="mt-1 text-base font-bold tabular-nums">
               <AnimatedNumber value={Math.round(data.weekHealth.reduce((a, b) => a + b.steps, 0) / Math.max(1, data.weekHealth.length))} />
             </div>
           </div>
           <div>
-            <div className="text-xs text-muted-foreground">Avg calories</div>
+            <div className="text-xs text-muted-foreground">{t("avgCalories")}</div>
             <div className="mt-1 text-base font-bold tabular-nums">
               <AnimatedNumber value={Math.round(data.weekHealth.reduce((a, b) => a + b.activeEnergyKcal, 0) / Math.max(1, data.weekHealth.length))} />
             </div>
           </div>
           <div>
-            <div className="text-xs text-muted-foreground">Avg water</div>
+            <div className="text-xs text-muted-foreground">{t("avgWater")}</div>
             <div className="mt-1 text-base font-bold tabular-nums">
-              <AnimatedNumber value={Math.round(data.weekHealth.reduce((a, b) => a + b.waterMl, 0) / Math.max(1, data.weekHealth.length) / 250)} /> cups
+              <AnimatedNumber value={Math.round(data.weekHealth.reduce((a, b) => a + b.waterMl, 0) / Math.max(1, data.weekHealth.length) / 250)} /> {t("cups")}
             </div>
           </div>
         </div>
@@ -181,6 +184,7 @@ function generateMockWeights() {
 }
 
 function WeightGraph({ data }: { data: { date: string; weight: number }[] }) {
+  const { locale, t } = useI18n();
   if (data.length < 2) return <div className="h-40" />;
   const weights = data.map((d) => d.weight);
   const min = Math.min(...weights) - 1;
@@ -200,7 +204,6 @@ function WeightGraph({ data }: { data: { date: string; weight: number }[] }) {
   const path = pts.map((p, i) => `${i === 0 ? "M" : "L"}${p.x},${p.y}`).join(" ");
   const areaPath = `${path} L${pts[pts.length - 1].x},${H - pad} L${pts[0].x},${H - pad} Z`;
   const last = pts[pts.length - 1];
-  const dayLabels = ["Sat", "Sun", "Mon", "Tue", "Wed", "Thu", "Fri"];
 
   return (
     <div className="w-full overflow-hidden">
@@ -211,8 +214,8 @@ function WeightGraph({ data }: { data: { date: string; weight: number }[] }) {
             <stop offset="100%" stopColor="var(--success)" stopOpacity="0" />
           </linearGradient>
         </defs>
-        {[0.25, 0.5, 0.75].map((t) => (
-          <line key={t} x1={pad} x2={W - pad} y1={pad + t * (H - pad * 2)} y2={pad + t * (H - pad * 2)} stroke="var(--border)" strokeDasharray="2 3" />
+        {[0.25, 0.5, 0.75].map((tt) => (
+          <line key={tt} x1={pad} x2={W - pad} y1={pad + tt * (H - pad * 2)} y2={pad + tt * (H - pad * 2)} stroke="var(--border)" strokeDasharray="2 3" />
         ))}
         <motion.path
           initial={{ pathLength: 0 }}
@@ -239,11 +242,13 @@ function WeightGraph({ data }: { data: { date: string; weight: number }[] }) {
         />
         <g>
           <rect x={last.x - 48} y={last.y - 36} width="96" height="28" rx="8" fill="var(--foreground)" />
-          <text x={last.x} y={last.y - 22} textAnchor="middle" fontSize="10" fontWeight="700" fill="var(--background)">{last.weight} kg</text>
+          <text x={last.x} y={last.y - 22} textAnchor="middle" fontSize="10" fontWeight="700" fill="var(--background)">{formatNumber(last.weight, locale)} {t("weightUnit")}</text>
           <text x={last.x} y={last.y - 12} textAnchor="middle" fontSize="8" fill="var(--background)" opacity="0.7">{last.date}</text>
         </g>
-        {dayLabels.map((d, i) => (
-          <text key={i} x={pad + (i / (dayLabels.length - 1)) * (W - pad * 2)} y={H - 4} textAnchor="middle" fontSize="9" fill="var(--muted-foreground)">{d}</text>
+        {pts.map((p, i) => (
+          i % Math.ceil(pts.length / 7) === 0 && (
+            <text key={i} x={p.x} y={H - 4} textAnchor="middle" fontSize="9" fill="var(--muted-foreground)">{getWeekdayShort(p.date, locale)}</text>
+          )
         ))}
       </svg>
       <style>{`@keyframes fadein { from { opacity: 0; } to { opacity: 1; } }`}</style>
@@ -259,19 +264,20 @@ function MacroTrendChart({
   trend: Array<{ date: string; calories: number; protein: number; carbs: number; fat: number }>;
   goal: number;
 }) {
+  const { locale, t } = useI18n();
   const W = 300;
   const H = 120;
   const pad = 28;
-  const maxVal = Math.max(goal, ...trend.map((t) => t.calories), 1) * 1.1;
+  const maxVal = Math.max(goal, ...trend.map((tt) => tt.calories), 1) * 1.1;
   const barW = (W - pad * 2) / trend.length - 6;
 
   return (
     <TapCard className="rounded-2xl bg-card p-4 shadow-ios">
       <div className="mb-2 flex items-center justify-between">
         <h3 className="text-sm font-semibold flex items-center gap-1.5">
-          <Flame className="h-4 w-4 text-streak" /> Calories
+          <Flame className="h-4 w-4 text-streak" /> {t("calories")}
         </h3>
-        <span className="text-xs text-muted-foreground">Goal: {goal}</span>
+        <span className="text-xs text-muted-foreground">{t("goalLabel")} {formatNumber(goal, locale)}</span>
       </div>
       <svg viewBox={`0 0 ${W} ${H}`} className="w-full">
         {/* goal line */}
@@ -284,11 +290,11 @@ function MacroTrendChart({
           strokeDasharray="4 3"
           strokeWidth={1.5}
         />
-        {trend.map((t, i) => {
+        {trend.map((tt, i) => {
           const x = pad + i * ((W - pad * 2) / trend.length) + 3;
-          const h = (t.calories / maxVal) * (H - pad * 2);
+          const h = (tt.calories / maxVal) * (H - pad * 2);
           const y = H - pad - h;
-          const day = new Date(t.date + "T00:00:00").toLocaleDateString([], { weekday: "short" }).charAt(0);
+          const day = getWeekdayShort(tt.date, locale).charAt(0);
           return (
             <g key={i}>
               <motion.rect
@@ -298,12 +304,12 @@ function MacroTrendChart({
                 x={x}
                 width={barW}
                 rx={3}
-                fill={t.calories > goal ? "var(--destructive)" : "var(--streak)"}
+                fill={tt.calories > goal ? "var(--destructive)" : "var(--streak)"}
                 opacity={0.85}
               />
               <text x={x + barW / 2} y={H - 6} textAnchor="middle" fontSize="9" fill="var(--muted-foreground)">{day}</text>
-              {t.calories > 0 && (
-                <text x={x + barW / 2} y={y - 3} textAnchor="middle" fontSize="8" fontWeight="600" fill="var(--foreground)">{t.calories}</text>
+              {tt.calories > 0 && (
+                <text x={x + barW / 2} y={y - 3} textAnchor="middle" fontSize="8" fontWeight="600" fill="var(--foreground)">{formatNumber(tt.calories, locale)}</text>
               )}
             </g>
           );
@@ -321,13 +327,14 @@ function MacroBreakdownBars({
   trend: Array<{ date: string; calories: number; protein: number; carbs: number; fat: number }>;
   goals: { calories: number; protein: number; carbs: number; fat: number };
 }) {
+  const { locale, t } = useI18n();
   const avg = (key: "protein" | "carbs" | "fat") =>
     Math.round(trend.reduce((a, b) => a + b[key], 0) / Math.max(1, trend.length));
 
   const macros = [
-    { label: "Protein", value: avg("protein"), goal: goals.protein, color: "var(--protein)", icon: Drumstick },
-    { label: "Carbs", value: avg("carbs"), goal: goals.carbs, color: "var(--carbs)", icon: Wheat },
-    { label: "Fats", value: avg("fat"), goal: goals.fat, color: "var(--fats)", icon: Droplets },
+    { label: t("protein"), value: avg("protein"), goal: goals.protein, color: "var(--protein)", icon: Drumstick },
+    { label: t("carbs"), value: avg("carbs"), goal: goals.carbs, color: "var(--carbs)", icon: Wheat },
+    { label: t("fats"), value: avg("fat"), goal: goals.fat, color: "var(--fats)", icon: Droplets },
   ];
 
   return (
@@ -342,7 +349,7 @@ function MacroBreakdownBars({
                 {m.label}
               </span>
               <span className="tabular-nums text-muted-foreground">
-                <span className="font-semibold text-foreground">{m.value}g</span> / {m.goal}g
+                <span className="font-semibold text-foreground">{formatNumber(m.value, locale)}g</span> / {formatNumber(m.goal, locale)}g
               </span>
             </div>
             <div className="h-2 w-full overflow-hidden rounded-full bg-muted">

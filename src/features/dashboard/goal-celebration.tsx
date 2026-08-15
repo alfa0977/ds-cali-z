@@ -2,6 +2,8 @@
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useDashboard } from "@/lib/hooks";
+import { useI18n } from "@/lib/i18n";
+import { formatNumber } from "@/lib/date-utils";
 
 interface Celebration {
   id: string;
@@ -10,8 +12,17 @@ interface Celebration {
   desc: string;
 }
 
+function tpl(key: string, ...vals: (string | number)[]): string {
+  let out = key;
+  vals.forEach((v, i) => {
+    out = out.replace(`{${i}}`, String(v));
+  });
+  return out;
+}
+
 export function GoalCelebration() {
   const { data } = useDashboard();
+  const { locale, t } = useI18n();
   const [active, setActive] = useState<Celebration | null>(null);
   const [shown, setShown] = useState<Set<string>>(new Set());
 
@@ -29,8 +40,8 @@ export function GoalCelebration() {
       possible.push({
         id: "protein",
         emoji: "💪",
-        title: "Protein goal smashed!",
-        desc: `You hit ${Math.round(consumed.protein)}g of protein today.`,
+        title: t("proteinGoalSmashed"),
+        desc: tpl(t("proteinGoalSmashedDesc"), formatNumber(Math.round(consumed.protein), locale)),
       });
     }
 
@@ -39,8 +50,8 @@ export function GoalCelebration() {
       possible.push({
         id: "water",
         emoji: "💧",
-        title: "Hydration goal met!",
-        desc: `You drank ${(water / 1000).toFixed(1)}L of water today.`,
+        title: t("hydrationGoalMet"),
+        desc: tpl(t("hydrationGoalMetDesc"), formatNumber((water / 1000).toFixed(1), locale)),
       });
     }
 
@@ -49,8 +60,8 @@ export function GoalCelebration() {
       possible.push({
         id: "steps",
         emoji: "🚶",
-        title: "10K steps crushed!",
-        desc: `You walked ${steps.toLocaleString()} steps today.`,
+        title: t("stepsCrushed"),
+        desc: tpl(t("stepsCrushedGoalDesc"), formatNumber(steps, locale)),
       });
     }
 
@@ -60,8 +71,8 @@ export function GoalCelebration() {
       possible.push({
         id: "calories",
         emoji: "🎯",
-        title: "Right on track!",
-        desc: `You're ${Math.round(calPct)}% to your calorie goal.`,
+        title: t("rightOnTrack"),
+        desc: tpl(t("rightOnTrackGoalDesc"), formatNumber(Math.round(calPct), locale)),
       });
     }
 
@@ -78,7 +89,7 @@ export function GoalCelebration() {
         clearTimeout(t2);
       };
     }
-  }, [data, shown]);
+  }, [data, shown, locale, t]);
 
   return (
     <AnimatePresence>
