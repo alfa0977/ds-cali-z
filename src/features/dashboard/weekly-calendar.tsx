@@ -3,15 +3,16 @@ import { ChevronLeft, ChevronRight, Flame } from "lucide-react";
 import { useState } from "react";
 import { useDashboard } from "@/lib/hooks";
 import { useApp } from "@/lib/store";
+import { useI18n } from "@/lib/i18n";
+import { getDayNumber, getWeekdayShort, formatDate, formatNumber } from "@/lib/date-utils";
 import { TapCard } from "@/components/motion";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 
-const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-
 export function WeeklyCalendar() {
   const { data } = useDashboard();
   const { selectedDate, setSelectedDate } = useApp();
+  const { locale, t } = useI18n();
   const [weekOffset, setWeekOffset] = useState(0);
 
   if (!data) return null;
@@ -22,14 +23,15 @@ export function WeeklyCalendar() {
   const weekStart = new Date(today);
   weekStart.setDate(today.getDate() - today.getDay() + weekOffset * 7);
 
-  const days: Array<{ date: string; dayNum: number; isToday: boolean; isFuture: boolean; isPast: boolean }> = [];
+  const days: Array<{ date: string; dayNum: string; weekdayShort: string; isToday: boolean; isFuture: boolean; isPast: boolean }> = [];
   for (let i = 0; i < 7; i++) {
     const d = new Date(weekStart);
     d.setDate(weekStart.getDate() + i);
     const key = d.toISOString().slice(0, 10);
     days.push({
       date: key,
-      dayNum: d.getDate(),
+      dayNum: getDayNumber(d, locale),
+      weekdayShort: getWeekdayShort(d, locale),
       isToday: key === todayKey,
       isFuture: d > today,
       isPast: d < today && key !== todayKey,
@@ -49,10 +51,10 @@ export function WeeklyCalendar() {
     <TapCard className="card-premium rounded-2xl p-4">
       <div className="mb-3 flex items-center justify-between">
         <div>
-          <h3 className="text-sm font-semibold">This week</h3>
+          <h3 className="text-sm font-semibold">{t("thisWeek")}</h3>
           <p className="text-[10px] text-muted-foreground">
-            {weekStart.toLocaleDateString([], { month: "short", day: "numeric" })} —{" "}
-            {new Date(weekStart.getTime() + 6 * 86400000).toLocaleDateString([], { month: "short", day: "numeric" })}
+            {formatDate(weekStart, locale, { month: "short", day: true })} —{" "}
+            {formatDate(new Date(weekStart.getTime() + 6 * 86400000), locale, { month: "short", day: true })}
           </p>
         </div>
         <div className="flex items-center gap-1">
@@ -94,7 +96,7 @@ export function WeeklyCalendar() {
                 isSelected ? "bg-foreground text-background" : d.isFuture ? "opacity-30" : "hover:bg-secondary/50"
               )}
             >
-              <span className="text-[9px] font-medium opacity-70">{WEEKDAYS[i][0]}</span>
+              <span className="text-[9px] font-medium opacity-70">{d.weekdayShort}</span>
               <span className={cn("text-sm font-bold tabular-nums", d.isToday && !isSelected && "text-streak")}>
                 {d.dayNum}
               </span>
@@ -118,10 +120,10 @@ export function WeeklyCalendar() {
       {/* selected day summary */}
       <div className="mt-3 flex items-center justify-between rounded-lg bg-secondary/50 px-3 py-2">
         <span className="text-xs text-muted-foreground">
-          {selectedDate === todayKey ? "Today" : new Date(selectedDate + "T00:00:00").toLocaleDateString([], { weekday: "long", month: "short", day: "numeric" })}
+          {selectedDate === todayKey ? t("today") : formatDate(new Date(selectedDate + "T00:00:00"), locale, { weekday: true, month: "short", day: true })}
         </span>
         <span className="text-xs font-semibold tabular-nums">
-          {calMap[selectedDate] ? `${calMap[selectedDate]} cal` : "No logs"}
+          {calMap[selectedDate] ? `${formatNumber(calMap[selectedDate], locale)} ${t("cal")}` : (locale === "fa" ? "ثبتی نیست" : "No logs")}
         </span>
       </div>
     </TapCard>

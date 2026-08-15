@@ -5,6 +5,9 @@ import { AnimatedNumber } from "@/components/animated-number";
 import { TapCard, StaggerList, StaggerItem } from "@/components/motion";
 import { useDashboard, useLogWater } from "@/lib/hooks";
 import { useApp } from "@/lib/store";
+import { useI18n } from "@/lib/i18n";
+import { formatNumber, formatTime, getDayNumber, getWeekdayShort, formatDate } from "@/lib/date-utils";
+import { translateFoodName } from "@/lib/food-translations";
 import { FavoritesQuickAdd } from "@/features/dashboard/favorites-quick-add";
 import { NutritionInsights } from "@/features/dashboard/nutrition-insights";
 import { MacroRatioCard } from "@/features/dashboard/macro-ratio-card";
@@ -15,13 +18,14 @@ import { MealSuggestions } from "@/features/dashboard/meal-suggestions";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
 
-const WEEKDAYS = ["S", "M", "T", "W", "T", "F", "S"];
+const WEEKDAYS_EN = ["S", "M", "T", "W", "T", "F", "S"];
 
 function MacroCard({
   label, value, goal, unit, color, icon: Icon, index,
 }: {
   label: string; value: number; goal: number; unit: string; color: string; icon: typeof Wheat; index: number;
 }) {
+  const { locale, t } = useI18n();
   const pct = goal > 0 ? Math.min(100, (value / goal) * 100) : 0;
   return (
     <StaggerItem>
@@ -34,7 +38,7 @@ function MacroCard({
             <AnimatedNumber value={value} />
             <span className="text-xs font-medium text-muted-foreground">{unit}</span>
           </div>
-          <div className="text-[11px] text-muted-foreground">{label} left</div>
+          <div className="text-[11px] text-muted-foreground">{label} {locale === "fa" ? "باقیمانده" : "left"}</div>
         </div>
       </div>
     </StaggerItem>
@@ -43,6 +47,7 @@ function MacroCard({
 
 function WeekStrip() {
   const { data } = useDashboard();
+  const { locale } = useI18n();
   const week = data?.weekHealth ?? [];
   const today = new Date();
   const days: Array<{ letter: string; date: string; logged: boolean; isToday: boolean; isFuture: boolean }> = [];
@@ -52,7 +57,7 @@ function WeekStrip() {
     const key = d.toISOString().slice(0, 10);
     const h = week.find((x) => x.date === key);
     days.push({
-      letter: WEEKDAYS[i],
+      letter: getWeekdayShort(d, locale),
       date: key,
       logged: !!(h && (h.steps > 0 || h.waterMl > 0)),
       isToday: key === today.toISOString().slice(0, 10),
@@ -82,7 +87,7 @@ function WeekStrip() {
                 : "border-muted text-muted-foreground"
             )}
           >
-            {d.logged && !d.isToday ? "✓" : new Date(d.date + "T00:00:00").getDate()}
+            {d.logged && !d.isToday ? "✓" : getDayNumber(d.date, locale)}
           </div>
         </motion.div>
       ))}
@@ -92,6 +97,7 @@ function WeekStrip() {
 
 function StepsCard() {
   const { data } = useDashboard();
+  const { locale, t } = useI18n();
   const steps = data?.todayHealth?.steps ?? 0;
   const goal = 10000;
   const pct = Math.min(100, (steps / goal) * 100);
@@ -103,9 +109,9 @@ function StepsCard() {
       <div className="text-center">
         <div className="text-lg font-bold tabular-nums">
           <AnimatedNumber value={steps} />
-          <span className="text-xs font-normal text-muted-foreground">/{goal.toLocaleString()}</span>
+          <span className="text-xs font-normal text-muted-foreground">/{formatNumber(goal, locale)}</span>
         </div>
-        <div className="text-[11px] text-muted-foreground">Steps today</div>
+        <div className="text-[11px] text-muted-foreground">{t("stepsToday")}</div>
       </div>
     </div>
   );
@@ -113,6 +119,7 @@ function StepsCard() {
 
 function CaloriesBurnedCard() {
   const { data } = useDashboard();
+  const { locale, t } = useI18n();
   const burned = data?.burned ?? 0;
   const stepsCal = Math.min(burned, Math.round((data?.todayHealth?.steps ?? 0) * 0.035));
   const workoutCal = burned - stepsCal;
@@ -124,16 +131,16 @@ function CaloriesBurnedCard() {
           <AnimatedNumber value={burned} />
         </span>
       </div>
-      <div className="mb-2 text-[11px] text-muted-foreground">Calories burned</div>
+      <div className="mb-2 text-[11px] text-muted-foreground">{t("caloriesBurned")}</div>
       <div className="space-y-1.5">
         <div className="flex items-center justify-between text-xs">
           <span className="flex items-center gap-1.5">
             <span className="flex h-5 w-5 items-center justify-center rounded-full bg-foreground text-background">
               <Footprints className="h-3 w-3" />
             </span>
-            Steps
+            {t("steps")}
           </span>
-          <span className="font-semibold tabular-nums">+{stepsCal}</span>
+          <span className="font-semibold tabular-nums">+{formatNumber(stepsCal, locale)}</span>
         </div>
         {workoutCal > 0 && (
           <div className="flex items-center justify-between text-xs">
@@ -141,9 +148,9 @@ function CaloriesBurnedCard() {
               <span className="flex h-5 w-5 items-center justify-center rounded-full bg-foreground text-background">
                 <Dumbbell className="h-3 w-3" />
               </span>
-              Workout
+              {t("workout")}
             </span>
-            <span className="font-semibold tabular-nums">+{workoutCal}</span>
+            <span className="font-semibold tabular-nums">+{formatNumber(workoutCal, locale)}</span>
           </div>
         )}
       </div>
@@ -153,6 +160,7 @@ function CaloriesBurnedCard() {
 
 function WaterCard() {
   const { data } = useDashboard();
+  const { locale, t } = useI18n();
   const waterMl = data?.todayHealth?.waterMl ?? 0;
   const goalMl = 2500;
   const cups = Math.floor(waterMl / 250);
@@ -168,9 +176,9 @@ function WaterCard() {
           <Droplets className="h-6 w-6 text-water" />
         </motion.div>
         <div className="flex-1">
-          <div className="text-sm font-semibold">Water</div>
+          <div className="text-sm font-semibold">{t("water")}</div>
           <div className="text-xs text-muted-foreground tabular-nums">
-            {flOz} fl oz ({cups} cups)
+            {locale === "fa" ? `${formatNumber(Math.round(waterMl / 100) / 10, locale)} ${t("L")} (${formatNumber(cups, locale)} ${t("cups")})` : `${flOz} ${t("flOz")} (${cups} ${t("cups")})`}
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -229,7 +237,8 @@ interface DashboardLog {
 
 function LogRow({ log, index }: { log: DashboardLog; index: number }) {
   const { setModal, setEditingLog } = useApp();
-  const time = new Date(log.timestamp).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+  const { locale, t } = useI18n();
+  const time = formatTime(log.timestamp, locale);
 
   function openDetail() {
     if (log.type === "water") return;
@@ -252,8 +261,8 @@ function LogRow({ log, index }: { log: DashboardLog; index: number }) {
             <Droplets className="h-5 w-5 text-water" />
           </div>
           <div className="flex-1">
-            <div className="text-sm font-semibold">Water</div>
-            <div className="text-xs text-muted-foreground">+{log.waterMl} ml</div>
+            <div className="text-sm font-semibold">{t("water")}</div>
+            <div className="text-xs text-muted-foreground">+{formatNumber(log.waterMl ?? 0, locale)} {t("ml")}</div>
           </div>
         </>
       );
@@ -287,14 +296,14 @@ function LogRow({ log, index }: { log: DashboardLog; index: number }) {
           )}
         </div>
         <div className="flex-1 min-w-0">
-          <div className="truncate text-sm font-semibold">{log.title ?? "Meal"}</div>
+          <div className="truncate text-sm font-semibold">{translateFoodName(log.title, locale) ?? t("meals")}</div>
           <div className="flex items-center gap-3 text-xs text-muted-foreground">
             {m && (
               <>
-                <span className="flex items-center gap-1"><Flame className="h-3 w-3 text-streak" /> {m.calories}</span>
-                <span className="flex items-center gap-1 text-protein"><Drumstick className="h-3 w-3" /> {m.protein}g</span>
-                <span className="flex items-center gap-1 text-carbs"><Wheat className="h-3 w-3" /> {m.carbs}g</span>
-                <span className="flex items-center gap-1 text-fats"><Droplets className="h-3 w-3" /> {m.fat}g</span>
+                <span className="flex items-center gap-1"><Flame className="h-3 w-3 text-streak" /> {formatNumber(m.calories, locale)}</span>
+                <span className="flex items-center gap-1 text-protein"><Drumstick className="h-3 w-3" /> {formatNumber(Math.round(m.protein), locale)}g</span>
+                <span className="flex items-center gap-1 text-carbs"><Wheat className="h-3 w-3" /> {formatNumber(Math.round(m.carbs), locale)}g</span>
+                <span className="flex items-center gap-1 text-fats"><Droplets className="h-3 w-3" /> {formatNumber(Math.round(m.fat), locale)}g</span>
               </>
             )}
           </div>
@@ -351,6 +360,7 @@ const MEAL_SLOTS = [
 
 function MealsBySlot() {
   const { data } = useDashboard();
+  const { locale, t } = useI18n();
   const { setModal, setEditingLog } = useApp();
   const mealsBySlot = data?.mealsBySlot;
   if (!mealsBySlot) return null;
@@ -427,7 +437,7 @@ function MealsBySlot() {
                 ))}
               </div>
             ) : (
-              <p className="py-1 text-xs text-muted-foreground/60">Nothing logged yet</p>
+              <p className="py-1 text-xs text-muted-foreground/60">{t("nothingLogged")}</p>
             )}
           </TapCard>
         );
@@ -439,6 +449,7 @@ function MealsBySlot() {
 // NEW: Consumed vs goal macro bars
 function MacroProgressBars() {
   const { data } = useDashboard();
+  const { locale, t } = useI18n();
   if (!data) return null;
   const goals = data.user.goals;
   const consumed = data.consumed;
@@ -450,7 +461,7 @@ function MacroProgressBars() {
   ];
   return (
     <TapCard className="rounded-2xl bg-card p-4 shadow-ios">
-      <h3 className="mb-3 text-sm font-semibold">Today's intake</h3>
+      <h3 className="mb-3 text-sm font-semibold">{t("todayIntake")}</h3>
       <div className="space-y-3">
         {macros.map((m, i) => {
           const pct = m.goal > 0 ? Math.min(100, (m.consumed / m.goal) * 100) : 0;
@@ -487,10 +498,12 @@ function MacroProgressBars() {
 
 function DateNav() {
   const { selectedDate, setSelectedDate } = useApp();
+  const { locale, t } = useI18n();
   const today = new Date().toISOString().slice(0, 10);
   const isToday = selectedDate === today;
   const isYesterday = selectedDate === new Date(Date.now() - 86400000).toISOString().slice(0, 10);
-  const label = isToday ? "Today" : isYesterday ? "Yesterday" : new Date(selectedDate + "T00:00:00").toLocaleDateString([], { month: "short", day: "numeric" });
+  const dateObj = new Date(selectedDate + "T00:00:00");
+  const label = isToday ? t("today") : isYesterday ? t("yesterday") : formatDate(dateObj, locale, { day: true, month: "short" });
 
   function shift(days: number) {
     const d = new Date(selectedDate + "T00:00:00");
@@ -506,7 +519,7 @@ function DateNav() {
       </motion.button>
       <div className="min-w-24 text-center">
         <div className="text-sm font-bold">{label}</div>
-        <div className="text-[10px] text-muted-foreground">{new Date(selectedDate + "T00:00:00").toLocaleDateString([], { weekday: "long" })}</div>
+        <div className="text-[10px] text-muted-foreground">{formatDate(new Date(selectedDate + "T00:00:00"), locale, { weekday: true })}</div>
       </div>
       <motion.button
         whileTap={{ scale: 0.9 }}
@@ -522,6 +535,7 @@ function DateNav() {
 
 export function HomeDashboard() {
   const { selectedDate, setModal } = useApp();
+  const { locale, t } = useI18n();
   const { data, isLoading } = useDashboard(selectedDate);
 
   if (isLoading || !data) {
@@ -553,14 +567,14 @@ export function HomeDashboard() {
             <div className="text-5xl font-bold tabular-nums tracking-tight leading-none">
               <AnimatedNumber value={left} />
             </div>
-            <div className="mt-1.5 text-sm text-muted-foreground">Calories left</div>
+            <div className="mt-1.5 text-sm text-muted-foreground">{t("caloriesLeft")}</div>
             <div className="mt-2 flex items-center gap-2 text-xs">
               <span className="rounded-full bg-secondary px-2 py-0.5 font-medium">
                 <span className="text-foreground">{consumed.calories}</span>
-                <span className="text-muted-foreground"> eaten</span>
+                <span className="text-muted-foreground"> {t("eaten")}</span>
               </span>
               <span className="rounded-full bg-streak/10 px-2 py-0.5 font-medium text-streak">
-                {data.burned} burned
+                {formatNumber(data.burned, locale)} {t("burned")}
               </span>
             </div>
           </div>
@@ -589,9 +603,9 @@ export function HomeDashboard() {
 
       {/* Macro triplet */}
       <StaggerList className="grid grid-cols-3 gap-2">
-        <MacroCard label="Protein" value={Math.max(0, goals.protein - consumed.protein)} goal={goals.protein} unit="g" color="var(--protein)" icon={Drumstick} index={0} />
-        <MacroCard label="Carbs" value={Math.max(0, goals.carbs - consumed.carbs)} goal={goals.carbs} unit="g" color="var(--carbs)" icon={Wheat} index={1} />
-        <MacroCard label="Fats" value={Math.max(0, goals.fat - consumed.fat)} goal={goals.fat} unit="g" color="var(--fats)" icon={Droplets} index={2} />
+        <MacroCard label={t("proteinLeft").replace(" left", "").replace(" باقیمانده", "")} value={Math.max(0, goals.protein - consumed.protein)} goal={goals.protein} unit="g" color="var(--protein)" icon={Drumstick} index={0} />
+        <MacroCard label={t("carbsLeft").replace(" left", "").replace(" باقیمانده", "")} value={Math.max(0, goals.carbs - consumed.carbs)} goal={goals.carbs} unit="g" color="var(--carbs)" icon={Wheat} index={1} />
+        <MacroCard label={t("fatsLeft").replace(" left", "").replace(" باقیمانده", "")} value={Math.max(0, goals.fat - consumed.fat)} goal={goals.fat} unit="g" color="var(--fats)" icon={Droplets} index={2} />
       </StaggerList>
 
       {/* NEW: Macro ratio donut chart */}
@@ -606,8 +620,8 @@ export function HomeDashboard() {
       {/* Weekly habit strip */}
       <TapCard className="rounded-2xl bg-card p-4 shadow-ios">
         <div className="mb-3 flex items-center justify-between">
-          <h3 className="text-sm font-semibold">Weekly habit</h3>
-          <span className="text-xs text-muted-foreground">{data.daysLogged}/7 days</span>
+          <h3 className="text-sm font-semibold">{t("weeklyHabit")}</h3>
+          <span className="text-xs text-muted-foreground">{formatNumber(data.daysLogged, locale)}/7 {t("days")}</span>
         </div>
         <WeekStrip />
       </TapCard>
@@ -632,7 +646,7 @@ export function HomeDashboard() {
 
       {/* NEW: Meals by slot (breakfast/lunch/dinner/snacks) */}
       <div>
-        <h3 className="mb-2 px-1 text-base font-semibold">Meals</h3>
+        <h3 className="mb-2 px-1 text-base font-semibold">{t("meals")}</h3>
         <MealsBySlot />
       </div>
 
@@ -645,9 +659,9 @@ export function HomeDashboard() {
       {/* Recent feed (all logs including water/workouts) */}
       <div>
         <div className="mb-2 flex items-center justify-between px-1">
-          <h3 className="text-base font-semibold">Recently logged</h3>
+          <h3 className="text-base font-semibold">{t("recentlyLogged")}</h3>
           <button onClick={() => setModal("food-db")} className="text-xs font-medium text-muted-foreground">
-            See all
+            {t("seeAll")}
           </button>
         </div>
         <RecentFeed />

@@ -168,11 +168,17 @@ function GoalStat({ label, value, unit, color }: { label: string; value: number;
 
 function Row({ icon: Icon, label, right, danger, onClick }: { icon: typeof Moon; label: string; right?: React.ReactNode; danger?: boolean; onClick?: () => void }) {
   return (
-    <button onClick={onClick} className="flex w-full items-center gap-3 px-4 py-3.5 text-left transition-colors active:bg-secondary">
+    <div
+      role={onClick ? "button" : undefined}
+      tabIndex={onClick ? 0 : undefined}
+      onClick={onClick}
+      onKeyDown={onClick ? (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onClick(); } } : undefined}
+      className="flex w-full items-center gap-3 px-4 py-3.5 text-left transition-colors active:bg-secondary"
+    >
       <Icon className={danger ? "h-5 w-5 text-destructive" : "h-5 w-5 text-muted-foreground"} />
       <span className={danger ? "flex-1 text-sm font-medium text-destructive" : "flex-1 text-sm font-medium"}>{label}</span>
       {right}
-    </button>
+    </div>
   );
 }
 
