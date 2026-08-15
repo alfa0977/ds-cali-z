@@ -194,6 +194,17 @@ function ResultCard({
   const [editing, setEditing] = useState(false);
   const [ingredients, setIngredients] = useState<Ingredient[]>(analysis.ingredients);
   const [servings, setServings] = useState(1);
+  const [selectedSlot, setSelectedSlot] = useState<string>(() => {
+    const h = new Date().getHours();
+    if (h < 11) return "breakfast";
+    if (h < 16) return "lunch";
+    if (h < 22) return "dinner";
+    return "snack";
+  });
+  const [mealTime, setMealTime] = useState<string>(() => {
+    const now = new Date();
+    return `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
+  });
 
   const macros = analysis.macros;
   const scaledMacros = {
@@ -217,9 +228,12 @@ function ResultCard({
 
   async function done() {
     setPersisting(true);
-    // Persist the image to /download/meal-images if it's a data URL
     const persistedUrl = await uploadMealImage(image);
     setPersisting(false);
+    // Build timestamp from selected time
+    const today = new Date();
+    const [hours, minutes] = mealTime.split(":").map(Number);
+    today.setHours(hours, minutes, 0, 0);
     logMeal.mutate(
       {
         source: "ai",
@@ -227,8 +241,10 @@ function ResultCard({
         macros: scaledMacros,
         healthScore: analysis.healthScore,
         imageUrl: persistedUrl,
-        title: analysis.mealTitle ?? "Scanned meal",
+        title: analysis.mealTitle ?? (locale === "fa" ? "وعده اسکن‌شده" : "Scanned meal"),
+        mealSlot: selectedSlot as "breakfast" | "lunch" | "dinner" | "snack",
         corrected: editing,
+        timestamp: today.toISOString(),
       },
       { onSuccess: () => setModal(null) }
     );
@@ -259,6 +275,33 @@ function ResultCard({
             <span className="min-w-6 text-center text-sm font-semibold tabular-nums">{formatNumber(servings, locale)}</span>
             <button onClick={() => setServings((s) => Math.round((s + 0.5) * 10) / 10)} className="flex h-7 w-7 items-center justify-center rounded-full bg-foreground text-background text-sm font-bold">+</button>
           </div>
+        </div>
+
+        {/* meal slot selector + time picker */}
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          <div className="flex gap-1.5">
+            {[
+              { key: "breakfast", emoji: "🌅", label: t("breakfast") },
+              { key: "lunch", emoji: "☀️", label: t("lunch") },
+              { key: "dinner", emoji: "🌙", label: t("dinner") },
+              { key: "snack", emoji: "🍿", label: t("snacks") },
+            ].map((slot) => (
+              <button
+                key={slot.key}
+                onClick={() => setSelectedSlot(slot.key)}
+                className={`flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-medium transition-colors ${selectedSlot === slot.key ? "bg-foreground text-background" : "bg-secondary text-muted-foreground"}`}
+              >
+                <span>{slot.emoji}</span>
+                {slot.label}
+              </button>
+            ))}
+          </div>
+          <input
+            type="time"
+            value={mealTime}
+            onChange={(e) => setMealTime(e.target.value)}
+            className="rounded-full bg-secondary px-3 py-1 text-[11px] font-medium text-foreground outline-none"
+          />
         </div>
 
         {/* nutrition grid */}

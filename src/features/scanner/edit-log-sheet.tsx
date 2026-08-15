@@ -18,12 +18,13 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { useI18n } from "@/lib/i18n";
+import { translateFoodName } from "@/lib/food-translations";
 
 export function EditLogSheet() {
   const { editingLog, setModal, setEditingLog } = useApp();
   const deleteLog = useDeleteLog();
   const updateLog = useUpdateLog();
-  const { t } = useI18n();
+  const { locale, t } = useI18n();
   const [title, setTitle] = useState(editingLog?.title ?? "");
   const [calories, setCalories] = useState(String(editingLog?.macros?.calories ?? 0));
   const [protein, setProtein] = useState(String(editingLog?.macros?.protein ?? 0));
@@ -95,7 +96,7 @@ export function EditLogSheet() {
       <div className="flex-1 overflow-y-auto px-4 pb-4 space-y-4">
         <div className="space-y-1.5">
           <Label>{t("titleLabel")}</Label>
-          <Input value={title} onChange={(e) => setTitle(e.target.value)} className="rounded-xl bg-secondary border-0" />
+          <Input value={translateFoodName(title, locale)} onChange={(e) => setTitle(e.target.value)} className="rounded-xl bg-secondary border-0" />
         </div>
 
         {editingLog.type === "meal" && editingLog.macros && (

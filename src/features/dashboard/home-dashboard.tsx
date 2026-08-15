@@ -275,11 +275,11 @@ function LogRow({ log, index }: { log: DashboardLog; index: number }) {
             <Dumbbell className="h-5 w-5" />
           </div>
           <div className="flex-1">
-            <div className="text-sm font-semibold">{log.title ?? w.type}</div>
+            <div className="text-sm font-semibold">{translateFoodName(log.title ?? w.type, locale)}</div>
             <div className="flex items-center gap-3 text-xs text-muted-foreground">
-              <span className="flex items-center gap-1"><Flame className="h-3 w-3 text-streak" /> {w.caloriesBurned} cal</span>
-              <span>{w.durationMinutes} min</span>
-              <span className="capitalize">{w.intensity}</span>
+              <span className="flex items-center gap-1"><Flame className="h-3 w-3 text-streak" /> {formatNumber(w.caloriesBurned, locale)} {t("cal")}</span>
+              <span>{formatNumber(w.durationMinutes, locale)} {t("min")}</span>
+              <span>{locale === "fa" ? ({ low: "کم", medium: "متوسط", high: "زیاد" }[w.intensity as "low" | "medium" | "high"] ?? w.intensity) : w.intensity}</span>
             </div>
           </div>
         </>
@@ -352,10 +352,10 @@ function RecentFeed() {
 
 // NEW: Meal categorization (breakfast/lunch/dinner/snacks)
 const MEAL_SLOTS = [
-  { key: "breakfast", label: "Breakfast", emoji: "🌅" },
-  { key: "lunch", label: "Lunch", emoji: "☀️" },
-  { key: "dinner", label: "Dinner", emoji: "🌙" },
-  { key: "snack", label: "Snacks", emoji: "🍿" },
+  { key: "breakfast", labelKey: "breakfast" as const, emoji: "🌅" },
+  { key: "lunch", labelKey: "lunch" as const, emoji: "☀️" },
+  { key: "dinner", labelKey: "dinner" as const, emoji: "🌙" },
+  { key: "snack", labelKey: "snacks" as const, emoji: "🍿" },
 ] as const;
 
 function MealsBySlot() {
@@ -388,16 +388,16 @@ function MealsBySlot() {
             <div className="mb-2 flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <span className="text-lg">{slot.emoji}</span>
-                <h3 className="text-sm font-semibold">{slot.label}</h3>
+                <h3 className="text-sm font-semibold">{t(slot.labelKey)}</h3>
               </div>
               <div className="flex items-center gap-2">
                 <span className="text-xs font-medium text-muted-foreground tabular-nums">
-                  {slotCalories > 0 ? `${slotCalories} cal` : "—"}
+                  {slotCalories > 0 ? `${formatNumber(slotCalories, locale)} ${t("cal")}` : "—"}
                 </span>
                 <button
                   onClick={() => setModal("add-action")}
                   className="flex h-7 w-7 items-center justify-center rounded-full bg-secondary text-muted-foreground transition-colors hover:text-foreground"
-                  aria-label={`Add to ${slot.label}`}
+                  aria-label={t(slot.labelKey)}
                 >
                   <Plus className="h-4 w-4" />
                 </button>
@@ -415,23 +415,23 @@ function MealsBySlot() {
                       {m.imageUrl ? <img src={m.imageUrl} alt="" className="h-8 w-8 object-cover" /> : "🍽️"}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="truncate text-xs font-medium">{m.title}</div>
+                      <div className="truncate text-xs font-medium">{translateFoodName(m.title, locale)}</div>
                       <div className="text-[10px] text-muted-foreground">
                         {m.macros && (
                           <>
-                            <span className="text-streak">{m.macros.calories} cal</span>
+                            <span className="text-streak">{formatNumber(m.macros.calories, locale)} {t("cal")}</span>
                             <span className="mx-1">·</span>
-                            <span className="text-protein">P{Math.round(m.macros.protein)}</span>
+                            <span className="text-protein">{locale === "fa" ? "پ" : "P"}{formatNumber(Math.round(m.macros.protein), locale)}</span>
                             <span className="mx-0.5">·</span>
-                            <span className="text-carbs">C{Math.round(m.macros.carbs)}</span>
+                            <span className="text-carbs">{locale === "fa" ? "ک" : "C"}{formatNumber(Math.round(m.macros.carbs), locale)}</span>
                             <span className="mx-0.5">·</span>
-                            <span className="text-fats">F{Math.round(m.macros.fat)}</span>
+                            <span className="text-fats">{locale === "fa" ? "چ" : "F"}{formatNumber(Math.round(m.macros.fat), locale)}</span>
                           </>
                         )}
                       </div>
                     </div>
                     <span className="text-[10px] text-muted-foreground">
-                      {new Date(m.timestamp).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}
+                      {formatTime(m.timestamp, locale)}
                     </span>
                   </button>
                 ))}
@@ -454,10 +454,10 @@ function MacroProgressBars() {
   const goals = data.user.goals;
   const consumed = data.consumed;
   const macros = [
-    { label: "Calories", consumed: consumed.calories, goal: goals.calories, unit: "", color: "var(--streak)", icon: Flame },
-    { label: "Protein", consumed: consumed.protein, goal: goals.protein, unit: "g", color: "var(--protein)", icon: Drumstick },
-    { label: "Carbs", consumed: consumed.carbs, goal: goals.carbs, unit: "g", color: "var(--carbs)", icon: Wheat },
-    { label: "Fats", consumed: consumed.fat, goal: goals.fat, unit: "g", color: "var(--fats)", icon: Droplets },
+    { label: t("calories"), consumed: consumed.calories, goal: goals.calories, unit: "", color: "var(--streak)", icon: Flame },
+    { label: t("proteinLeft").replace(" left", "").replace(" باقیمانده", ""), consumed: consumed.protein, goal: goals.protein, unit: "g", color: "var(--protein)", icon: Drumstick },
+    { label: t("carbsLeft").replace(" left", "").replace(" باقیمانده", ""), consumed: consumed.carbs, goal: goals.carbs, unit: "g", color: "var(--carbs)", icon: Wheat },
+    { label: t("fatsLeft").replace(" left", "").replace(" باقیمانده", ""), consumed: consumed.fat, goal: goals.fat, unit: "g", color: "var(--fats)", icon: Droplets },
   ];
   return (
     <TapCard className="rounded-2xl bg-card p-4 shadow-ios">

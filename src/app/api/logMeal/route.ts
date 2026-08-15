@@ -42,7 +42,7 @@ export async function POST(req: NextRequest) {
         imageUrl: d.imageUrl ?? null,
         mealSlot: d.mealSlot ?? null,
         corrected: d.corrected,
-        timestamp: new Date(),
+        timestamp: d.timestamp ? new Date(d.timestamp) : new Date(),
       },
     });
 

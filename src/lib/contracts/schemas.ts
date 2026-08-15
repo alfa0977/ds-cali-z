@@ -45,6 +45,7 @@ export const logMealRequestSchema = z.object({
   title: z.string().optional(),
   mealSlot: mealSlotSchema.optional(),
   corrected: z.boolean().default(false),
+  timestamp: z.string().optional(),
 });
 
 export const searchFoodsRequestSchema = z.object({

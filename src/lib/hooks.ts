@@ -131,7 +131,9 @@ export function useLogMeal() {
       healthScore: number;
       imageUrl?: string;
       title?: string;
+      mealSlot?: string;
       corrected?: boolean;
+      timestamp?: string;
     }) => {
       const res = await fetch("/api/logMeal", {
         method: "POST",
