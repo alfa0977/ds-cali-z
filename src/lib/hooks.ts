@@ -1,6 +1,8 @@
 "use client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { isStaticMode } from "@/lib/env";
+import * as clientDB from "@/lib/client-db";
 
 export interface DashboardData {
   user: {
@@ -88,6 +90,9 @@ export function useDashboard(date?: string) {
   return useQuery({
     queryKey: ["dashboard", date],
     queryFn: async () => {
+      if (isStaticMode()) {
+        return await clientDB.getDashboard(date);
+      }
       const params = date ? `?date=${date}` : "";
       const res = await fetch(`/api/getUserDashboard${params}`);
       if (!res.ok) throw new Error("Failed to load dashboard");
@@ -195,6 +200,9 @@ export function useLogWater() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (deltaMl: number) => {
+      if (isStaticMode()) {
+        return await clientDB.logWater(deltaMl);
+      }
       const res = await fetch("/api/logWater", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -274,6 +282,9 @@ export function useDeleteLog() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
+      if (isStaticMode()) {
+        return await clientDB.deleteLog(id);
+      }
       const res = await fetch(`/api/deleteLog?id=${id}`, { method: "DELETE" });
       if (!res.ok) throw new Error("Failed to delete");
       return res.json();
@@ -350,6 +361,9 @@ export function useFavorites() {
   return useQuery({
     queryKey: ["favorites"],
     queryFn: async () => {
+      if (isStaticMode()) {
+        return await clientDB.getFavorites();
+      }
       const res = await fetch("/api/favorites");
       if (!res.ok) throw new Error("Failed to load favorites");
       const data = await res.json();
@@ -371,6 +385,9 @@ export function useAddFavorite() {
       fat: number;
       servingSize?: string;
     }) => {
+      if (isStaticMode()) {
+        return await clientDB.addFavorite(data);
+      }
       const res = await fetch("/api/favorites", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -389,6 +406,9 @@ export function useRemoveFavorite() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
+      if (isStaticMode()) {
+        return await clientDB.removeFavorite(id);
+      }
       const res = await fetch(`/api/favorites?id=${id}`, { method: "DELETE" });
       if (!res.ok) throw new Error("Failed to remove");
       return res.json();
@@ -403,6 +423,9 @@ export function useMealDetail(id?: string) {
   return useQuery({
     queryKey: ["meal", id],
     queryFn: async () => {
+      if (isStaticMode()) {
+        return await clientDB.getMealDetail(id!);
+      }
       const res = await fetch(`/api/mealDetail?id=${id}`);
       if (!res.ok) throw new Error("Failed to load meal");
       return res.json();
@@ -470,6 +493,9 @@ export function useMealSuggestions(slot?: string) {
   return useQuery({
     queryKey: ["mealSuggestions", slot],
     queryFn: async () => {
+      if (isStaticMode()) {
+        return await clientDB.getMealSuggestions(slot);
+      }
       const params = slot ? `?slot=${slot}` : "";
       const res = await fetch(`/api/mealSuggestions${params}`);
       if (!res.ok) throw new Error("Failed to load suggestions");
