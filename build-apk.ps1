@@ -15,7 +15,7 @@ param(
     [string]$BuildType = "debug"
 )
 
-$ErrorActionPreference = "Stop"
+$ErrorActionPreference = "Continue"
 
 Write-Host ""
 Write-Host "==========================================" -ForegroundColor Cyan
