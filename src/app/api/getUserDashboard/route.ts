@@ -1,4 +1,6 @@
 // GET /api/getUserDashboard?date=YYYY-MM-DD
+export const dynamic = "force-static";
+
 // Returns everything the home + progress dashboards need for a given day:
 // user, today's health, consumed macros, logs (recent feed), last 7 days health,
 // weight history (last N days).

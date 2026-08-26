@@ -1,4 +1,6 @@
 // GET /api/generateReport?range=daily|weekly
+export const dynamic = "force-static";
+
 // Generates an HTML report (printable to PDF from browser).
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";

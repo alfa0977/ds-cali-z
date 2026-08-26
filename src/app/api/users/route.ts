@@ -1,4 +1,6 @@
 // GET  /api/users — list all users
+export const dynamic = "force-static";
+
 // POST /api/users — create a new user { displayName, email }
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";

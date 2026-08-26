@@ -1,4 +1,6 @@
 // POST /api/uploadImage — receives a base64 data URL image, saves it to /download/meal-images,
+export const dynamic = "force-static";
+
 // and returns the public file path. Used by the scanner to persist meal photos.
 import { NextRequest, NextResponse } from "next/server";
 import { writeFileSync, existsSync, mkdirSync } from "fs";

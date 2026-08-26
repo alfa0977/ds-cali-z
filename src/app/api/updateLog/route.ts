@@ -1,4 +1,6 @@
 // PATCH /api/updateLog — update a meal log's macros/title (after user edits)
+export const dynamic = "force-static";
+
 // Body: { logId, title?, macros?, ingredients? }
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";

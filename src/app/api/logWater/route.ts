@@ -1,4 +1,6 @@
 // POST /api/logWater — adjust today's (or given date's) water intake by delta
+export const dynamic = "force-static";
+
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { ensureDemoUser } from "@/lib/auth";

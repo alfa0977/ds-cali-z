@@ -1,4 +1,6 @@
 // POST /api/switchUser — switch the active user by setting a cookie
+export const dynamic = "force-static";
+
 // Body: { userId }
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";

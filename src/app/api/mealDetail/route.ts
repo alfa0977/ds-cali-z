@@ -1,4 +1,6 @@
 // GET /api/mealDetail?id=MEAL_ID — full meal detail with ingredients + macros
+export const dynamic = "force-static";
+
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { ensureDemoUser } from "@/lib/auth";

@@ -1,4 +1,6 @@
 // POST /api/logMeal — save a meal (from AI result or manual) + create a log entry
+export const dynamic = "force-static";
+
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { ensureDemoUser } from "@/lib/auth";

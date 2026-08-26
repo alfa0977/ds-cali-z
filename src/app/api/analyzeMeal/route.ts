@@ -1,4 +1,6 @@
 // POST /api/analyzeMeal
+export const dynamic = "force-static";
+
 // Accepts an image (data URL or http URL), runs VLM analysis, computes macros,
 // stores the raw + corrected analysis, and returns the result card payload.
 import { NextRequest, NextResponse } from "next/server";

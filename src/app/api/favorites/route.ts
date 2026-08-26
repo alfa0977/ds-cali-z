@@ -1,4 +1,6 @@
 // GET /api/favorites — list user's favorite foods
+export const dynamic = "force-static";
+
 // POST /api/favorites — add a favorite { foodId?, name, emoji?, calories, protein, carbs, fat, servingSize? }
 // DELETE /api/favorites?id=FAV_ID — remove a favorite
 import { NextRequest, NextResponse } from "next/server";

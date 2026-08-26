@@ -1,4 +1,6 @@
 // POST /api/importData — import JSON backup, restoring meals/logs/favorites
+export const dynamic = "force-static";
+
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { ensureDemoUser } from "@/lib/auth";

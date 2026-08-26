@@ -1,4 +1,6 @@
 // POST /api/logFood — log a single food item (from DB or manual) as a meal+log
+export const dynamic = "force-static";
+
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { ensureDemoUser } from "@/lib/auth";

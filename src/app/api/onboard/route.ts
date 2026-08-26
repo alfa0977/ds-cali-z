@@ -1,4 +1,6 @@
 // POST /api/onboard — complete user profile + compute goals using Mifflin-St Jeor.
+export const dynamic = "force-static";
+
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { ensureDemoUser } from "@/lib/auth";

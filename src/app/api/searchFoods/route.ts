@@ -1,4 +1,6 @@
 // GET /api/searchFoods?q=&category=&limit=
+export const dynamic = "force-static";
+
 // POST /api/searchFoods (same params in body)
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";

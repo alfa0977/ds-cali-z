@@ -1,4 +1,6 @@
 // GET /api/exportData?format=csv|json
+export const dynamic = "force-static";
+
 // Exports all user data (user profile, meals, logs, healthDaily, favorites) as JSON or CSV.
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";

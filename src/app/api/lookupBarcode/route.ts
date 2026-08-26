@@ -1,4 +1,6 @@
 // GET /api/lookupBarcode?code=XXXXXXXX
+export const dynamic = "force-static";
+
 // Looks up a food product by barcode via Open Food Facts API.
 // Returns a normalized food object that can be logged or saved.
 import { NextRequest, NextResponse } from "next/server";

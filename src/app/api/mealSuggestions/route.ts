@@ -1,4 +1,6 @@
 // GET /api/mealSuggestions — suggests foods from the database that fit remaining macros.
+export const dynamic = "force-static";
+
 // Prioritizes foods that fill the biggest macro gap (e.g., high-protein if protein is low).
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";

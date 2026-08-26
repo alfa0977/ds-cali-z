@@ -1,4 +1,6 @@
 // GET  /api/challenges — list user's challenges (active + completed)
+export const dynamic = "force-static";
+
 // POST /api/challenges — join a challenge { type }
 // PATCH /api/challenges — update progress (auto-computed) or leave { id?, action: "leave" }
 import { NextRequest, NextResponse } from "next/server";
