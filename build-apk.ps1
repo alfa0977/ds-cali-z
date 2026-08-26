@@ -38,13 +38,49 @@ if (-not $nodeVersion) {
 Write-Host "  Node.js: $nodeVersion" -ForegroundColor Green
 
 # Check Java
-$javaVersion = try { java -version 2>&1 } catch { $null }
-if (-not $javaVersion) {
-    Write-Host "  ERROR: Java/JDK is not installed." -ForegroundColor Red
-    Write-Host "  Download JDK 17 from: https://adoptium.net" -ForegroundColor Red
-    exit 1
+$javaFound = $false
+try {
+    $javaOutput = & java -version 2>&1 | Out-String
+    if ($javaOutput -match "version") {
+        $javaFound = $true
+        $javaVersionStr = ($javaOutput -split "`n")[0]
+        Write-Host "  Java: $javaVersionStr" -ForegroundColor Green
+    }
+} catch {
+    # java not in PATH, but JAVA_HOME might still work for Gradle
 }
-Write-Host "  Java: found" -ForegroundColor Green
+if (-not $javaFound) {
+    # Check if JAVA_HOME is set — Gradle can use that even if java isn't in PATH
+    if ($env:JAVA_HOME -and (Test-Path $env:JAVA_HOME)) {
+        Write-Host "  Java: JAVA_HOME is set ($env:JAVA_HOME)" -ForegroundColor Green
+    } else {
+        # Try common locations
+        $javaCandidates = @(
+            "C:\Program Files\Eclipse Adoptium\jdk-21*",
+            "C:\Program Files\Eclipse Adoptium\jdk-17*",
+            "C:\Program Files\Java\jdk-21*",
+            "C:\Program Files\Java\jdk-17*",
+            "C:\Program Files\Microsoft\jdk-21*",
+            "C:\Program Files\Microsoft\jdk-17*"
+        )
+        $foundJava = $null
+        foreach ($pattern in $javaCandidates) {
+            $found = Get-ChildItem -Path $pattern -ErrorAction SilentlyContinue | Select-Object -First 1
+            if ($found) {
+                $foundJava = $found.FullName
+                $env:JAVA_HOME = $foundJava
+                break
+            }
+        }
+        if ($foundJava) {
+            Write-Host "  Java: found at $foundJava (auto-detected)" -ForegroundColor Green
+        } else {
+            Write-Host "  WARNING: Java not found in PATH or common locations." -ForegroundColor Yellow
+            Write-Host "  Gradle may still work if JAVA_HOME is set." -ForegroundColor Yellow
+            Write-Host "  If the build fails, install JDK 17+ from: https://adoptium.net" -ForegroundColor Yellow
+        }
+    }
+}
 
 # Check ANDROID_HOME
 $androidHome = $env:ANDROID_HOME
