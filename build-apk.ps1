@@ -150,13 +150,31 @@ Write-Host ""
 # STEP 3: Build static files
 # ==========================================
 Write-Host "[3/8] Building static files (this may take a few minutes)..." -ForegroundColor Yellow
+
+# Move API routes out during static build (they don't work in static export)
+$apiBackup = $null
+if (Test-Path "src\app\api") {
+    $apiBackup = "src\app\__api_backup"
+    if (Test-Path $apiBackup) { Remove-Item $apiBackup -Recurse -Force }
+    Move-Item "src\app\api" $apiBackup
+    Write-Host "  Temporarily moved API routes (not needed for static build)" -ForegroundColor DarkGray
+}
+
 $env:BUILD_STATIC = "1"
 npx next build
-if ($LASTEXITCODE -ne 0) {
+$buildResult = $LASTEXITCODE
+Remove-Item Env:\BUILD_STATIC
+
+# Restore API routes
+if ($apiBackup -and (Test-Path $apiBackup)) {
+    Move-Item $apiBackup "src\app\api"
+    Write-Host "  Restored API routes" -ForegroundColor DarkGray
+}
+
+if ($buildResult -ne 0) {
     Write-Host "  ERROR: Next.js build failed." -ForegroundColor Red
     exit 1
 }
-Remove-Item Env:\BUILD_STATIC
 Write-Host "  Static files built in .\out\" -ForegroundColor Green
 Write-Host ""
 
