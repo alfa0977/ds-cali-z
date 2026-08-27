@@ -385,6 +385,18 @@ export const translations = {
   welcomeToast: { fa: "به DS-Cali خوش آمدید! 🎉", en: "Welcome to DS-Cali! 🎉" },
   onboardingFailed: { fa: "تکمیل راه‌اندازی ناموفق بود", en: "Failed to complete onboarding" },
   cameraUnavailable: { fa: "دوربین در دسترس نیست. بارکد را دستی وارد کنید.", en: "Camera unavailable. Enter the barcode manually." },
+  cameraStarting: { fa: "در حال راه‌اندازی دوربین…", en: "Starting camera…" },
+  cameraPermissionDenied: { fa: "مجوز دوربین رد شد. لطفاً از تنظیمات برنامه مجوز را بدهید.", en: "Camera permission denied. Please grant it in app settings." },
+  captureBarcode: { fa: "از بارکد عکس بگیرید", en: "Capture barcode photo" },
+  privacyDataTitle: { fa: "حریم خصوصی و داده", en: "Privacy & Data" },
+  privacyDataDesc: { fa: "تمام داده‌های شما به‌صورت محلی روی دستگاه ذخیره می‌شوند. هیچ داده‌ای به سرور ارسال نمی‌شود.", en: "All your data is stored locally on your device. Nothing is sent to a server." },
+  storageUsed: { fa: "فضای استفاده‌شده", en: "Storage used" },
+  clearAllData: { fa: "پاک کردن همه داده‌ها", en: "Clear all data" },
+  clearDataConfirm: { fa: "آیا مطمئن هستید؟ این کار تمام وعده‌ها، تمرین‌ها و علاقه‌مندی‌های شما را پاک می‌کند.", en: "Are you sure? This will delete all your meals, workouts, and favorites." },
+  logOutConfirm: { fa: "آیا می‌خواهید خارج شوید؟", en: "Do you want to log out?" },
+  deleteAccountConfirm: { fa: "حساب کاربری حذف شود؟ این کار قابل بازگشت نیست.", en: "Delete account? This action cannot be undone." },
+  loggedOut: { fa: "خارج شدید", en: "Logged out" },
+  accountDeleted: { fa: "حساب حذف شد", en: "Account deleted" },
   lookupFailed: { fa: "جستجو ناموفق بود", en: "Lookup failed" },
   productNotFound: { fa: "محصول یافت نشد", en: "Product not found" },
   analysisFailed: { fa: "تحلیل ناموفق بود", en: "Analysis failed" },
@@ -521,21 +533,18 @@ const I18nContext = createContext<I18nContext | null>(null);
 const STORAGE_KEY = "ds-cali-locale";
 
 export function I18nProvider({ children }: { children: ReactNode }) {
-  // Default to Persian (fa). Read from localStorage on mount.
-  const [locale, setLocaleState] = useState<Locale>("fa");
+  // Default to Persian (fa). Read from localStorage synchronously on the client
+  // (works in both browser dev and Capacitor WebView — no SSR for static export).
+  const [locale, setLocaleState] = useState<Locale>(() => {
+    if (typeof window === "undefined") return "fa";
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY) as Locale | null;
+      if (saved === "fa" || saved === "en") return saved;
+    } catch {}
+    return "fa";
+  });
 
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      try {
-        const saved = localStorage.getItem(STORAGE_KEY) as Locale | null;
-        if (saved === "fa" || saved === "en") {
-          setLocaleState(saved);
-        }
-      } catch {}
-    }, 0);
-    return () => clearTimeout(timer);
-  }, []);
-
+  // Persist locale changes + sync <html lang/dir>.
   useEffect(() => {
     try {
       localStorage.setItem(STORAGE_KEY, locale);

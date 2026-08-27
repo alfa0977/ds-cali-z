@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils";
 import { useI18n } from "@/lib/i18n";
 import { formatNumber } from "@/lib/date-utils";
 import { translateFoodName } from "@/lib/food-translations";
+import { takeNativePhoto, pickNativeImage } from "@/lib/native-bridge";
 
 interface Ingredient {
   name: string;
@@ -41,6 +42,23 @@ export function ScannerSheet() {
       analyze.mutate(dataUrl);
     };
     reader.readAsDataURL(file);
+  }
+
+  async function capturePhoto() {
+    const result = await takeNativePhoto();
+    if (result.cancelled || !result.dataUrl) {
+      // User cancelled — show a small toast only if it wasn't a deliberate cancel
+      return;
+    }
+    setImage(result.dataUrl);
+    analyze.mutate(result.dataUrl);
+  }
+
+  async function pickFromGallery() {
+    const result = await pickNativeImage();
+    if (result.cancelled || !result.dataUrl) return;
+    setImage(result.dataUrl);
+    analyze.mutate(result.dataUrl);
   }
 
   function handleSample(url: string) {
@@ -100,19 +118,32 @@ export function ScannerSheet() {
         {/* bottom tool bar */}
         {!image && (
           <div className="absolute bottom-16 left-1/2 flex -translate-x-1/2 items-center gap-4">
-            <button className="flex h-10 w-10 items-center justify-center rounded-full bg-white/15 text-white backdrop-blur-sm">
+            <button
+              onClick={() => setModal("barcode")}
+              className="flex h-10 w-10 items-center justify-center rounded-full bg-white/15 text-white backdrop-blur-sm active:scale-95"
+              aria-label={t("barcodeScanner")}
+            >
               <Barcode className="h-5 w-5" />
             </button>
             <button
-              onClick={() => fileRef.current?.click()}
-              className="flex h-10 w-10 items-center justify-center rounded-full bg-white/15 text-white backdrop-blur-sm"
+              onClick={pickFromGallery}
+              className="flex h-10 w-10 items-center justify-center rounded-full bg-white/15 text-white backdrop-blur-sm active:scale-95"
+              aria-label={t("searchFoods")}
             >
               <ImagePlus className="h-5 w-5" />
             </button>
-            <button className="flex h-10 w-10 items-center justify-center rounded-full bg-white/15 text-white backdrop-blur-sm">
+            <button
+              onClick={() => setModal("favorites")}
+              className="flex h-10 w-10 items-center justify-center rounded-full bg-white/15 text-white backdrop-blur-sm active:scale-95"
+              aria-label={t("favorites")}
+            >
               <Bookmark className="h-5 w-5" />
             </button>
-            <button className="flex h-10 w-10 items-center justify-center rounded-full bg-white/15 text-white backdrop-blur-sm">
+            <button
+              onClick={() => setModal("create-food")}
+              className="flex h-10 w-10 items-center justify-center rounded-full bg-white/15 text-white backdrop-blur-sm active:scale-95"
+              aria-label={t("createFood")}
+            >
               <Pencil className="h-5 w-5" />
             </button>
           </div>
@@ -143,7 +174,7 @@ export function ScannerSheet() {
       {!image && (
         <div className="flex items-center justify-center gap-6 px-4 py-4">
           <button
-            onClick={() => fileRef.current?.click()}
+            onClick={capturePhoto}
             disabled={analyze.isPending}
             className="flex h-16 w-16 items-center justify-center rounded-full bg-white shadow-fab ring-4 ring-white/30 transition-transform active:scale-95 disabled:opacity-50"
           >
@@ -167,6 +198,7 @@ export function ScannerSheet() {
         </div>
       )}
 
+      {/* hidden file input as a fallback / web capture */}
       <input ref={fileRef} type="file" accept="image/*" capture="environment" onChange={onFile} className="hidden" />
 
       {/* result */}

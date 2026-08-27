@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
-import { X, Barcode, Loader2, Camera, Search, Plus, Minus } from "lucide-react";
+import { X, Barcode, Loader2, Camera, Search, Plus, Minus, AlertTriangle } from "lucide-react";
 import { BrowserMultiFormatReader, type IScannerControls } from "@zxing/browser";
 import { useApp } from "@/lib/store";
 import { useLookupBarcode, useLogFood } from "@/lib/hooks";
@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import { useI18n } from "@/lib/i18n";
 import { formatNumber } from "@/lib/date-utils";
 import { translateFoodName } from "@/lib/food-translations";
+import { takeNativePhoto, requestNativeCameraPermission, type NativePermission } from "@/lib/native-bridge";
 
 export function BarcodeScannerSheet() {
   const { setModal } = useApp();
@@ -17,34 +18,74 @@ export function BarcodeScannerSheet() {
   const controlsRef = useRef<IScannerControls | null>(null);
   const [manualCode, setManualCode] = useState("");
   const [scanning, setScanning] = useState(true);
+  const [cameraStatus, setCameraStatus] = useState<"loading" | "ok" | "denied" | "error">("loading");
   const lookup = useLookupBarcode();
   const { t } = useI18n();
 
+  // Try zxing first; on failure fall back to native camera (Capacitor) or manual entry.
   useEffect(() => {
-    if (!scanning || !videoRef.current) return;
-    const reader = new BrowserMultiFormatReader();
-    reader
-      .decodeFromVideoDevice(undefined, videoRef.current, (result, err) => {
-        if (result) {
-          const code = result.getText();
-          setScanning(false);
-          controlsRef.current?.stop();
-          lookup.mutate(code);
-        }
-      })
-      .then((controls) => {
-        controlsRef.current = controls;
-      })
-      .catch((e) => {
-        console.error("Barcode scanner error:", e);
-        toast.error(t("cameraUnavailable"));
+    let disposed = false;
+    async function startScan() {
+      if (!videoRef.current) return;
+
+      // In Capacitor, request native camera permission before trying getUserMedia.
+      const perm = await requestNativeCameraPermission();
+      if (disposed) return;
+      if (perm === "denied") {
+        setCameraStatus("denied");
         setScanning(false);
-      });
+        return;
+      }
+
+      const reader = new BrowserMultiFormatReader();
+      try {
+        const controls = await reader.decodeFromVideoDevice(undefined, videoRef.current, (result) => {
+          if (result) {
+            const code = result.getText();
+            setScanning(false);
+            controlsRef.current?.stop();
+            lookup.mutate(code);
+          }
+        });
+        if (disposed) {
+          controls.stop();
+          return;
+        }
+        controlsRef.current = controls;
+        setCameraStatus("ok");
+      } catch (e) {
+        console.error("Barcode scanner error:", e);
+        setCameraStatus("error");
+        setScanning(false);
+      }
+    }
+    void startScan();
     return () => {
+      disposed = true;
       controlsRef.current?.stop();
       controlsRef.current = null;
     };
-  }, [scanning, t]);
+  }, []);
+
+  // Try to decode from a captured photo (used when live camera is unavailable).
+  async function captureAndDecode() {
+    const reader = new BrowserMultiFormatReader();
+    const result = await takeNativePhoto();
+    if (result.cancelled || !result.dataUrl) return;
+    try {
+      // Decode from the image data URL
+      const img = new Image();
+      img.src = result.dataUrl;
+      await new Promise((res) => { img.onload = res; img.onerror = res; });
+      const decoded = await reader.decodeFromImageElement(img);
+      const code = decoded.getText();
+      setScanning(false);
+      lookup.mutate(code);
+    } catch (e) {
+      console.warn("Could not decode barcode from photo:", e);
+      toast.error(t("productNotFound"));
+    }
+  }
 
   function submitManual() {
     if (!manualCode.trim()) return;
@@ -76,7 +117,7 @@ export function BarcodeScannerSheet() {
             <div className="absolute bottom-0 left-0 h-8 w-8 rounded-bl-2xl border-b-4 border-l-4 border-white/80" />
             <div className="absolute bottom-0 right-0 h-8 w-8 rounded-br-2xl border-b-4 border-r-4 border-white/80" />
             {/* scan line */}
-            {scanning && (
+            {scanning && cameraStatus === "ok" && (
               <div className="absolute left-2 right-2 h-0.5 bg-water shadow-[0_0_8px_var(--water)] animate-scan-line" />
             )}
           </div>
@@ -87,7 +128,28 @@ export function BarcodeScannerSheet() {
             <p className="text-sm font-medium text-white">{t("lookingUpProduct")}</p>
           </div>
         )}
-        {!scanning && !lookup.isPending && !foundFood && (
+
+        {/* Loading camera */}
+        {cameraStatus === "loading" && (
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-black/60">
+            <Loader2 className="h-8 w-8 animate-spin text-white/80" />
+            <p className="text-xs text-white/70">{t("cameraStarting")}</p>
+          </div>
+        )}
+
+        {/* Permission denied / camera error fallback */}
+        {(cameraStatus === "denied" || cameraStatus === "error") && !lookup.isPending && !foundFood && (
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-black/70 p-6 text-center">
+            <AlertTriangle className="h-10 w-10 text-amber-400" />
+            <p className="text-sm font-medium text-white">{cameraStatus === "denied" ? t("cameraPermissionDenied") : t("cameraUnavailable")}</p>
+            <Button onClick={captureAndDecode} variant="outline" className="rounded-full bg-white text-black">
+              <Camera className="mr-2 h-4 w-4" />
+              {t("captureBarcode")}
+            </Button>
+          </div>
+        )}
+
+        {!scanning && !lookup.isPending && !foundFood && cameraStatus === "ok" && (
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-black/60">
             <Camera className="h-10 w-10 text-white/70" />
             <button

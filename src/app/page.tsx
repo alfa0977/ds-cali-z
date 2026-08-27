@@ -23,6 +23,7 @@ import { ShareSheet } from "@/features/settings/share-sheet";
 import { LanguageSheet } from "@/features/settings/language-sheet";
 import { ThemeColorSheet } from "@/features/settings/theme-color-sheet";
 import { ChallengesSheet } from "@/features/progress/challenges-sheet";
+import { PrivacyDataSheet } from "@/features/settings/privacy-data-sheet";
 import { PullToRefreshIndicator } from "@/components/pull-to-refresh-indicator";
 import { usePullToRefresh } from "@/lib/use-pull-to-refresh";
 import { PageTransition, SheetWrapper } from "@/components/motion";
@@ -30,6 +31,7 @@ import { AnimatePresence } from "framer-motion";
 import { useEffect, useRef } from "react";
 import { useDashboard, useFavorites } from "@/lib/hooks";
 import { useQueryClient } from "@tanstack/react-query";
+import { BackButtonHandler } from "@/components/back-button-handler";
 
 export default function Home() {
   const { tab, modal, setModal, setEditingLog } = useApp();
@@ -58,11 +60,17 @@ export default function Home() {
 
   // Show onboarding if user hasn't completed it
   if (!isLoading && data && !data.user.onboarded) {
-    return <OnboardingFlow />;
+    return (
+      <div className="min-h-screen bg-background flex flex-col">
+        <BackButtonHandler />
+        <OnboardingFlow />
+      </div>
+    );
   }
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
+      <BackButtonHandler />
       <GoalCelebration />
       <div className="phone-frame bg-background flex flex-col overflow-hidden">
         {/* Top bar */}
@@ -122,6 +130,7 @@ export default function Home() {
               {modal === "language" && <LanguageSheet />}
               {modal === "theme-color" && <ThemeColorSheet />}
               {modal === "challenges" && <ChallengesSheet />}
+              {modal === "privacy-data" && <PrivacyDataSheet />}
             </SheetWrapper>
           )}
         </AnimatePresence>

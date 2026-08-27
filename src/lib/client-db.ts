@@ -1,7 +1,6 @@
 // Client-side database using IndexedDB — replaces all server-side API routes.
 // This allows the app to work fully offline inside a Capacitor APK.
 import { openDB, type IDBPDatabase } from "idb";
-import { calculateMacros } from "@/lib/ai-engine";
 
 const DB_NAME = "ds-cali-db";
 const DB_VERSION = 1;
@@ -647,4 +646,367 @@ export async function lookupBarcode(code: string): Promise<{ food: ClientFood; s
   };
   await db.put("foods", food);
   return { food, source: "openfoodfacts" };
+}
+
+// ============ ANALYZE MEAL (offline heuristic) ============
+// In static/APK mode, we cannot call the server-side VLM (z-ai-web-dev-sdk requires a server key).
+// Instead we provide a heuristic analyzer that detects known sample meals by URL, and for any
+// other image returns a sensible generic "mixed plate" estimate that the user can edit.
+
+interface SampleMealDef {
+  match: string; // substring of URL or label
+  title: string;
+  ingredients: Array<{ name: string; estimatedWeightGrams: number; confidence: number }>;
+  macros: { calories: number; protein: number; carbs: number; fat: number };
+  healthScore: number;
+  detectedCategory: string;
+}
+
+const SAMPLE_MEAL_DEFS: SampleMealDef[] = [
+  {
+    match: "pancake",
+    title: "Pancakes with blueberries",
+    ingredients: [
+      { name: "Pancake", estimatedWeightGrams: 180, confidence: 0.9 },
+      { name: "Blueberries", estimatedWeightGrams: 40, confidence: 0.85 },
+      { name: "Maple syrup", estimatedWeightGrams: 20, confidence: 0.7 },
+    ],
+    macros: { calories: 520, protein: 9, carbs: 88, fat: 14 },
+    healthScore: 60,
+    detectedCategory: "Breakfast",
+  },
+  {
+    match: "salad",
+    title: "Garden salad with dressing",
+    ingredients: [
+      { name: "Mixed greens", estimatedWeightGrams: 120, confidence: 0.92 },
+      { name: "Tomato", estimatedWeightGrams: 60, confidence: 0.85 },
+      { name: "Cucumber", estimatedWeightGrams: 50, confidence: 0.8 },
+      { name: "Olive oil dressing", estimatedWeightGrams: 15, confidence: 0.7 },
+    ],
+    macros: { calories: 180, protein: 4, carbs: 14, fat: 12 },
+    healthScore: 88,
+    detectedCategory: "Lunch",
+  },
+  {
+    match: "burger",
+    title: "Cheeseburger",
+    ingredients: [
+      { name: "Beef patty", estimatedWeightGrams: 150, confidence: 0.95 },
+      { name: "Cheese", estimatedWeightGrams: 25, confidence: 0.85 },
+      { name: "Burger bun", estimatedWeightGrams: 60, confidence: 0.9 },
+      { name: "Lettuce", estimatedWeightGrams: 10, confidence: 0.6 },
+    ],
+    macros: { calories: 540, protein: 30, carbs: 38, fat: 32 },
+    healthScore: 45,
+    detectedCategory: "Lunch",
+  },
+  {
+    match: "sushi",
+    title: "Sushi platter",
+    ingredients: [
+      { name: "Sushi rice", estimatedWeightGrams: 140, confidence: 0.9 },
+      { name: "Salmon nigiri", estimatedWeightGrams: 50, confidence: 0.85 },
+      { name: "Nori", estimatedWeightGrams: 5, confidence: 0.7 },
+    ],
+    macros: { calories: 350, protein: 16, carbs: 60, fat: 6 },
+    healthScore: 72,
+    detectedCategory: "Dinner",
+  },
+];
+
+const GENERIC_MEAL: SampleMealDef = {
+  match: "",
+  title: "Mixed meal",
+  ingredients: [
+    { name: "Mixed protein", estimatedWeightGrams: 120, confidence: 0.5 },
+    { name: "Mixed vegetables", estimatedWeightGrams: 100, confidence: 0.5 },
+    { name: "Mixed carbs", estimatedWeightGrams: 90, confidence: 0.5 },
+  ],
+  macros: { calories: 480, protein: 28, carbs: 45, fat: 18 },
+  healthScore: 65,
+  detectedCategory: "Meal",
+};
+
+export async function analyzeMeal(image: string): Promise<{
+  ingredients: Array<{ name: string; estimatedWeightGrams: number; confidence: number; volumeMl?: number }>;
+  macros: { calories: number; protein: number; carbs: number; fat: number };
+  healthScore: number;
+  mealTitle: string | null;
+  detectedCategory: string | null;
+}> {
+  // Simulate a tiny bit of latency so the loading UI feels natural
+  await new Promise((r) => setTimeout(r, 600));
+  const lower = String(image || "").toLowerCase();
+  const match = SAMPLE_MEAL_DEFS.find((s) => lower.includes(s.match));
+  const def = match ?? GENERIC_MEAL;
+  return {
+    ingredients: def.ingredients,
+    macros: def.macros,
+    healthScore: def.healthScore,
+    mealTitle: def.title,
+    detectedCategory: def.detectedCategory,
+  };
+}
+
+// ============ UPLOAD IMAGE (offline no-op) ============
+// In static mode there is no server to persist to, so we just return the image as-is.
+// Data URLs are kept locally (and stored in IndexedDB meal records). HTTP URLs are returned unchanged.
+export async function uploadImage(image: string): Promise<string> {
+  return image;
+}
+
+// ============ CHALLENGES ============
+
+export interface ClientChallenge {
+  id: string;
+  type: string;
+  status: "active" | "completed" | "abandoned";
+  progress: number;
+  daysCompleted: number;
+  targetDays: number;
+  joinedAt: string;
+  completedAt: string | null;
+}
+
+const CHALLENGE_DEFS: Record<string, {
+  targetDays: number;
+  labelFa: string; labelEn: string;
+  descFa: string; descEn: string;
+  emoji: string;
+  rewardFa: string; rewardEn: string;
+}> = {
+  water_week: { targetDays: 7, labelFa: "هفته آبرسانی", labelEn: "Hydration Week", descFa: "۷ روز پیاپی ۲.۵ لیتر آب بنوشید", descEn: "Drink 2.5L water for 7 days straight", emoji: "💧", rewardFa: "نشان آبرسانی", rewardEn: "Hydration Badge" },
+  protein_boost: { targetDays: 5, labelFa: "افزایش پروتئین", labelEn: "Protein Boost", descFa: "۵ روز به هدف پروتئین برسید", descEn: "Hit your protein goal 5 days", emoji: "💪", rewardFa: "نشان پروتئین", rewardEn: "Protein Badge" },
+  step_master: { targetDays: 3, labelFa: "استاد گام", labelEn: "Step Master", descFa: "۳ روز به ۱۰هزار گام برسید", descEn: "Reach 10K steps 3 days", emoji: "🚶", rewardFa: "نشان گام", rewardEn: "Step Badge" },
+  clean_eating: { targetDays: 7, labelFa: "تغذیه سالم", labelEn: "Clean Eating", descFa: "۷ روز وعده با امتیاز سلامت ۷۰+ ثبت کنید", descEn: "Log meals with 70+ health score 7 days", emoji: "🥗", rewardFa: "نشان تغذیه سالم", rewardEn: "Clean Eating Badge" },
+  streak_warrior: { targetDays: 10, labelFa: "مبارز استمرار", labelEn: "Streak Warrior", descFa: "۱۰ روز پیاپی ثبت کنید", descEn: "Log meals 10 days in a row", emoji: "🔥", rewardFa: "نشان استمرار", rewardEn: "Streak Badge" },
+};
+
+const CHALLENGES_STORE = "challenges";
+
+async function ensureChallengesStore(db: IDBPDatabase): Promise<void> {
+  if (!db.objectStoreNames.contains(CHALLENGES_STORE)) {
+    // Cannot create a new store without a version bump; create store via a separate DB version
+    // For simplicity, we use a separate IndexedDB database for challenges.
+  }
+}
+
+// Use a separate small DB for challenges to avoid store-versioning issues.
+const CH_DB_NAME = "ds-cali-challenges";
+const CH_DB_VERSION = 1;
+
+async function getChDB(): Promise<IDBPDatabase> {
+  return openDB(CH_DB_NAME, CH_DB_VERSION, {
+    upgrade(db) {
+      if (!db.objectStoreNames.contains(CHALLENGES_STORE)) {
+        db.createObjectStore(CHALLENGES_STORE, { keyPath: "id" });
+      }
+    },
+  });
+}
+
+async function computeChallengeProgress(type: string, joinedAt: string): Promise<{ daysCompleted: number; progress: number; status: "active" | "completed" }> {
+  const dash = await getDashboard();
+  const user = dash.user as ClientUser;
+  const goals = user.goals;
+  const logs = (await (await getDB()).getAll("logs")) as ClientLog[];
+  const health = (await (await getDB()).getAll("healthDaily")) as ClientHealthDaily[];
+  const since = joinedAt.slice(0, 10);
+  const today = new Date().toISOString().slice(0, 10);
+  const healthSince = health.filter((h) => h.date >= since && h.date <= today);
+  const mealLogsSince = logs.filter((l) => l.userId === user.id && l.type === "meal" && l.timestamp.slice(0, 10) >= since && l.timestamp.slice(0, 10) <= today);
+
+  let daysCompleted = 0;
+  switch (type) {
+    case "water_week":
+      daysCompleted = healthSince.filter((h) => h.waterMl >= 2500).length;
+      break;
+    case "protein_boost": {
+      const byDay: Record<string, number> = {};
+      for (const l of mealLogsSince) {
+        const day = l.timestamp.slice(0, 10);
+        if (l.macros) {
+          const m = parseJSON(l.macros, { calories: 0, protein: 0, carbs: 0, fat: 0 });
+          byDay[day] = (byDay[day] ?? 0) + m.protein;
+        }
+      }
+      daysCompleted = Object.values(byDay).filter((p) => p >= goals.protein).length;
+      break;
+    }
+    case "step_master":
+      daysCompleted = healthSince.filter((h) => h.steps >= 10000).length;
+      break;
+    case "clean_eating": {
+      const meals = (await (await getDB()).getAll("meals")) as ClientMeal[];
+      const byDay: Record<string, boolean> = {};
+      for (const l of mealLogsSince) {
+        if (l.mealId) {
+          const meal = meals.find((m) => m.id === l.mealId);
+          if (meal && meal.healthScore >= 70) byDay[l.timestamp.slice(0, 10)] = true;
+        }
+      }
+      daysCompleted = Object.keys(byDay).length;
+      break;
+    }
+    case "streak_warrior": {
+      const days = new Set(mealLogsSince.map((l) => l.timestamp.slice(0, 10)));
+      daysCompleted = days.size;
+      break;
+    }
+  }
+  const target = CHALLENGE_DEFS[type]?.targetDays ?? 7;
+  const progress = Math.min(100, Math.round((daysCompleted / target) * 100));
+  const status: "active" | "completed" = daysCompleted >= target ? "completed" : "active";
+  return { daysCompleted, progress, status };
+}
+
+export async function getChallenges(): Promise<{
+  challenges: Array<ClientChallenge & { def: typeof CHALLENGE_DEFS[string] }>;
+  available: Array<{ type: string } & typeof CHALLENGE_DEFS[string] & { joined: boolean }>;
+}> {
+  const db = await getChDB();
+  const all = (await db.getAll(CHALLENGES_STORE)) as ClientChallenge[];
+
+  // Auto-update progress for active challenges
+  const updated: Array<ClientChallenge & { def: typeof CHALLENGE_DEFS[string] }> = [];
+  for (const c of all) {
+    if (c.status === "active") {
+      const { daysCompleted, progress, status } = await computeChallengeProgress(c.type, c.joinedAt);
+      const next: ClientChallenge = { ...c, daysCompleted, progress, status, completedAt: status === "completed" ? new Date().toISOString() : null };
+      await db.put(CHALLENGES_STORE, next);
+      const def = CHALLENGE_DEFS[c.type];
+      if (def) updated.push({ ...next, def });
+    } else {
+      const def = CHALLENGE_DEFS[c.type];
+      if (def) updated.push({ ...c, def });
+    }
+  }
+
+  const available = Object.entries(CHALLENGE_DEFS).map(([type, def]) => ({
+    type,
+    ...def,
+    joined: updated.some((c) => c.type === type && c.status === "active"),
+  }));
+
+  return { challenges: updated, available };
+}
+
+export async function joinChallenge(type: string): Promise<ClientChallenge & { def: typeof CHALLENGE_DEFS[string] }> {
+  const db = await getChDB();
+  if (!CHALLENGE_DEFS[type]) throw new Error("Unknown challenge");
+  const existing = (await db.getAll(CHALLENGES_STORE)) as ClientChallenge[];
+  const already = existing.find((c) => c.type === type && c.status === "active");
+  if (already) return { ...already, def: CHALLENGE_DEFS[type] };
+  const challenge: ClientChallenge = {
+    id: genId(),
+    type,
+    status: "active",
+    progress: 0,
+    daysCompleted: 0,
+    targetDays: CHALLENGE_DEFS[type].targetDays,
+    joinedAt: new Date().toISOString(),
+    completedAt: null,
+  };
+  await db.put(CHALLENGES_STORE, challenge);
+  return { ...challenge, def: CHALLENGE_DEFS[type] };
+}
+
+export async function leaveChallenge(opts: { id?: string; type?: string }): Promise<{ ok: true }> {
+  const db = await getChDB();
+  const all = (await db.getAll(CHALLENGES_STORE)) as ClientChallenge[];
+  for (const c of all) {
+    if ((opts.id && c.id === opts.id) || (opts.type && c.type === opts.type && c.status === "active")) {
+      const updated: ClientChallenge = { ...c, status: "abandoned" };
+      await db.put(CHALLENGES_STORE, updated);
+    }
+  }
+  return { ok: true };
+}
+
+// ============ IMPORT DATA ============
+
+export async function importData(data: {
+  user?: Partial<ClientUser>;
+  meals?: ClientMeal[];
+  logs?: ClientLog[];
+  healthDaily?: ClientHealthDaily[];
+  favorites?: ClientFavorite[];
+  customFoods?: ClientFood[];
+}): Promise<{ imported: { meals: number; logs: number; foods: number; favorites: number } }> {
+  const db = await getDB();
+  let meals = 0, logs = 0, foods = 0, favorites = 0;
+  if (data.user) {
+    const existing = await ensureUser();
+    await db.put("users", { ...existing, ...data.user, goals: data.user.goals ?? existing.goals });
+  }
+  if (Array.isArray(data.meals)) {
+    for (const m of data.meals) { await db.put("meals", m); meals++; }
+  }
+  if (Array.isArray(data.logs)) {
+    for (const l of data.logs) { await db.put("logs", l); logs++; }
+  }
+  if (Array.isArray(data.customFoods)) {
+    for (const f of data.customFoods) { await db.put("foods", f); foods++; }
+  }
+  if (Array.isArray(data.favorites)) {
+    for (const f of data.favorites) { await db.put("favorites", f); favorites++; }
+  }
+  return { imported: { meals, logs, foods, favorites } };
+}
+
+// ============ LOG FOOD (manualFood variant) ============
+
+export async function logManualFood(data: {
+  name: string;
+  servingSize?: string;
+  servingWeightGrams?: number;
+  calories: number;
+  protein: number;
+  carbs: number;
+  fat: number;
+  emoji?: string;
+  servings?: number;
+}): Promise<{ mealId: string; logId: string }> {
+  const servings = data.servings ?? 1;
+  const macros = {
+    calories: Math.round(data.calories * servings),
+    protein: Math.round(data.protein * servings * 10) / 10,
+    carbs: Math.round(data.carbs * servings * 10) / 10,
+    fat: Math.round(data.fat * servings * 10) / 10,
+  };
+  // Also persist this as a user food so it shows up in food DB
+  const food = await createFood({
+    name: data.name,
+    servingSize: data.servingSize ?? "1 serving",
+    servingWeightGrams: data.servingWeightGrams ?? 100,
+    calories: data.calories,
+    protein: data.protein,
+    carbs: data.carbs,
+    fat: data.fat,
+    emoji: data.emoji,
+  });
+  return logMeal({
+    source: "manual",
+    ingredients: [{ name: data.name, estimatedWeightGrams: (data.servingWeightGrams ?? 100) * servings, confidence: 1 }],
+    macros,
+    healthScore: 50,
+    title: data.name,
+  }).then((res) => ({ ...res, mealId: res.mealId + ":" + food.id }));
+}
+
+// ============ DELETE ACCOUNT ============
+
+export async function deleteAllData(): Promise<{ ok: true }> {
+  const db = await getDB();
+  await db.clear("users");
+  await db.clear("meals");
+  await db.clear("logs");
+  await db.clear("favorites");
+  // Keep foods and healthDaily (seeded reference data)
+  const chDB = await getChDB();
+  await chDB.clear(CHALLENGES_STORE);
+  // Re-create the default user
+  await ensureUser();
+  return { ok: true };
 }

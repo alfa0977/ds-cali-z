@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 import {
-  getNotificationPermission,
+  getNotificationPermissionAsync,
   requestNotificationPermission,
   showNotification,
   type NotificationPermission,
@@ -40,9 +40,11 @@ export function RemindersSheet() {
 
   // Load saved state + permission
   useEffect(() => {
-    const perm = getNotificationPermission();
     const timer = setTimeout(() => {
-      setPermission(perm);
+      // Async permission check (works for both web Notification and Capacitor LocalNotifications)
+      void getNotificationPermissionAsync().then((perm) => {
+        setPermission(perm);
+      });
       try {
         const saved = localStorage.getItem(STORAGE_KEY);
         if (saved) {

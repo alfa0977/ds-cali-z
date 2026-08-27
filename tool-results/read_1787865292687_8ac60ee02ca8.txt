@@ -1,0 +1,571 @@
+     1→"use client";
+     2→import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+     3→
+     4→export type Locale = "fa" | "en";
+     5→
+     6→// All app strings. Persian is the default.
+     7→// `fa` values are RTL Persian text; `en` values are English.
+     8→export const translations = {
+     9→  // App / brand
+    10→  appName: { fa: "دی‌اس‌کالی", en: "DS-Cali" },
+    11→  tagline: { fa: "ردیاب هوشمند کالری", en: "AI Calorie Tracker" },
+    12→
+    13→  // Nav
+    14→  home: { fa: "خانه", en: "Home" },
+    15→  progress: { fa: "پیشرفت", en: "Progress" },
+    16→  settings: { fa: "تنظیمات", en: "Settings" },
+    17→  add: { fa: "افزودن", en: "Add" },
+    18→
+    19→  // Date
+    20→  today: { fa: "امروز", en: "Today" },
+    21→  yesterday: { fa: "دیروز", en: "Yesterday" },
+    22→
+    23→  // Home dashboard
+    24→  caloriesLeft: { fa: "کالری باقی‌مانده", en: "Calories left" },
+    25→  eaten: { fa: "مصرف‌شده", en: "eaten" },
+    26→  burned: { fa: "سوزانده‌شده", en: "burned" },
+    27→  proteinLeft: { fa: "پروتئین باقی", en: "Protein left" },
+    28→  carbsLeft: { fa: "کربوهیدرات باقی", en: "Carbs left" },
+    29→  fatsLeft: { fa: "چربی باقی", en: "Fats left" },
+    30→  todayIntake: { fa: "مصرف امروز", en: "Today's intake" },
+    31→  macroSplit: { fa: "تقسیم درشت‌مغذی‌ها", en: "Macro split" },
+    32→  thisWeek: { fa: "این هفته", en: "This week" },
+    33→  weeklyHabit: { fa: "عادت هفتگی", en: "Weekly habit" },
+    34→  days: { fa: "روز", en: "days" },
+    35→  stepsToday: { fa: "گام‌های امروز", en: "Steps today" },
+    36→  caloriesBurned: { fa: "کالری سوزانده‌شده", en: "Calories burned" },
+    37→  steps: { fa: "گام‌ها", en: "Steps" },
+    38→  workout: { fa: "تمرین", en: "Workout" },
+    39→  water: { fa: "آب", en: "Water" },
+    40→  cups: { fa: "لیوان", en: "cups" },
+    41→  quickAdd: { fa: "افزودن سریع", en: "Quick add" },
+    42→  seeAll: { fa: "همه", en: "See all" },
+    43→  recentFoods: { fa: "غذاهای اخیر", en: "Recent foods" },
+    44→  smartSuggestions: { fa: "پیشنهاد هوشمند", en: "Smart suggestions" },
+    45→  needMore: { fa: "نیاز به", en: "Need more" },
+    46→  meals: { fa: "وعده‌ها", en: "Meals" },
+    47→  breakfast: { fa: "صبحانه", en: "Breakfast" },
+    48→  lunch: { fa: "ناهار", en: "Lunch" },
+    49→  dinner: { fa: "شام", en: "Dinner" },
+    50→  snacks: { fa: "میان‌وعده", en: "Snacks" },
+    51→  nothingLogged: { fa: "هنوز چیزی ثبت نشده", en: "Nothing logged yet" },
+    52→  recentlyLogged: { fa: "ثبت‌شده‌های اخیر", en: "Recently logged" },
+    53→  noLogsToday: { fa: "امروز هنوز چیزی ثبت نشده", en: "No logs yet today" },
+    54→  tapToAdd: { fa: "برای افزودن روی + بزنید", en: "Tap + to scan a meal or add food." },
+    55→
+    56→  // Insights
+    57→  insights: { fa: "بصیرت‌ها", en: "Insights" },
+    58→  lowOnProtein: { fa: "پروتئین کم است", en: "Low on protein" },
+    59→  proteinGoalHit: { fa: "هدف پروتئین محقق شد! 💪", en: "Protein goal hit! 💪" },
+    60→  overCalorieGoal: { fa: "بیش از هدف کالری", en: "Over calorie goal" },
+    61→  rightOnTrack: { fa: "در مسیر درست", en: "Right on track" },
+    62→  stayHydrated: { fa: "هیدراته بمانید", en: "Stay hydrated" },
+    63→  hydrationGoalMet: { fa: "هدف آبرسانی محقق شد! 💧", en: "Hydration goal met! 💧" },
+    64→  stepsCrushed: { fa: "۱۰هزار گام محقق شد! 🚶", en: "10K steps crushed! 🚶" },
+    65→  timeForWalk: { fa: "وقت یک قدم زدن؟", en: "Time for a walk?" },
+    66→  dayStreak: { fa: "روز استمرار! 🔥", en: "day streak! 🔥" },
+    67→  consistencyIsKey: { fa: "استمرار کلید موفقیت است. به ثبت کردن ادامه دهید!", en: "Consistency is paying off. Keep logging to build your streak!" },
+    68→  eatingMore: { fa: "بیشتر از حد معمول می‌خورید", en: "Eating more than usual" },
+    69→  eatingLess: { fa: "کمتر از حد معمول می‌خورید", en: "Eating less than usual" },
+    70→  consistentIntake: { fa: "مصرف ثابت", en: "Consistent intake" },
+    71→  proteinUp: { fa: "پروتئین این هفته بیشتر است", en: "Protein up this week" },
+    72→  proteinDown: { fa: "پروتئین این هفته کمتر است", en: "Protein down this week" },
+    73→  drinkingMoreWater: { fa: "آب بیشتری می‌نوشید 💧", en: "Drinking more water 💧" },
+    74→  drinkMoreWater: { fa: "آب بیشتری بنوشید", en: "Drink more water" },
+    75→
+    76→  // Scanner
+    77→  scanner: { fa: "اسکنر", en: "Scanner" },
+    78→  pointCamera: { fa: "دوربین را به سمت غذا بگیرید", en: "Point your camera at your meal" },
+    79→  scanFood: { fa: "اسکن غذا", en: "Scan food" },
+    80→  analyzing: { fa: "در حال تحلیل غذا…", en: "Analyzing your meal…" },
+    81→  trySample: { fa: "یک غذای نمونه امتحان کنید:", en: "Try a sample meal:" },
+    82→  scanAnother: { fa: "اسکن بعدی", en: "Scan another" },
+    83→  nutrition: { fa: "تغذیه", en: "Nutrition" },
+    84→  fixResults: { fa: "اصلاح نتایج", en: "Fix Results" },
+    85→  done: { fa: "تأیید", en: "Done" },
+    86→  servings: { fa: "وعده", en: "Servings" },
+    87→  healthScore: { fa: "امتیاز سلامت", en: "Health score" },
+    88→  editIngredients: { fa: "ویرایش مواد تشکیل‌دهنده", en: "Edit ingredients" },
+    89→  addIngredient: { fa: "+ افزودن ماده", en: "+ Add ingredient" },
+    90→
+    91→  // Food database
+    92→  foodDatabase: { fa: "پایگاه غذایی", en: "Food Database" },
+    93→  describeWhatYouAte: { fa: "توضیح دهید چه خوردید", en: "Describe what you ate" },
+    94→  all: { fa: "همه", en: "All" },
+    95→  myMeals: { fa: "وعده‌های من", en: "My meals" },
+    96→  myFoods: { fa: "غذاهای من", en: "My foods" },
+    97→  savedScans: { fa: "اسکن‌های ذخیره‌شده", en: "Saved scans" },
+    98→  createCustomFood: { fa: "ساخت غذای دلخواه", en: "Create custom food" },
+    99→  suggestions: { fa: "پیشنهادات", en: "Suggestions" },
+   100→  noFoodsFound: { fa: "غذایی یافت نشد.", en: "No foods found." },
+   101→  loading: { fa: "در حال بارگذاری…", en: "Loading…" },
+   102→
+   103→  // Categories
+   104→  cat_protein: { fa: "پروتئین", en: "Protein" },
+   105→  cat_grain: { fa: "غلات", en: "Grains" },
+   106→  cat_vegetable: { fa: "سبزیجات", en: "Vegetables" },
+   107→  cat_fruit: { fa: "میوه", en: "Fruit" },
+   108→  cat_dairy: { fa: "لبنیات", en: "Dairy" },
+   109→  cat_snack: { fa: "تنقلات", en: "Snacks" },
+   110→  cat_beverage: { fa: "نوشیدنی", en: "Beverages" },
+   111→  cat_fat: { fa: "چربی‌ها", en: "Fats" },
+   112→  cat_sauce: { fa: "سس‌ها", en: "Sauces" },
+   113→
+   114→  // Progress
+   115→  lastWeight: { fa: "آخرین وزن", en: "Last weight" },
+   116→  daysLogged: { fa: "روزهای ثبت‌شده", en: "Days logged" },
+   117→  daysLoggedShort: { fa: "ثبت‌شده", en: "logged" },
+   118→  cheat: { fa: "تقلب", en: "Cheat" },
+   119→  goalProgress: { fa: "پیشرفت هدف", en: "Goal Progress" },
+   120→  ofGoal: { fa: "از هدف", en: "of goal" },
+   121→  macroTrends: { fa: "روند درشت‌مغذی‌ها (۷ روز)", en: "Macro trends (7 days)" },
+   122→  avgDailyMacros: { fa: "میانگین درشت‌مغذی‌های روزانه", en: "Avg daily macros (7 days)" },
+   123→  greatJob: { fa: "آفرین! استمرار کلید موفقیت است و تو در آن استادی! 💪", en: "Great job! Consistency is key, and you're mastering it! 💪" },
+   124→  thisWeekSummary: { fa: "این هفته", en: "This week" },
+   125→  avgSteps: { fa: "میانگین گام", en: "Avg steps" },
+   126→  avgCalories: { fa: "میانگین کالری", en: "Avg calories" },
+   127→  avgWater: { fa: "میانگین آب", en: "Avg water" },
+   128→  waterIntake: { fa: "مصرف آب", en: "Water intake" },
+   129→  workoutHistory: { fa: "تاریخچه تمرین", en: "Workout history" },
+   130→  workouts: { fa: "تمرین", en: "workouts" },
+   131→  calories: { fa: "کالری", en: "Calories" },
+   132→  minutes: { fa: "دقیقه", en: "Minutes" },
+   133→  achievements: { fa: "دستاوردها", en: "Achievements" },
+   134→  unlocked: { fa: "باز‌شده", en: "unlocked" },
+   135→  streakStatistics: { fa: "آمار استمرار", en: "Streak statistics" },
+   136→  consistent: { fa: "منظم", en: "consistent" },
+   137→  weeklyConsistency: { fa: "سازگاری هفتگی", en: "Weekly consistency" },
+   138→  current: { fa: "فعلی", en: "Current" },
+   139→  best: { fa: "بهترین", en: "Best" },
+   140→  mealsLogged: { fa: "وعده‌های ثبت‌شده", en: "Meals logged" },
+   141→
+   142→  // Achievements
+   143→  firstScan: { fa: "اولین اسکن", en: "First Scan" },
+   144→  firstScanDesc: { fa: "اولین وعده را با هوش مصنوعی ثبت کنید", en: "Log your first meal with AI" },
+   145→  streak3: { fa: "۳ روز استمرار", en: "3-Day Streak" },
+   146→  streak3Desc: { fa: "۳ روز پشت سر هم ثبت کنید", en: "Log meals 3 days in a row" },
+   147→  weekWarrior: { fa: "مبارز هفته", en: "Week Warrior" },
+   148→  weekWarriorDesc: { fa: "۷ روز استمرار در ثبت", en: "7-day logging streak" },
+   149→  monthlyMaster: { fa: "استاد ماهانه", en: "Monthly Master" },
+   150→  monthlyMasterDesc: { fa: "۳۰ روز استمرار در ثبت", en: "30-day logging streak" },
+   151→  steps10k: { fa: "۱۰هزار گام", en: "10K Steps" },
+   152→  steps10kDesc: { fa: "۱۰هزار گام در یک روز", en: "Hit 10,000 steps in a day" },
+   153→  hydrated: { fa: "هیدراته", en: "Hydrated" },
+   154→  hydratedDesc: { fa: "۲.۵ لیتر آب بنوشید", en: "Drink 2.5L of water" },
+   155→  mealLogger: { fa: "ثبت‌کننده وعده", en: "Meal Logger" },
+   156→  mealLoggerDesc: { fa: "۱۰ وعده غذایی ثبت کنید", en: "Log 10 meals total" },
+   157→  perfectWeek: { fa: "هفته کامل", en: "Perfect Week" },
+   158→  perfectWeekDesc: { fa: "تمام ۷ روز هفته را ثبت کنید", en: "Log all 7 days this week" },
+   159→  unlockedLabel: { fa: "باز شد", en: "UNLOCKED" },
+   160→  locked: { fa: "قفل", en: "Locked" },
+   161→
+   162→  // Settings
+   163→  appearance: { fa: "ظاهر", en: "Appearance" },
+   164→  reminders: { fa: "یادآوری‌ها", en: "Reminders" },
+   165→  shareProgress: { fa: "اشتراک پیشرفت", en: "Share progress" },
+   166→  healthConnections: { fa: "اتصالات سلامت", en: "Health connections" },
+   167→  connected: { fa: "متصل", en: "Connected" },
+   168→  privacyData: { fa: "حریم خصوصی و داده", en: "Privacy & data" },
+   169→  data: { fa: "داده", en: "Data" },
+   170→  exportJson: { fa: "خروجی JSON", en: "Export as JSON" },
+   171→  exportCsv: { fa: "خروجی CSV", en: "Export as CSV" },
+   172→  importJson: { fa: "ورود از JSON", en: "Import from JSON" },
+   173→  logOut: { fa: "خروج از حساب", en: "Log out" },
+   174→  deleteAccount: { fa: "حذف حساب", en: "Delete account" },
+   175→  dailyGoals: { fa: "اهداف روزانه", en: "Daily goals" },
+   176→  edit: { fa: "ویرایش", en: "Edit" },
+   177→  editProfile: { fa: "ویرایش پروفایل", en: "Edit profile" },
+   178→  editGoals: { fa: "ویرایش اهداف", en: "Daily goals" },
+   179→  save: { fa: "ذخیره", en: "Save" },
+   180→  saveChanges: { fa: "ذخیره تغییرات", en: "Save changes" },
+   181→  saveGoals: { fa: "ذخیره اهداف", en: "Save goals" },
+   182→  saveReminders: { fa: "ذخیره یادآوری‌ها", en: "Save reminders" },
+   183→  name: { fa: "نام", en: "Name" },
+   184→  age: { fa: "سن", en: "Age" },
+   185→  height: { fa: "قد", en: "Height" },
+   186→  weight: { fa: "وزن", en: "Weight" },
+   187→  biologicalSex: { fa: "جنسیت بیولوژیکی", en: "Biological sex" },
+   188→  male: { fa: "مرد", en: "male" },
+   189→  female: { fa: "زن", en: "female" },
+   190→  other: { fa: "سایر", en: "other" },
+   191→  activityLevel: { fa: "سطح فعالیت", en: "Activity level" },
+   192→  sedentary: { fa: "بی‌تحرک", en: "Sedentary" },
+   193→  lightlyActive: { fa: "کم‌فعال", en: "Lightly active" },
+   194→  moderatelyActive: { fa: "متوسط فعال", en: "Moderately active" },
+   195→  veryActive: { fa: "بسیار فعال", en: "Very active" },
+   196→  extraActive: { fa: "فوق فعال", en: "Extra active" },
+   197→  yourGoal: { fa: "هدف شما", en: "Your goal" },
+   198→  loseWeight: { fa: "کاهش وزن", en: "Lose weight" },
+   199→  maintainWeight: { fa: "حفظ وزن", en: "Maintain weight" },
+   200→  gainMuscle: { fa: "افزایش عضله", en: "Gain muscle" },
+   201→  calculateMyGoals: { fa: "محاسبه اهداف من", en: "Calculate my goals" },
+   202→  startTracking: { fa: "شروع ثبت", en: "Start tracking" },
+   203→  getStarted: { fa: "شروع کنید", en: "Get started" },
+   204→  continue: { fa: "ادامه", en: "Continue" },
+   205→  welcomeTo: { fa: "خوش آمدید به", en: "Welcome to" },
+   206→  aboutYou: { fa: "درباره شما", en: "About you" },
+   207→  personalizeExperience: { fa: "تجربه خود را شخصی‌سازی کنیم", en: "Let's personalize your experience" },
+   208→  howActiveDayToday: { fa: "روزانه چقدر فعال هستید؟", en: "How active are you day-to-day?" },
+   209→  whatDoYouWantToAchieve: { fa: "چه چیزی می‌خواهید به دست آورید؟", en: "What do you want to achieve?" },
+   210→  youreAllSet: { fa: "همه چیز آماده است!", en: "You're all set!" },
+   211→  yourDailyGoals: { fa: "اهداف روزانه شما", en: "Your daily goals" },
+   212→  snapPhotoInstantNutrition: { fa: "عکس بگیرید، تغذیه فوری", en: "Snap a photo, get instant nutrition" },
+   213→  personalizedMacroGoals: { fa: "اهداف درشت‌مغذی شخصی‌سازی‌شده", en: "Personalized macro goals" },
+   214→  trackProgressOverTime: { fa: "ردیابی پیشرفت در طول زمان", en: "Track progress over time" },
+   215→
+   216→  // Paywall
+   217→  calaiPremium: { fa: "DS-Cali پرمیوم", en: "DS-Cali Premium" },
+   218→  unlockYourFullPotential: { fa: "پتانسیل کامل خود را باز کنید", en: "Unlock your full potential" },
+   219→  unlimitedAiScans: { fa: "اسکن نامحدود هوش مصنوعی", en: "Unlimited AI scans" },
+   220→  scanEveryMealNoLimits: { fa: "هر وعده را اسکن کنید، بدون محدودیت", en: "Scan every meal, no daily limits" },
+   221→  advancedAnalytics: { fa: "تحلیل‌های پیشرفته", en: "Advanced analytics" },
+   222→  deepInsightsTrends: { fa: "بینش عمیق و روندها در طول زمان", en: "Deep insights & trends over time" },
+   223→  smartGoals: { fa: "اهداف هوشمند", en: "Smart goals" },
+   224→  aiPersonalizedMacroTargets: { fa: "اهداف درشت‌مغذی شخصی‌سازی‌شده با هوش مصنوعی", en: "AI-personalized macro targets" },
+   225→  adFreeExperience: { fa: "تجربه بدون تبلیغ", en: "Ad-free experience" },
+   226→  noInterruptionsEver: { fa: "بدون قطع، برای همیشه", en: "No interruptions, ever" },
+   227→  yearly: { fa: "سالانه", en: "Yearly" },
+   228→  monthly: { fa: "ماهانه", en: "Monthly" },
+   229→  perYear: { fa: "/سال", en: "/year" },
+   230→  perMonth: { fa: "/ماه", en: "/month" },
+   231→  save50: { fa: "۵۰٪ تخفیف", en: "Save 50%" },
+   232→  popular: { fa: "محبوب", en: "POPULAR" },
+   233→  start7DayFreeTrial: { fa: "شروع ۷ روز آزمایش رایگان", en: "Start 7-day free trial" },
+   234→  restorePurchases: { fa: "بازیابی خریدها", en: "Restore purchases" },
+   235→
+   236→  // Add action sheet
+   237→  addToToday: { fa: "افزودن به امروز", en: "Add to today" },
+   238→  scanMeal: { fa: "اسکن وعده", en: "Scan meal" },
+   239→  aiPoweredFoodRecognition: { fa: "تشخیص غذا با هوش مصنوعی", en: "AI-powered food recognition" },
+   240→  barcodeScan: { fa: "اسکن بارکد", en: "Barcode scan" },
+   241→  lookUpPackagedFoods: { fa: "جستجوی غذاهای بسته‌بندی‌شده", en: "Look up packaged foods" },
+   242→  searchFoods: { fa: "جستجوی غذاها", en: "Search foods" },
+   243→  browseFoodDatabase: { fa: "مرور پایگاه غذایی", en: "Browse the food database" },
+   244→  logWorkout: { fa: "ثبت تمرین", en: "Log workout" },
+   245→  trackExercise: { fa: "تمرین خود را ثبت کنید", en: "Track your exercise" },
+   246→
+   247→  // Workout
+   248→  activity: { fa: "فعالیت", en: "Activity" },
+   249→  running: { fa: "دویدن", en: "Running" },
+   250→  weightLifting: { fa: "وزنه‌برداری", en: "Weight lifting" },
+   251→  cycling: { fa: "دوچرخه‌سواری", en: "Cycling" },
+   252→  cardio: { fa: "هوازی", en: "Cardio" },
+   253→  walking: { fa: "پیاده‌روی", en: "Walking" },
+   254→  swimming: { fa: "شنا", en: "Swimming" },
+   255→  yoga: { fa: "یوگا", en: "Yoga" },
+   256→  hiit: { fa: "تمرین شدید", en: "HIIT" },
+   257→  duration: { fa: "مدت", en: "Duration" },
+   258→  intensity: { fa: "شدت", en: "Intensity" },
+   259→  low: { fa: "کم", en: "low" },
+   260→  medium: { fa: "متوسط", en: "medium" },
+   261→  high: { fa: "زیاد", en: "high" },
+   262→  estimatedCaloriesBurned: { fa: "کالری تخمینی سوزانده‌شده", en: "Estimated calories burned" },
+   263→
+   264→  // Barcode
+   265→  barcodeScanner: { fa: "اسکنر بارکد", en: "Barcode Scanner" },
+   266→  resumeScanning: { fa: "ادامه اسکن", en: "Resume scanning" },
+   267→  orEnterBarcodeManually: { fa: "یا بارکد را دستی وارد کنید:", en: "Or enter barcode manually:" },
+   268→  lookingUpProduct: { fa: "در حال جستجوی محصول…", en: "Looking up product…" },
+   269→  productFound: { fa: "محصول یافت شد", en: "Product found" },
+   270→  logThisFood: { fa: "ثبت این غذا", en: "Log this food" },
+   271→
+   272→  // Meal detail
+   273→  mealDetails: { fa: "جزئیات وعده", en: "Meal details" },
+   274→  ingredients: { fa: "مواد تشکیل‌دهنده", en: "Ingredients" },
+   275→  excellentNutritionalBalance: { fa: "تعادل تغذیه‌ای عالی", en: "Excellent nutritional balance" },
+   276→  moderateBalance: { fa: "تعادل متوسط", en: "Moderate balance" },
+   277→  couldBeHealthier: { fa: "می‌تواند سالم‌تر باشد", en: "Could be healthier" },
+   278→  addToFavorites: { fa: "افزودن به علاقه‌مندی‌ها", en: "Add to favorites" },
+   279→  delete: { fa: "حذف", en: "Delete" },
+   280→  deleteThisMeal: { fa: "حذف این وعده؟", en: "Delete this meal?" },
+   281→  thisPermanentlyRemoves: { fa: "این کار وعده و ثبت آن را برای همیشه حذف می‌کند.", en: "This permanently removes the meal and its log entry." },
+   282→
+   283→  // Favorites
+   284→  favorites: { fa: "علاقه‌مندی‌ها", en: "Favorites" },
+   285→  noFavoritesYet: { fa: "هنوز علاقه‌مندی‌ای نیست", en: "No favorites yet" },
+   286→  tapStarToSave: { fa: "روی ستاره هر وعده بزنید تا اینجا ذخیره شود.", en: "Tap the star on any meal to save it here for quick logging." },
+   287→
+   288→  // Reminders
+   289→  enableNotifications: { fa: "فعال‌سازی اعلان‌ها", en: "Enable notifications" },
+   290→  getGentleNudges: { fa: "یادآوری ملایم برای ثبت وعده‌ها", en: "Get gentle nudges to log meals" },
+   291→  enable: { fa: "فعال‌سازی", en: "Enable" },
+   292→  notificationsEnabled: { fa: "اعلان‌ها فعال شد", en: "Notifications enabled" },
+   293→  test: { fa: "آزمایش", en: "Test" },
+   294→  remindersTip: { fa: "یادآوری‌ها روی این دستگاه ذخیره می‌شوند. مرورگر را باز نگه دارید تا اعلان‌ها دریافت کنید.", en: "Reminders are saved on this device. Keep your browser open to receive notifications." },
+   295→  logBreakfast: { fa: "ثبت صبحانه", en: "Log breakfast" },
+   296→  startYourDayRight: { fa: "روز خود را خوب شروع کنید", en: "Start your day right" },
+   297→  logLunch: { fa: "ثبت ناهار", en: "Log lunch" },
+   298→  dontForgetMiddayMeals: { fa: "وعده‌های ناهار را فراموش نکنید", en: "Don't forget midday meals" },
+   299→  logDinner: { fa: "ثبت شام", en: "Log dinner" },
+   300→  trackYourEveningMeal: { fa: "وعده عصرانه خود را ثبت کنید", en: "Track your evening meal" },
+   301→  drinkWater: { fa: "آب بنوشید", en: "Drink water" },
+   302→  stayHydratedEvery2h: { fa: "هر ۲ ساعت هیدراته بمانید", en: "Stay hydrated every 2 hours" },
+   303→
+   304→  // Share
+   305→  shareVia: { fa: "اشتراک‌گذاری از طریق…", en: "Share via…" },
+   306→  copyText: { fa: "کپی متن", en: "Copy text" },
+   307→  copied: { fa: "کپی شد!", en: "Copied!" },
+   308→
+   309→  // Create food
+   310→  createFood: { fa: "ساخت غذا", en: "Create food" },
+   311→  foodName: { fa: "نام غذا", en: "Food name" },
+   312→  icon: { fa: "آیکون", en: "Icon" },
+   313→  servingSize: { fa: "اندازه وعده", en: "Serving size" },
+   314→  weightG: { fa: "وزن (گرم)", en: "Weight (g)" },
+   315→  caloriesPerServing: { fa: "کالری (هر وعده)", en: "Calories (per serving)" },
+   316→  createAndLog: { fa: "ساخت و ثبت", en: "Create & log" },
+   317→
+   318→  // Language
+   319→  language: { fa: "زبان", en: "Language" },
+   320→  persian: { fa: "فارسی", en: "Persian" },
+   321→  english: { fa: "انگلیسی", en: "English" },
+   322→
+   323→  // Theme color
+   324→  themeColor: { fa: "رنگ تم", en: "Theme color" },
+   325→  themeOrange: { fa: "نارنجی", en: "Orange" },
+   326→  themeGreen: { fa: "سبز", en: "Green" },
+   327→  themePurple: { fa: "بنفش", en: "Purple" },
+   328→  themeRose: { fa: "گل‌بهی", en: "Rose" },
+   329→  themeTeal: { fa: "فیروزه‌ای", en: "Teal" },
+   330→
+   331→  // Challenges
+   332→  challenges: { fa: "چالش‌ها", en: "Challenges" },
+   333→  activeChallenges: { fa: "چالش‌های فعال", en: "Active Challenges" },
+   334→  noActiveChallenges: { fa: "هیچ چالش فعالی نیست", en: "No active challenges" },
+   335→  joinChallenge: { fa: "پیوستن به چالش", en: "Join Challenge" },
+   336→  challengeProgress: { fa: "پیشرفت چالش", en: "Challenge Progress" },
+   337→  days: { fa: "روز", en: "days" },
+   338→  reward: { fa: "جایزه", en: "Reward" },
+   339→  complete: { fa: "تکمیل", en: "Complete" },
+   340→  completed: { fa: "تکمیل شد", en: "Completed" },
+   341→  join: { fa: "پیوستن", en: "Join" },
+   342→  leave: { fa: "ترک", en: "Leave" },
+   343→  waterWeekChallenge: { fa: "هفته آبرسانی", en: "Hydration Week" },
+   344→  waterWeekDesc: { fa: "۷ روز پیاپی ۲.۵ لیتر آب بنوشید", en: "Drink 2.5L water for 7 days straight" },
+   345→  proteinBoostChallenge: { fa: "افزایش پروتئین", en: "Protein Boost" },
+   346→  proteinBoostDesc: { fa: "۵ روز به هدف پروتئین برسید", en: "Hit your protein goal 5 days" },
+   347→  stepMasterChallenge: { fa: "استاد گام", en: "Step Master" },
+   348→  stepMasterDesc: { fa: "۳ روز به ۱۰هزار گام برسید", en: "Reach 10K steps 3 days" },
+   349→  cleanEatingChallenge: { fa: "تغذیه سالم", en: "Clean Eating" },
+   350→  cleanEatingDesc: { fa: "۷ روز وعده با امتیاز سلامت ۷۰+ ثبت کنید", en: "Log meals with 70+ health score 7 days" },
+   351→  streakWarriorChallenge: { fa: "مبارز استمرار", en: "Streak Warrior" },
+   352→  streakWarriorDesc: { fa: "۱۰ روز پیاپی ثبت کنید", en: "Log meals 10 days in a row" },
+   353→
+   354→  // Misc
+   355→  cal: { fa: "کال", en: "cal" },
+   356→  kcal: { fa: "کیلوکالری", en: "kcal" },
+   357→  g: { fa: "گ", en: "g" },
+   358→  min: { fa: "دقیقه", en: "min" },
+   359→  L: { fa: "لیتر", en: "L" },
+   360→  ml: { fa: "میلی‌لیتر", en: "ml" },
+   361→  flOz: { fa: "اونس", en: "fl oz" },
+   362→  kg: { fa: "کیلوگرم", en: "kg" },
+   363→  cm: { fa: "سانتی‌متر", en: "cm" },
+   364→  goal: { fa: "هدف", en: "Goal" },
+   365→  ofGoalDone: { fa: "از هدف انجام شد", en: "of goal done" },
+   366→  avg: { fa: "میانگین", en: "avg" },
+   367→  cancel: { fa: "انصراف", en: "Cancel" },
+   368→  saving: { fa: "در حال ذخیره…", en: "Saving…" },
+   369→  savingPhoto: { fa: "در حال ذخیره عکس…", en: "Saving photo…" },
+   370→  scanMealLogged: { fa: "وعده اسکن شد!", en: "Meal analyzed!" },
+   371→  mealLogged: { fa: "وعده ثبت شد", en: "Meal logged" },
+   372→  foodLogged: { fa: "غذا ثبت شد", en: "Food logged" },
+   373→  workoutLogged: { fa: "تمرین ثبت شد", en: "Workout logged" },
+   374→  entryDeleted: { fa: "ورودی حذف شد", en: "Entry deleted" },
+   375→  entryUpdated: { fa: "ورودی به‌روزرسانی شد", en: "Entry updated" },
+   376→  profileUpdated: { fa: "پروفایل به‌روزرسانی شد", en: "Profile updated" },
+   377→  addedToFavorites: { fa: "به علاقه‌مندی‌ها اضافه شد", en: "Added to favorites" },
+   378→  removedFromFavorites: { fa: "از علاقه‌مندی‌ها حذف شد", en: "Removed from favorites" },
+   379→  copiedToClipboard: { fa: "در کلیپ‌بورد کپی شد!", en: "Copied to clipboard!" },
+   380→  exportingData: { fa: "در حال خروجی گرفتن داده…", en: "Exporting data" },
+   381→  invalidJsonFile: { fa: "فایل JSON نامعتبر", en: "Invalid JSON file" },
+   382→  testNotificationSent: { fa: "اعلان آزمایشی ارسال شد", en: "Test notification sent" },
+   383→  notificationsEnabledToast: { fa: "اعلان‌ها فعال شد!", en: "Notifications enabled!" },
+   384→  notificationPermissionDenied: { fa: "مجوز اعلان رد شد", en: "Notification permission denied" },
+   385→  welcomeToast: { fa: "به DS-Cali خوش آمدید! 🎉", en: "Welcome to DS-Cali! 🎉" },
+   386→  onboardingFailed: { fa: "تکمیل راه‌اندازی ناموفق بود", en: "Failed to complete onboarding" },
+   387→  cameraUnavailable: { fa: "دوربین در دسترس نیست. بارکد را دستی وارد کنید.", en: "Camera unavailable. Enter the barcode manually." },
+   388→  lookupFailed: { fa: "جستجو ناموفق بود", en: "Lookup failed" },
+   389→  productNotFound: { fa: "محصول یافت نشد", en: "Product not found" },
+   390→  analysisFailed: { fa: "تحلیل ناموفق بود", en: "Analysis failed" },
+   391→  failedToLogMeal: { fa: "ثبت وعده ناموفق بود", en: "Failed to log meal" },
+   392→  failedToLogFood: { fa: "ثبت غذا ناموفق بود", en: "Failed to log food" },
+   393→  failedToLogWorkout: { fa: "ثبت تمرین ناموفق بود", en: "Failed to log workout" },
+   394→  failedToDelete: { fa: "حذف ناموفق بود", en: "Failed to delete" },
+   395→  failedToUpdate: { fa: "به‌روزرسانی ناموفق بود", en: "Failed to update" },
+   396→  failedToAddFavorite: { fa: "افزودن به علاقه‌مندی‌ها ناموفق بود", en: "Failed to add favorite" },
+   397→  failedToLoadFavorites: { fa: "بارگذاری علاقه‌مندی‌ها ناموفق بود", en: "Failed to load favorites" },
+   398→  failedToImport: { fa: "ورود داده ناموفق بود", en: "Failed to import data" },
+   399→  failedToLoadDashboard: { fa: "بارگذاری داشبورد ناموفق بود", en: "Failed to load dashboard" },
+   400→
+   401→  // === NEW KEYS ADDED FOR PERSIAN FIX ===
+   402→
+   403→  // Macro labels (short)
+   404→  protein: { fa: "پروتئین", en: "Protein" },
+   405→  carbs: { fa: "کربوهیدرات", en: "Carbs" },
+   406→  fats: { fa: "چربی", en: "Fats" },
+   407→
+   408→  // Insight descriptions (templated with {0}, {1}, {2})
+   409→  lowProteinDesc: { fa: "تنها {0}٪ از هدف پروتئین. مرغ، تخم‌مرغ یا ماست یونانی امتحان کنید.", en: "Only {0}% of your protein goal. Try chicken, eggs, or Greek yogurt." },
+   410→  proteinHitDesc: { fa: "امروز {0} گرم پروتئین مصرف کردید.", en: "You've reached {0}g of protein today." },
+   411→  overCalorieDesc: { fa: "{0} کالری بیشتر از هدف روزانه.", en: "You're {0} cal over your daily target." },
+   412→  rightOnTrackDesc: { fa: "{0}٪ تا هدف کالری. تعادل عالی!", en: "You're {0}% from your calorie goal. Great balance!" },
+   413→  stayHydratedDesc: { fa: "{0} میلی‌لیتر آب مصرف شد. امروز را به ۲.۵ لیتر برسانید.", en: "You've had {0}ml of water. Aim for 2.5L today." },
+   414→  hydrationMetDesc: { fa: "عالی! {0} میلی‌لیتر آب نوشیدید.", en: "Excellent! You've drunk {0}ml of water." },
+   415→  stepsCrushedDesc: { fa: "امروز {0} گام برداشتید. عالی!", en: "You walked {0} steps today. Amazing!" },
+   416→  timeForWalkDesc: { fa: "تا الان {0} گام. یک قدم زدن کوتاه به ۱۰هزار گام می‌رساند.", en: "Only {0} steps so far. A short walk could help you reach 10K." },
+   417→  proteinUpDesc: { fa: "امروز: {0} گرم · میانگین ۷ روز: {1} گرم (+{2} گرم)", en: "Today: {0}g · 7-day avg: {1}g (+{2}g)" },
+   418→  proteinDownDesc: { fa: "امروز: {0} گرم · میانگین ۷ روز: {1} گرم ({2} گرم)", en: "Today: {0}g · 7-day avg: {1}g ({2}g)" },
+   419→  waterUpDesc: { fa: "امروز: {0} لیتر · میانگین ۷ روز: {1} لیتر", en: "Today: {0}L · 7-day avg: {1}L" },
+   420→  waterDownDesc: { fa: "امروز: {0} لیتر · میانگین ۷ روز: {1} لیتر", en: "Today: {0}L · 7-day avg: {1}L" },
+   421→  eatingMoreDesc: { fa: "امروز: {0} کال · میانگین ۷ روز: {1} کال (+{2} کال)", en: "Today: {0} cal · 7-day avg: {1} cal (+{2} cal)" },
+   422→  eatingLessDesc: { fa: "امروز: {0} کال · میانگین ۷ روز: {1} کال ({2} کال)", en: "Today: {0} cal · 7-day avg: {1} cal ({2} cal)" },
+   423→  consistentIntakeDesc: { fa: "امروز: {0} کال · میانگین ۷ روز: {1} کال", en: "Today: {0} cal · 7-day avg: {1} cal" },
+   424→  dayStreakDesc: { fa: "{0} روز استمرار! 🔥", en: "{0}-day streak! 🔥" },
+   425→
+   426→  // Goal celebration
+   427→  proteinGoalSmashed: { fa: "هدف پروتئین شکسته شد!", en: "Protein goal smashed!" },
+   428→  proteinGoalSmashedDesc: { fa: "امروز {0} گرم پروتئین مصرف کردید.", en: "You hit {0}g of protein today." },
+   429→  hydrationGoalMetDesc: { fa: "امروز {0} لیتر آب نوشیدید.", en: "You drank {0}L of water today." },
+   430→  stepsCrushedGoalDesc: { fa: "امروز {0} گام برداشتید.", en: "You walked {0} steps today." },
+   431→  rightOnTrackGoalDesc: { fa: "{0}٪ تا هدف کالری.", en: "You're {0}% to your calorie goal." },
+   432→
+   433→  // Nutrition timeline
+   434→  todayTimeline: { fa: "جدول زمانی امروز", en: "Today's timeline" },
+   435→  calTotal: { fa: "کال کل", en: "cal total" },
+   436→
+   437→  // Progress dashboard ranges
+   438→  range90Days: { fa: "۹۰ روز", en: "90 Days" },
+   439→  range6Months: { fa: "۶ ماه", en: "6 Months" },
+   440→  range1Year: { fa: "۱ سال", en: "1 Year" },
+   441→  rangeAllTime: { fa: "همه زمان‌ها", en: "All time" },
+   442→  sevenDayAvg: { fa: "میانگین ۷ روز", en: "7-day avg" },
+   443→  weightUnit: { fa: "کیلوگرم", en: "kg" },
+   444→  goalLabel: { fa: "هدف:", en: "Goal:" },
+   445→  cheatCount: { fa: "{0} تقلب", en: "{0} Cheat" },
+   446→  todayLabel: { fa: "امروز", en: "today" },
+   447→
+   448→  // Scanner extras
+   449→  doneEditing: { fa: "تأیید ویرایش", en: "Done editing" },
+   450→  newIngredient: { fa: "ماده جدید", en: "New ingredient" },
+   451→  meal: { fa: "وعده غذایی", en: "Meal" },
+   452→
+   453→  // Edit log sheet
+   454→  editEntry: { fa: "ویرایش ورودی", en: "Edit entry" },
+   455→  titleLabel: { fa: "عنوان", en: "Title" },
+   456→  deleteThisEntry: { fa: "این ورودی حذف شود؟", en: "Delete this entry?" },
+   457→  deleteEntryDesc: { fa: "این ورودی به‌همراه رکورد وعده آن برای همیشه حذف می‌شود. این کار قابل بازگشت نیست.", en: "This will permanently remove the entry and its meal record. This action cannot be undone." },
+   458→  onlyMealMacrosDesc: { fa: "فقط ورودی‌های وعده می‌توانند درشت‌مغذی‌ها را ویرایش کنند. این ورودی {0} قابل حذف است.", en: "Only meal entries can have macros edited. This {0} entry can be deleted." },
+   459→  loadingMealDetails: { fa: "در حال بارگذاری جزئیات وعده…", en: "Loading meal details…" },
+   460→
+   461→  // Reminders
+   462→  gentleNudgesDesc: { fa: "یادآوری ملایم برای ثبت وعده‌ها و ماندن در مسیر.", en: "Gentle nudges to log your meals and stay on track." },
+   463→  remindersSavedDesc: { fa: "{0} یادآوری ذخیره شد", en: "{0} reminders saved" },
+   464→  remindersEnabledTitle: { fa: "یادآوری‌ها فعال شد! 🎉", en: "Reminders enabled! 🎉" },
+   465→  remindersEnabledBody: { fa: "حالا یادآوری‌های ملایمی برای ثبت وعده‌ها دریافت می‌کنید.", en: "You'll now get gentle nudges to log your meals." },
+   466→  testReminderTitle: { fa: "یادآوری آزمایشی 🔔", en: "Test reminder 🔔" },
+   467→  testReminderBody: { fa: "یادآوری‌های شما این‌گونه نمایش داده می‌شوند!", en: "This is how your reminders will look!" },
+   468→  tipLabel: { fa: "نکته:", en: "Tip:" },
+   469→
+   470→  // Share sheet
+   471→  trackingMyNutrition: { fa: "در حال ثبت تغذیه با DS-Cali 🍎", en: "Tracking my nutrition with DS-Cali 🍎" },
+   472→  myProgressTitle: { fa: "پیشرفت DS-Cali من", en: "My DS-Cali progress" },
+   473→  shareTextTemplate: { fa: "من با DS-Cali تغذیه‌ام را ثبت می‌کنم! 🔥\n\nامروز: {0}/{1} کال ({2}٪)\nپروتئین: {3}گ/{4}گ\n{5}-روز استمرار 💪\n\n#DSCali #HealthyLiving", en: "I'm tracking my nutrition with DS-Cali! 🔥\n\nToday: {0}/{1} cal ({2}%)\nProtein: {3}g/{4}g\n{5}-day streak 💪\n\n#DSCali #HealthyLiving" },
+   474→
+   475→  // Edit sheets
+   476→  weightKg: { fa: "وزن (کیلوگرم)", en: "Weight (kg)" },
+   477→  heightCm: { fa: "قد (سانتی‌متر)", en: "Height (cm)" },
+   478→  proteinG: { fa: "پروتئین (گ)", en: "Protein (g)" },
+   479→  carbsG: { fa: "کربوهیدرات (گ)", en: "Carbs (g)" },
+   480→  fatsG: { fa: "چربی (گ)", en: "Fats (g)" },
+   481→  yourNamePlaceholder: { fa: "نام شما", en: "Your name" },
+   482→
+   483→  // Onboarding
+   484→  welcomeToCalAI: { fa: "به DS-Cali خوش آمدید", en: "Welcome to DS-Cali" },
+   485→  welcomeDesc: { fa: "با دید هوش مصنوعی وعده‌ها را ثبت کنید، به درشت‌مغذی‌های خود برسید و عادت‌های سالم بسازید — همه در یک اپ زیبا.", en: "Track meals with AI vision, hit your macros, and build healthy habits — all in one beautiful app." },
+   486→  unitsCmKg: { fa: "واحدها: سانتی‌متر و کیلوگرم", en: "Units: cm and kg" },
+   487→  sedentaryDesc: { fa: "کم یا بدون ورزش، کار پشت میز", en: "Little or no exercise, desk job" },
+   488→  lightlyActiveDesc: { fa: "ورزش سبک ۱-۳ روز در هفته", en: "Light exercise 1-3 days/week" },
+   489→  moderatelyActiveDesc: { fa: "ورزش متوسط ۳-۵ روز در هفته", en: "Moderate exercise 3-5 days/week" },
+   490→  veryActiveDesc: { fa: "ورزش سنگین ۶-۷ روز در هفته", en: "Hard exercise 6-7 days/week" },
+   491→  extraActiveDesc: { fa: "ورزش خیلی سنگین، کار فیزیکی", en: "Very hard exercise, physical job" },
+   492→  loseWeightDesc: { fa: "کمبود ~۰.۵ کیلوگرم در هفته", en: "~0.5 kg/week deficit" },
+   493→  maintainWeightDesc: { fa: "در وزن فعلی بمانید", en: "Stay at current weight" },
+   494→  gainMuscleDesc: { fa: "اضافه ~۰.۴ کیلوگرم در هفته", en: "~0.4 kg/week surplus" },
+   495→
+   496→  // Quick log toast (food name + "logged")
+   497→  loggedToast: { fa: "{0} ثبت شد", en: "{0} logged" },
+   498→
+   499→  // Food database extras
+   500→  cat_all: { fa: "همه", en: "All" },
+   501→  veg: { fa: "سبزی", en: "Veg" },
+   502→  drinks: { fa: "نوشیدنی", en: "Drinks" },
+   503→
+   504→  // Need more (macro)
+   505→  needMoreProtein: { fa: "نیاز به پروتئین بیشتر", en: "Need more protein" },
+   506→  needMoreCarbs: { fa: "نیاز به کربوهیدرات بیشتر", en: "Need more carbs" },
+   507→  needMoreFats: { fa: "نیاز به چربی بیشتر", en: "Need more fats" },
+   508→} as const;
+   509→
+   510→export type TranslationKey = keyof typeof translations;
+   511→
+   512→interface I18nContext {
+   513→  locale: Locale;
+   514→  setLocale: (l: Locale) => void;
+   515→  t: (key: TranslationKey) => string;
+   516→  dir: "rtl" | "ltr";
+   517→}
+   518→
+   519→const I18nContext = createContext<I18nContext | null>(null);
+   520→
+   521→const STORAGE_KEY = "ds-cali-locale";
+   522→
+   523→export function I18nProvider({ children }: { children: ReactNode }) {
+   524→  // Default to Persian (fa). Read from localStorage on mount.
+   525→  const [locale, setLocaleState] = useState<Locale>("fa");
+   526→
+   527→  useEffect(() => {
+   528→    const timer = setTimeout(() => {
+   529→      try {
+   530→        const saved = localStorage.getItem(STORAGE_KEY) as Locale | null;
+   531→        if (saved === "fa" || saved === "en") {
+   532→          setLocaleState(saved);
+   533→        }
+   534→      } catch {}
+   535→    }, 0);
+   536→    return () => clearTimeout(timer);
+   537→  }, []);
+   538→
+   539→  useEffect(() => {
+   540→    try {
+   541→      localStorage.setItem(STORAGE_KEY, locale);
+   542→    } catch {}
+   543→    document.documentElement.lang = locale;
+   544→    document.documentElement.dir = locale === "fa" ? "rtl" : "ltr";
+   545→  }, [locale]);
+   546→
+   547→  const setLocale = (l: Locale) => setLocaleState(l);
+   548→  const t = (key: TranslationKey) => translations[key]?.[locale] ?? String(key);
+   549→  const dir = locale === "fa" ? "rtl" : "ltr";
+   550→
+   551→  return (
+   552→    <I18nContext.Provider value={{ locale, setLocale, t, dir }}>
+   553→      {children}
+   554→    </I18nContext.Provider>
+   555→  );
+   556→}
+   557→
+   558→export function useI18n() {
+   559→  const ctx = useContext(I18nContext);
+   560→  if (!ctx) {
+   561→    // Fallback for SSR / pre-provider
+   562→    return {
+   563→      locale: "fa" as Locale,
+   564→      setLocale: () => {},
+   565→      t: (key: TranslationKey) => translations[key]?.fa ?? String(key),
+   566→      dir: "rtl" as const,
+   567→    };
+   568→  }
+   569→  return ctx;
+   570→}
+   571→

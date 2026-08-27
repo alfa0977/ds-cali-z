@@ -1,5 +1,5 @@
 "use client";
-import { useDashboard, useUpdateUser, useImportData } from "@/lib/hooks";
+import { useDashboard, useUpdateUser, useImportData, exportData, deleteAccount } from "@/lib/hooks";
 import { useApp } from "@/lib/store";
 import { useI18n } from "@/lib/i18n";
 import {
@@ -10,6 +10,18 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { ProgressRing } from "@/components/progress-ring";
 import { toast } from "sonner";
 import { useRef } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 export function SettingsScreen() {
   const { data } = useDashboard();
@@ -17,16 +29,26 @@ export function SettingsScreen() {
   const { locale, t } = useI18n();
   const user = data?.user;
   const importData = useImportData();
+  const qc = useQueryClient();
   const fileRef = useRef<HTMLInputElement>(null);
 
-  function downloadExport(format: "json" | "csv") {
-    const a = document.createElement("a");
-    a.href = `/api/exportData?format=${format}`;
-    a.download = `ds-cali-export-${new Date().toISOString().slice(0, 10)}.${format}`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    toast.success(`${t("exportingData")} ${format.toUpperCase()}…`);
+  async function downloadExport(format: "json" | "csv") {
+    try {
+      const text = await exportData(format);
+      const blob = new Blob([text], { type: format === "json" ? "application/json" : "text/csv" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `ds-cali-export-${new Date().toISOString().slice(0, 10)}.${format}`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      toast.success(`${t("exportingData")} ${format.toUpperCase()}…`);
+    } catch (e) {
+      console.error("Export failed:", e);
+      toast.error(t("failedToUpdate"));
+    }
   }
 
   function onImportFile(e: React.ChangeEvent<HTMLInputElement>) {
@@ -43,6 +65,26 @@ export function SettingsScreen() {
     };
     reader.readAsText(file);
     e.target.value = "";
+  }
+
+  async function handleLogout() {
+    // In this app there's no remote session — "logging out" just clears the in-memory
+    // query cache and reloads to the welcome screen. Local data stays intact.
+    toast.success(t("loggedOut"));
+    await qc.clear();
+    setTimeout(() => window.location.reload(), 400);
+  }
+
+  async function handleDeleteAccount() {
+    try {
+      await deleteAccount();
+      await qc.clear();
+      toast.success(t("accountDeleted"));
+      setTimeout(() => window.location.reload(), 600);
+    } catch (e) {
+      console.error(e);
+      toast.error(t("failedToDelete"));
+    }
   }
 
   return (
@@ -124,7 +166,7 @@ export function SettingsScreen() {
         <div className="overflow-hidden rounded-2xl bg-card shadow-ios">
           <Row icon={Heart} label={t("healthConnections")} right={<span className="text-xs font-medium text-success">{t("connected")}</span>} onClick={() => {}} />
           <Divider />
-          <Row icon={Shield} label={t("privacyData")} right={<ChevronRight className="h-4 w-4 text-muted-foreground" />} onClick={() => {}} />
+          <Row icon={Shield} label={t("privacyData")} right={<ChevronRight className="h-4 w-4 text-muted-foreground" />} onClick={() => setModal("privacy-data")} />
         </div>
       </div>
 
@@ -142,9 +184,42 @@ export function SettingsScreen() {
       </div>
 
       <div className="overflow-hidden rounded-2xl bg-card shadow-ios">
-        <Row icon={LogOut} label={t("logOut")} danger onClick={() => {}} />
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <Row icon={LogOut} label={t("logOut")} danger />
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>{t("logOut")}</AlertDialogTitle>
+              <AlertDialogDescription>{t("logOutConfirm")}</AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>{t("cancel")}</AlertDialogCancel>
+              <AlertDialogAction onClick={handleLogout}>{t("logOut")}</AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
         <Divider />
-        <Row icon={Trash2} label={t("deleteAccount")} danger onClick={() => {}} />
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <Row icon={Trash2} label={t("deleteAccount")} danger />
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>{t("deleteAccount")}</AlertDialogTitle>
+              <AlertDialogDescription>{t("deleteAccountConfirm")}</AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>{t("cancel")}</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={handleDeleteAccount}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                {t("delete")}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
 
       <p className="flex items-center justify-center gap-1 pt-2 text-center text-xs text-muted-foreground">

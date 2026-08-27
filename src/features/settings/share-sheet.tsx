@@ -1,5 +1,5 @@
 "use client";
-import { X, Share2, Download, MessageCircle, Twitter, Facebook, Link2, Check } from "lucide-react";
+import { X, Share2, Download, MessageCircle, Twitter, Facebook, Link2, Check, Loader2 } from "lucide-react";
 import { useApp } from "@/lib/store";
 import { useDashboard } from "@/lib/hooks";
 import { Button } from "@/components/ui/button";
@@ -12,11 +12,30 @@ import { formatNumber } from "@/lib/date-utils";
 
 export function ShareSheet() {
   const { setModal } = useApp();
-  const { data } = useDashboard();
+  const { data, isLoading } = useDashboard();
   const [copied, setCopied] = useState(false);
   const { locale, t } = useI18n();
 
-  if (!data) return null;
+  if (isLoading || !data) {
+    // Loading state — never show a blank screen; the back button is always visible.
+    return (
+      <div className="flex h-full flex-col bg-background">
+        <div className="flex items-center justify-between px-4 pt-4 pb-2">
+          <button onClick={() => setModal(null)} className="flex h-9 w-9 items-center justify-center rounded-full bg-secondary">
+            <X className="h-5 w-5" />
+          </button>
+          <h2 className="flex items-center gap-1.5 text-base font-semibold">
+            <Share2 className="h-4 w-4" />
+            {t("shareProgress")}
+          </h2>
+          <div className="h-9 w-9" />
+        </div>
+        <div className="flex flex-1 items-center justify-center">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </div>
+      </div>
+    );
+  }
 
   const consumed = data.consumed;
   const goals = data.user.goals;

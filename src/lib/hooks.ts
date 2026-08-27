@@ -105,6 +105,9 @@ export function useAnalyzeMeal() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (image: string) => {
+      if (isStaticMode()) {
+        return await clientDB.analyzeMeal(image);
+      }
       const res = await fetch("/api/analyzeMeal", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -140,6 +143,9 @@ export function useLogMeal() {
       corrected?: boolean;
       timestamp?: string;
     }) => {
+      if (isStaticMode()) {
+        return await clientDB.logMeal(data);
+      }
       const res = await fetch("/api/logMeal", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -158,6 +164,22 @@ export function useSearchFoods() {
   return useQuery({
     queryKey: ["foods", "all"],
     queryFn: async () => {
+      if (isStaticMode()) {
+        const foods = await clientDB.searchFoods("", undefined, 60);
+        return foods.map((f) => ({
+          id: f.id,
+          name: f.name,
+          servingSize: f.servingSize,
+          servingWeightGrams: f.servingWeightGrams,
+          calories: f.calories,
+          protein: f.protein,
+          carbs: f.carbs,
+          fat: f.fat,
+          category: f.category,
+          emoji: f.emoji,
+          source: f.source,
+        }));
+      }
       const res = await fetch(`/api/searchFoods?limit=60`);
       if (!res.ok) throw new Error("Failed to load foods");
       const data = await res.json();
@@ -182,6 +204,35 @@ export function useLogFood() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (data: { foodId?: string; manualFood?: Record<string, unknown>; servings?: number }) => {
+      if (isStaticMode()) {
+        if (data.foodId) {
+          return await clientDB.logFood(data.foodId, data.servings ?? 1);
+        }
+        if (data.manualFood) {
+          const mf = data.manualFood as {
+            name: string;
+            servingSize?: string;
+            servingWeightGrams?: number;
+            calories: number;
+            protein: number;
+            carbs: number;
+            fat: number;
+            emoji?: string;
+          };
+          return await clientDB.logManualFood({
+            name: mf.name,
+            servingSize: mf.servingSize,
+            servingWeightGrams: mf.servingWeightGrams,
+            calories: mf.calories,
+            protein: mf.protein,
+            carbs: mf.carbs,
+            fat: mf.fat,
+            emoji: mf.emoji,
+            servings: data.servings ?? 1,
+          });
+        }
+        throw new Error("No food data");
+      }
       const res = await fetch("/api/logFood", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -224,6 +275,9 @@ export function useLogWorkout() {
       intensity: "low" | "medium" | "high";
       caloriesBurned: number;
     }) => {
+      if (isStaticMode()) {
+        return await clientDB.logWorkout(data);
+      }
       const res = await fetch("/api/logWorkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -247,6 +301,9 @@ export function useUpdateUser() {
       weightKg?: number;
       heightCm?: number;
     }) => {
+      if (isStaticMode()) {
+        return await clientDB.updateUser(data);
+      }
       const res = await fetch("/api/updateUser", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -265,6 +322,9 @@ export function useLookupBarcode() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (code: string) => {
+      if (isStaticMode()) {
+        return await clientDB.lookupBarcode(code);
+      }
       const res = await fetch(`/api/lookupBarcode?code=${encodeURIComponent(code)}`);
       if (!res.ok) {
         const e = await res.json().catch(() => ({}));
@@ -304,6 +364,9 @@ export function useUpdateLog() {
       macros?: { calories: number; protein: number; carbs: number; fat: number };
       ingredients?: Array<{ name: string; estimatedWeightGrams: number; confidence: number; volumeMl?: number }>;
     }) => {
+      if (isStaticMode()) {
+        return await clientDB.updateLog(data);
+      }
       const res = await fetch("/api/updateLog", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -331,6 +394,9 @@ export function useOnboard() {
       goal: "lose" | "maintain" | "gain";
       targetWeightKg?: number;
     }) => {
+      if (isStaticMode()) {
+        return await clientDB.onboardUser(data);
+      }
       const res = await fetch("/api/onboard", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -438,6 +504,9 @@ export function useImportData() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (data: unknown) => {
+      if (isStaticMode()) {
+        return await clientDB.importData(data as Parameters<typeof clientDB.importData>[0]);
+      }
       const res = await fetch("/api/importData", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -454,6 +523,10 @@ export function useImportData() {
 
 /** Upload a meal image (data URL) to /download/meal-images and return the public path. */
 export async function uploadMealImage(image: string): Promise<string> {
+  // In static mode there is no server — keep data URL as-is (it will be stored in IndexedDB).
+  if (isStaticMode()) {
+    return await clientDB.uploadImage(image);
+  }
   // If it's already an http URL, no need to upload
   if (image.startsWith("http")) return image;
   // If it's a data URL, upload it
@@ -543,6 +616,9 @@ export function useChallenges() {
   return useQuery({
     queryKey: ["challenges"],
     queryFn: async () => {
+      if (isStaticMode()) {
+        return (await clientDB.getChallenges()) as unknown as ChallengeData;
+      }
       const res = await fetch("/api/challenges");
       if (!res.ok) throw new Error("Failed to load challenges");
       return res.json() as Promise<ChallengeData>;
@@ -554,6 +630,9 @@ export function useJoinChallenge() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (type: string) => {
+      if (isStaticMode()) {
+        return await clientDB.joinChallenge(type);
+      }
       const res = await fetch("/api/challenges", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -572,6 +651,9 @@ export function useLeaveChallenge() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (data: { id?: string; type?: string }) => {
+      if (isStaticMode()) {
+        return await clientDB.leaveChallenge(data);
+      }
       const res = await fetch("/api/challenges", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -584,4 +666,24 @@ export function useLeaveChallenge() {
       qc.invalidateQueries({ queryKey: ["challenges"] });
     },
   });
+}
+
+/** Export data (JSON or CSV). In static mode, uses client-db; otherwise hits the API. */
+export async function exportData(format: "json" | "csv"): Promise<string> {
+  if (isStaticMode()) {
+    return await clientDB.exportData(format);
+  }
+  const res = await fetch(`/api/exportData?format=${format}`);
+  if (!res.ok) throw new Error("Export failed");
+  return await res.text();
+}
+
+/** Delete all user data (account deletion). */
+export async function deleteAccount(): Promise<{ ok: true }> {
+  if (isStaticMode()) {
+    return await clientDB.deleteAllData();
+  }
+  const res = await fetch("/api/deleteAccount", { method: "DELETE" });
+  if (!res.ok) throw new Error("Failed");
+  return res.json();
 }

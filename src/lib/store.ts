@@ -21,7 +21,8 @@ export type ModalKey =
   | "share"
   | "challenges"
   | "language"
-  | "theme-color";
+  | "theme-color"
+  | "privacy-data";
 
 interface AppState {
   tab: TabKey;

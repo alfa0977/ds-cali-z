@@ -1,0 +1,651 @@
+     1→// Client-side database using IndexedDB — replaces all server-side API routes.
+     2→// This allows the app to work fully offline inside a Capacitor APK.
+     3→import { openDB, type IDBPDatabase } from "idb";
+     4→import { calculateMacros } from "@/lib/ai-engine";
+     5→
+     6→const DB_NAME = "ds-cali-db";
+     7→const DB_VERSION = 1;
+     8→
+     9→export interface ClientUser {
+    10→  id: string;
+    11→  email: string;
+    12→  displayName: string | null;
+    13→  avatarUrl: string | null;
+    14→  goals: { calories: number; protein: number; carbs: number; fat: number };
+    15→  weightKg: number | null;
+    16→  heightCm: number | null;
+    17→  age: number | null;
+    18→  sex: string | null;
+    19→  activityLevel: string | null;
+    20→  goal: string | null;
+    21→  onboarded: boolean;
+    22→  subscriptionStatus: string;
+    23→  streak: number;
+    24→  createdAt: string;
+    25→  lastLoginAt: string;
+    26→}
+    27→
+    28→export interface ClientFood {
+    29→  id: string;
+    30→  name: string;
+    31→  servingSize: string;
+    32→  servingWeightGrams: number;
+    33→  calories: number;
+    34→  protein: number;
+    35→  carbs: number;
+    36→  fat: number;
+    37→  source: string;
+    38→  barcode: string | null;
+    39→  densityGramsPerMl: number | null;
+    40→  category: string | null;
+    41→  emoji: string | null;
+    42→  createdBy: string | null;
+    43→  createdAt: string;
+    44→}
+    45→
+    46→export interface ClientMeal {
+    47→  id: string;
+    48→  userId: string;
+    49→  source: string;
+    50→  ingredients: string; // JSON string
+    51→  macros: string; // JSON string
+    52→  healthScore: number;
+    53→  imageUrl: string | null;
+    54→  title: string | null;
+    55→  mealSlot: string | null;
+    56→  createdAt: string;
+    57→}
+    58→
+    59→export interface ClientLog {
+    60→  id: string;
+    61→  userId: string;
+    62→  type: string;
+    63→  mealId: string | null;
+    64→  macros: string | null;
+    65→  waterMl: number | null;
+    66→  workoutSummary: string | null;
+    67→  imageUrl: string | null;
+    68→  title: string | null;
+    69→  mealSlot: string | null;
+    70→  timestamp: string;
+    71→  corrected: boolean;
+    72→}
+    73→
+    74→export interface ClientHealthDaily {
+    75→  id: string;
+    76→  userId: string;
+    77→  date: string;
+    78→  steps: number;
+    79→  activeEnergyKcal: number;
+    80→  waterMl: number;
+    81→  weightKg: number | null;
+    82→  workouts: string;
+    83→  updatedAt: string;
+    84→}
+    85→
+    86→export interface ClientFavorite {
+    87→  id: string;
+    88→  userId: string;
+    89→  name: string;
+    90→  emoji: string | null;
+    91→  calories: number;
+    92→  protein: number;
+    93→  carbs: number;
+    94→  fat: number;
+    95→  servingSize: string | null;
+    96→  createdAt: string;
+    97→}
+    98→
+    99→let dbInstance: IDBPDatabase | null = null;
+   100→
+   101→async function getDB(): Promise<IDBPDatabase> {
+   102→  if (dbInstance) return dbInstance;
+   103→  dbInstance = await openDB(DB_NAME, DB_VERSION, {
+   104→    upgrade(db) {
+   105→      if (!db.objectStoreNames.contains("users")) db.createObjectStore("users", { keyPath: "id" });
+   106→      if (!db.objectStoreNames.contains("foods")) db.createObjectStore("foods", { keyPath: "id" });
+   107→      if (!db.objectStoreNames.contains("meals")) db.createObjectStore("meals", { keyPath: "id" });
+   108→      if (!db.objectStoreNames.contains("logs")) db.createObjectStore("logs", { keyPath: "id" });
+   109→      if (!db.objectStoreNames.contains("healthDaily")) db.createObjectStore("healthDaily", { keyPath: "id" });
+   110→      if (!db.objectStoreNames.contains("favorites")) db.createObjectStore("favorites", { keyPath: "id" });
+   111→    },
+   112→  });
+   113→  return dbInstance;
+   114→}
+   115→
+   116→function genId(): string {
+   117→  return Date.now().toString(36) + Math.random().toString(36).substring(2, 8);
+   118→}
+   119→
+   120→function parseJSON<T>(s: string | null | undefined, fallback: T): T {
+   121→  if (!s) return fallback;
+   122→  try { return JSON.parse(s) as T; } catch { return fallback; }
+   123→}
+   124→
+   125→// ============ USER ============
+   126→
+   127→export async function ensureUser(): Promise<ClientUser> {
+   128→  const db = await getDB();
+   129→  let user = await db.get("users", "demo");
+   130→  if (!user) {
+   131→    user = {
+   132→      id: "demo",
+   133→      email: "demo@ds-cali.app",
+   134→      displayName: "Alex Carter",
+   135→      avatarUrl: null,
+   136→      goals: { calories: 2500, protein: 150, carbs: 250, fat: 70 },
+   137→      weightKg: 78,
+   138→      heightCm: 178,
+   139→      age: null,
+   140→      sex: null,
+   141→      activityLevel: null,
+   142→      goal: null,
+   143→      onboarded: false,
+   144→      subscriptionStatus: "trialing",
+   145→      streak: 15,
+   146→      createdAt: new Date().toISOString(),
+   147→      lastLoginAt: new Date().toISOString(),
+   148→    };
+   149→    await db.put("users", user);
+   150→  }
+   151→  return user;
+   152→}
+   153→
+   154→export async function getActiveUserId(): Promise<string> {
+   155→  const user = await ensureUser();
+   156→  return user.id;
+   157→}
+   158→
+   159→export async function updateUser(data: Partial<ClientUser>): Promise<ClientUser> {
+   160→  const db = await getDB();
+   161→  const user = await ensureUser();
+   162→  const updated = { ...user, ...data };
+   163→  if (data.goals) updated.goals = data.goals;
+   164→  await db.put("users", updated);
+   165→  return updated;
+   166→}
+   167→
+   168→export async function onboardUser(data: {
+   169→  displayName: string; sex: string; age: number; heightCm: number; weightKg: number;
+   170→  activityLevel: string; goal: string;
+   171→}): Promise<{ user: ClientUser; goals: { calories: number; protein: number; carbs: number; fat: number } }> {
+   172→  const bmrBase = 10 * data.weightKg + 6.25 * data.heightCm - 5 * data.age;
+   173→  const bmr = data.sex === "male" ? bmrBase + 5 : bmrBase - 161;
+   174→  const factors: Record<string, number> = { sedentary: 1.2, light: 1.375, moderate: 1.55, active: 1.725, very_active: 1.9 };
+   175→  let tdee = bmr * (factors[data.activityLevel] ?? 1.2);
+   176→  if (data.goal === "lose") tdee -= 500;
+   177→  else if (data.goal === "gain") tdee += 400;
+   178→  const goals = {
+   179→    calories: Math.round(tdee),
+   180→    protein: Math.round((tdee * 0.3) / 4),
+   181→    carbs: Math.round((tdee * 0.4) / 4),
+   182→    fat: Math.round((tdee * 0.3) / 9),
+   183→  };
+   184→  const updated = await updateUser({
+   185→    displayName: data.displayName, sex: data.sex, age: data.age, heightCm: data.heightCm,
+   186→    weightKg: data.weightKg, activityLevel: data.activityLevel, goal: data.goal,
+   187→    goals, onboarded: true,
+   188→  });
+   189→  return { user: updated, goals };
+   190→}
+   191→
+   192→// ============ FOODS ============
+   193→
+   194→export async function searchFoods(q: string, category?: string, limit = 60): Promise<ClientFood[]> {
+   195→  const db = await getDB();
+   196→  let foods = await db.getAll("foods");
+   197→  if (q.trim()) {
+   198→    const ql = q.trim().toLowerCase();
+   199→    foods = foods.filter((f: ClientFood) => f.name.toLowerCase().includes(ql));
+   200→  }
+   201→  if (category && category !== "All") {
+   202→    foods = foods.filter((f: ClientFood) => f.category === category);
+   203→  }
+   204→  return foods.sort((a: ClientFood, b: ClientFood) => a.name.localeCompare(b.name)).slice(0, limit);
+   205→}
+   206→
+   207→export async function seedFoods(): Promise<void> {
+   208→  const db = await getDB();
+   209→  const count = await db.count("foods");
+   210→  if (count > 0) return;
+   211→  // Minimal seed — the full 96 foods are in the seed script
+   212→  const { STARTER_FOODS, PERSIAN_FOODS } = await import("./seed-data");
+   213→  const all = [...STARTER_FOODS, ...PERSIAN_FOODS];
+   214→  for (const f of all) {
+   215→    await db.put("foods", {
+   216→      id: genId(),
+   217→      name: f[0], servingSize: f[1], servingWeightGrams: f[2],
+   218→      calories: f[3], protein: f[4], carbs: f[5], fat: f[6],
+   219→      category: f[7], emoji: f[8], densityGramsPerMl: f[9],
+   220→      barcode: f[10] ?? null, source: "database", createdBy: null,
+   221→      createdAt: new Date().toISOString(),
+   222→    });
+   223→  }
+   224→  // Seed health data
+   225→  await seedHealthData();
+   226→  // Seed sample meals
+   227→  await seedSampleMeals();
+   228→}
+   229→
+   230→async function seedHealthData(): Promise<void> {
+   231→  const db = await getDB();
+   232→  const today = new Date();
+   233→  for (let i = 6; i >= 0; i--) {
+   234→    const d = new Date(today);
+   235→    d.setDate(today.getDate() - i);
+   236→    const key = d.toISOString().slice(0, 10);
+   237→    const steps = 6000 + Math.floor(Math.random() * 5500);
+   238→    await db.put("healthDaily", {
+   239→      id: genId(), userId: "demo", date: key,
+   240→      steps, activeEnergyKcal: Math.floor(steps * 0.035) + Math.floor(Math.random() * 80),
+   241→      waterMl: 1200 + Math.floor(Math.random() * 1200),
+   242→      weightKg: Math.round((78 - i * 0.15 + (Math.random() - 0.5) * 0.4) * 10) / 10,
+   243→      workouts: i % 3 === 0 ? JSON.stringify([{ type: "Weight lifting", durationMinutes: 45, intensity: "medium", caloriesBurned: 180 }]) : "[]",
+   244→      updatedAt: new Date().toISOString(),
+   245→    });
+   246→  }
+   247→}
+   248→
+   249→async function seedSampleMeals(): Promise<void> {
+   250→  const userId = await getActiveUserId();
+   251→  const samples = [
+   252→    {
+   253→      title: "Greek Yogurt with Blueberries",
+   254→      ingredients: [{ name: "Greek Yogurt", estimatedWeightGrams: 227, confidence: 0.9 }, { name: "Blueberries", estimatedWeightGrams: 80, confidence: 0.85 }, { name: "Honey", estimatedWeightGrams: 15, confidence: 0.7 }],
+   255→      macros: { calories: 215, protein: 19, carbs: 30, fat: 3 },
+   256→      healthScore: 82, mealSlot: "breakfast",
+   257→    },
+   258→    {
+   259→      title: "Grilled Chicken Salad",
+   260→      ingredients: [{ name: "Chicken Breast", estimatedWeightGrams: 150, confidence: 0.92 }, { name: "Spinach", estimatedWeightGrams: 60, confidence: 0.8 }, { name: "Avocado", estimatedWeightGrams: 80, confidence: 0.85 }],
+   261→      macros: { calories: 410, protein: 50, carbs: 14, fat: 18 },
+   262→      healthScore: 90, mealSlot: "lunch",
+   263→    },
+   264→  ];
+   265→  for (const s of samples) {
+   266→    const mealId = genId();
+   267→    const now = new Date();
+   268→    now.setHours(now.getHours() - 3);
+   269→    await (await getDB()).put("meals", {
+   270→      id: mealId, userId, source: "ai",
+   271→      ingredients: JSON.stringify(s.ingredients),
+   272→      macros: JSON.stringify(s.macros),
+   273→      healthScore: s.healthScore, imageUrl: null,
+   274→      title: s.title, mealSlot: s.mealSlot, createdAt: now.toISOString(),
+   275→    });
+   276→    await (await getDB()).put("logs", {
+   277→      id: genId(), userId, type: "meal", mealId,
+   278→      macros: JSON.stringify(s.macros), title: s.title,
+   279→      mealSlot: s.mealSlot, timestamp: now.toISOString(),
+   280→      imageUrl: null, workoutSummary: null, waterMl: null, corrected: false,
+   281→    });
+   282→  }
+   283→  // Water logs
+   284→  for (let i = 0; i < 3; i++) {
+   285→    const t = new Date();
+   286→    t.setHours(t.getHours() - (5 - i) * 2);
+   287→    await (await getDB()).put("logs", {
+   288→      id: genId(), userId, type: "water", waterMl: 250,
+   289→      timestamp: t.toISOString(), mealId: null, macros: null,
+   290→      workoutSummary: null, imageUrl: null, title: null, mealSlot: null, corrected: false,
+   291→    });
+   292→  }
+   293→  // Workout log
+   294→  const wt = new Date();
+   295→  wt.setHours(wt.getHours() - 6);
+   296→  await (await getDB()).put("logs", {
+   297→    id: genId(), userId, type: "workout", title: "Morning Run",
+   298→    workoutSummary: JSON.stringify({ type: "Running", durationMinutes: 30, intensity: "high", caloriesBurned: 320 }),
+   299→    timestamp: wt.toISOString(), mealId: null, macros: null,
+   300→    waterMl: null, imageUrl: null, mealSlot: null, corrected: false,
+   301→  });
+   302→}
+   303→
+   304→export async function createFood(data: {
+   305→  name: string; servingSize: string; servingWeightGrams: number;
+   306→  calories: number; protein: number; carbs: number; fat: number;
+   307→  emoji?: string; category?: string;
+   308→}): Promise<ClientFood> {
+   309→  const db = await getDB();
+   310→  const food: ClientFood = {
+   311→    id: genId(), ...data, source: "user", barcode: null,
+   312→    densityGramsPerMl: null, createdBy: "demo",
+   313→    createdAt: new Date().toISOString(),
+   314→  };
+   315→  await db.put("foods", food);
+   316→  return food;
+   317→}
+   318→
+   319→// ============ MEALS & LOGS ============
+   320→
+   321→export async function logMeal(data: {
+   322→  source: string; ingredients: Array<{ name: string; estimatedWeightGrams: number; confidence: number; volumeMl?: number; nameFa?: string }>;
+   323→  macros: { calories: number; protein: number; carbs: number; fat: number };
+   324→  healthScore: number; imageUrl?: string; title?: string; mealSlot?: string; corrected?: boolean; timestamp?: string;
+   325→}): Promise<{ mealId: string; logId: string }> {
+   326→  const db = await getDB();
+   327→  const userId = await getActiveUserId();
+   328→  const mealId = genId();
+   329→  const logId = genId();
+   330→  const ts = data.timestamp ?? new Date().toISOString();
+   331→  await db.put("meals", {
+   332→    id: mealId, userId, source: data.source,
+   333→    ingredients: JSON.stringify(data.ingredients),
+   334→    macros: JSON.stringify(data.macros),
+   335→    healthScore: data.healthScore, imageUrl: data.imageUrl ?? null,
+   336→    title: data.title ?? null, mealSlot: data.mealSlot ?? null,
+   337→    createdAt: ts,
+   338→  });
+   339→  await db.put("logs", {
+   340→    id: logId, userId, type: "meal", mealId,
+   341→    macros: JSON.stringify(data.macros), title: data.title ?? null,
+   342→    mealSlot: data.mealSlot ?? null, timestamp: ts,
+   343→    imageUrl: data.imageUrl ?? null, workoutSummary: null,
+   344→    waterMl: null, corrected: data.corrected ?? false,
+   345→  });
+   346→  // Bump streak
+   347→  const user = await ensureUser();
+   348→  await db.put("users", { ...user, streak: user.streak + 1 });
+   349→  return { mealId, logId };
+   350→}
+   351→
+   352→export async function logFood(foodId: string, servings: number, mealSlot?: string): Promise<{ mealId: string; logId: string }> {
+   353→  const db = await getDB();
+   354→  const food = await db.get("foods", foodId);
+   355→  if (!food) throw new Error("Food not found");
+   356→  const macros = {
+   357→    calories: Math.round(food.calories * servings),
+   358→    protein: Math.round(food.protein * servings * 10) / 10,
+   359→    carbs: Math.round(food.carbs * servings * 10) / 10,
+   360→    fat: Math.round(food.fat * servings * 10) / 10,
+   361→  };
+   362→  return logMeal({
+   363→    source: "manual", ingredients: [{ name: food.name, estimatedWeightGrams: Math.round(food.servingWeightGrams * servings), confidence: 1 }],
+   364→    macros, healthScore: 60, title: food.name, mealSlot,
+   365→  });
+   366→}
+   367→
+   368→export async function logWater(deltaMl: number, date?: string): Promise<{ waterMl: number }> {
+   369→  const db = await getDB();
+   370→  const userId = await getActiveUserId();
+   371→  const dateKey = date ?? new Date().toISOString().slice(0, 10);
+   372→  const existing = await db.getAll("healthDaily");
+   373→  const dayHealth = existing.find((h: ClientHealthDaily) => h.date === dateKey);
+   374→  const current = dayHealth?.waterMl ?? 0;
+   375→  const next = Math.max(0, current + deltaMl);
+   376→  if (dayHealth) {
+   377→    await db.put("healthDaily", { ...dayHealth, waterMl: next, updatedAt: new Date().toISOString() });
+   378→  } else {
+   379→    await db.put("healthDaily", { id: genId(), userId, date: dateKey, waterMl: next, steps: 0, activeEnergyKcal: 0, weightKg: null, workouts: "[]", updatedAt: new Date().toISOString() });
+   380→  }
+   381→  await db.put("logs", { id: genId(), userId, type: "water", waterMl: deltaMl, timestamp: new Date().toISOString(), mealId: null, macros: null, workoutSummary: null, imageUrl: null, title: null, mealSlot: null, corrected: false });
+   382→  return { waterMl: next };
+   383→}
+   384→
+   385→export async function logWorkout(data: { type: string; durationMinutes: number; intensity: string; caloriesBurned: number }): Promise<{ logId: string }> {
+   386→  const db = await getDB();
+   387→  const userId = await getActiveUserId();
+   388→  const logId = genId();
+   389→  await db.put("logs", { id: logId, userId, type: "workout", title: data.type, workoutSummary: JSON.stringify(data), timestamp: new Date().toISOString(), mealId: null, macros: null, waterMl: null, imageUrl: null, mealSlot: null, corrected: false });
+   390→  const today = new Date().toISOString().slice(0, 10);
+   391→  const existing = await db.getAll("healthDaily");
+   392→  const dayHealth = existing.find((h: ClientHealthDaily) => h.date === today);
+   393→  if (dayHealth) {
+   394→    const workouts = parseJSON(dayHealth.workouts, []);
+   395→    workouts.push(data);
+   396→    await db.put("healthDaily", { ...dayHealth, workouts: JSON.stringify(workouts), activeEnergyKcal: dayHealth.activeEnergyKcal + data.caloriesBurned, updatedAt: new Date().toISOString() });
+   397→  }
+   398→  return { logId };
+   399→}
+   400→
+   401→export async function deleteLog(logId: string): Promise<void> {
+   402→  const db = await getDB();
+   403→  const log = await db.get("logs", logId);
+   404→  if (!log) return;
+   405→  if (log.mealId) await db.delete("meals", log.mealId);
+   406→  await db.delete("logs", logId);
+   407→}
+   408→
+   409→export async function updateLog(data: { logId: string; title?: string; macros?: { calories: number; protein: number; carbs: number; fat: number }; mealSlot?: string; ingredients?: Array<Record<string, unknown>> }): Promise<void> {
+   410→  const db = await getDB();
+   411→  const log = await db.get("logs", data.logId);
+   412→  if (!log) return;
+   413→  const logData: Partial<ClientLog> = { corrected: true };
+   414→  if (data.title) logData.title = data.title;
+   415→  if (data.macros) logData.macros = JSON.stringify(data.macros);
+   416→  if (data.mealSlot) logData.mealSlot = data.mealSlot;
+   417→  await db.put("logs", { ...log, ...logData });
+   418→  if (log.mealId) {
+   419→    const meal = await db.get("meals", log.mealId);
+   420→    if (meal) {
+   421→      const mealData: Partial<ClientMeal> = {};
+   422→      if (data.title) mealData.title = data.title;
+   423→      if (data.macros) mealData.macros = JSON.stringify(data.macros);
+   424→      if (data.ingredients) mealData.ingredients = JSON.stringify(data.ingredients);
+   425→      await db.put("meals", { ...meal, ...mealData });
+   426→    }
+   427→  }
+   428→}
+   429→
+   430→// ============ FAVORITES ============
+   431→
+   432→export async function getFavorites(): Promise<ClientFavorite[]> {
+   433→  const db = await getDB();
+   434→  const userId = await getActiveUserId();
+   435→  const all = await db.getAll("favorites");
+   436→  return all.filter((f: ClientFavorite) => f.userId === userId).sort((a: ClientFavorite, b: ClientFavorite) => b.createdAt.localeCompare(a.createdAt));
+   437→}
+   438→
+   439→export async function addFavorite(data: { name: string; emoji?: string; calories: number; protein: number; carbs: number; fat: number; servingSize?: string; foodId?: string }): Promise<ClientFavorite> {
+   440→  const db = await getDB();
+   441→  const userId = await getActiveUserId();
+   442→  const fav: ClientFavorite = { id: genId(), userId, ...data, emoji: data.emoji ?? null, servingSize: data.servingSize ?? null, createdAt: new Date().toISOString() };
+   443→  await db.put("favorites", fav);
+   444→  return fav;
+   445→}
+   446→
+   447→export async function removeFavorite(id: string): Promise<void> {
+   448→  const db = await getDB();
+   449→  await db.delete("favorites", id);
+   450→}
+   451→
+   452→// ============ MEAL DETAIL ============
+   453→
+   454→export async function getMealDetail(mealId: string): Promise<Record<string, unknown> | null> {
+   455→  const db = await getDB();
+   456→  const meal = await db.get("meals", mealId);
+   457→  if (!meal) return null;
+   458→  return {
+   459→    ...meal,
+   460→    ingredients: parseJSON(meal.ingredients, []),
+   461→    macros: parseJSON(meal.macros, { calories: 0, protein: 0, carbs: 0, fat: 0 }),
+   462→  };
+   463→}
+   464→
+   465→// ============ DASHBOARD ============
+   466→
+   467→export async function getDashboard(date?: string): Promise<Record<string, unknown>> {
+   468→  await seedFoods();
+   469→  const db = await getDB();
+   470→  const user = await ensureUser();
+   471→  const dateParam = date ?? new Date().toISOString().slice(0, 10);
+   472→
+   473→  const allLogs = await db.getAll("logs");
+   474→  const userLogs = allLogs.filter((l: ClientLog) => l.userId === user.id);
+   475→
+   476→  // Day logs
+   477→  const dayStart = new Date(dateParam + "T00:00:00.000Z");
+   478→  const dayEnd = new Date(dateParam + "T23:59:59.999Z");
+   479→  const dayLogs = userLogs.filter((l: ClientLog) => {
+   480→    const ts = new Date(l.timestamp);
+   481→    return ts >= dayStart && ts <= dayEnd;
+   482→  }).sort((a: ClientLog, b: ClientLog) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+   483→
+   484→  // Calculate consumed
+   485→  let consumed = { calories: 0, protein: 0, carbs: 0, fat: 0 };
+   486→  let burned = 0;
+   487→  for (const log of dayLogs) {
+   488→    if (log.type === "meal" && log.macros) {
+   489→      const m = parseJSON(log.macros, { calories: 0, protein: 0, carbs: 0, fat: 0 });
+   490→      consumed.calories += m.calories; consumed.protein += m.protein; consumed.carbs += m.carbs; consumed.fat += m.fat;
+   491→    } else if (log.type === "workout" && log.workoutSummary) {
+   492→      const w = parseJSON(log.workoutSummary, { caloriesBurned: 0 });
+   493→      burned += w.caloriesBurned ?? 0;
+   494→    }
+   495→  }
+   496→
+   497→  // Today health
+   498→  const allHealth = await db.getAll("healthDaily");
+   499→  const todayHealth = allHealth.find((h: ClientHealthDaily) => h.date === dateParam) ?? null;
+   500→
+   501→  // Week health
+   502→  const sevenDaysAgo = new Date(dayStart);
+   503→  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6);
+   504→  const weekHealth = allHealth
+   505→    .filter((h: ClientHealthDaily) => h.date >= sevenDaysAgo.toISOString().slice(0, 10) && h.date <= dateParam)
+   506→    .sort((a: ClientHealthDaily, b: ClientHealthDaily) => a.date.localeCompare(b.date));
+   507→
+   508→  // Month health
+   509→  const thirtyDaysAgo = new Date(dayStart);
+   510→  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 29);
+   511→  const monthHealth = allHealth
+   512→    .filter((h: ClientHealthDaily) => h.date >= thirtyDaysAgo.toISOString().slice(0, 10) && h.date <= dateParam)
+   513→    .sort((a: ClientHealthDaily, b: ClientHealthDaily) => a.date.localeCompare(b.date));
+   514→
+   515→  // Macro trend (7 days)
+   516→  const macroTrend: Array<{ date: string; calories: number; protein: number; carbs: number; fat: number }> = [];
+   517→  for (let i = 6; i >= 0; i--) {
+   518→    const d = new Date(sevenDaysAgo);
+   519→    d.setDate(sevenDaysAgo.getDate() + (6 - i));
+   520→    const key = d.toISOString().slice(0, 10);
+   521→    const dayLogsT = userLogs.filter((l: ClientLog) => l.type === "meal" && l.timestamp.slice(0, 10) === key);
+   522→    const sum = { calories: 0, protein: 0, carbs: 0, fat: 0 };
+   523→    for (const l of dayLogsT) {
+   524→      if (l.macros) {
+   525→        const m = parseJSON(l.macros, { calories: 0, protein: 0, carbs: 0, fat: 0 });
+   526→        sum.calories += m.calories; sum.protein += m.protein; sum.carbs += m.carbs; sum.fat += m.fat;
+   527→      }
+   528→    }
+   529→    macroTrend.push({ date: key, ...sum });
+   530→  }
+   531→
+   532→  // Meals by slot
+   533→  const mealsBySlot = {
+   534→    breakfast: dayLogs.filter((l: ClientLog) => l.type === "meal" && (l.mealSlot === "breakfast" || (!l.mealSlot && new Date(l.timestamp).getHours() < 11))).map((l: ClientLog) => ({ ...l, macros: l.macros ? parseJSON(l.macros, null) : null, workoutSummary: l.workoutSummary ? parseJSON(l.workoutSummary, null) : null })),
+   535→    lunch: dayLogs.filter((l: ClientLog) => l.type === "meal" && (l.mealSlot === "lunch" || (!l.mealSlot && new Date(l.timestamp).getHours() >= 11 && new Date(l.timestamp).getHours() < 16))).map((l: ClientLog) => ({ ...l, macros: l.macros ? parseJSON(l.macros, null) : null, workoutSummary: l.workoutSummary ? parseJSON(l.workoutSummary, null) : null })),
+   536→    dinner: dayLogs.filter((l: ClientLog) => l.type === "meal" && (l.mealSlot === "dinner" || (!l.mealSlot && new Date(l.timestamp).getHours() >= 16))).map((l: ClientLog) => ({ ...l, macros: l.macros ? parseJSON(l.macros, null) : null, workoutSummary: l.workoutSummary ? parseJSON(l.workoutSummary, null) : null })),
+   537→    snack: dayLogs.filter((l: ClientLog) => l.type === "meal" && l.mealSlot === "snack").map((l: ClientLog) => ({ ...l, macros: l.macros ? parseJSON(l.macros, null) : null, workoutSummary: l.workoutSummary ? parseJSON(l.workoutSummary, null) : null })),
+   538→  };
+   539→
+   540→  // Recent logs
+   541→  const recentLogs = userLogs.slice(0, 20).map((l: ClientLog) => ({ ...l, macros: l.macros ? parseJSON(l.macros, null) : null, workoutSummary: l.workoutSummary ? parseJSON(l.workoutSummary, null) : null }));
+   542→
+   543→  // Days logged
+   544→  const daysLogged = weekHealth.filter((h: ClientHealthDaily) => h.steps > 0 || h.waterMl > 0).length;
+   545→
+   546→  // Streak
+   547→  const loggedDays = new Set(userLogs.filter((l: ClientLog) => l.type === "meal").map((l: ClientLog) => l.timestamp.slice(0, 10)));
+   548→  let streak = 0;
+   549→  for (let i = 0; i < 365; i++) {
+   550→    const d = new Date(dayStart);
+   551→    d.setDate(d.getDate() - i);
+   552→    if (loggedDays.has(d.toISOString().slice(0, 10))) streak++;
+   553→    else if (i > 0) break;
+   554→  }
+   555→
+   556→  return {
+   557→    user: { ...user, goals: user.goals, streak },
+   558→    todayHealth: todayHealth ? { ...todayHealth, workouts: parseJSON(todayHealth.workouts, []) } : null,
+   559→    consumed, burned,
+   560→    netCalories: consumed.calories - burned,
+   561→    dayLogs: dayLogs.map((l: ClientLog) => ({ ...l, macros: l.macros ? parseJSON(l.macros, null) : null, workoutSummary: l.workoutSummary ? parseJSON(l.workoutSummary, null) : null })),
+   562→    mealsBySlot,
+   563→    weekHealth, monthHealth, macroTrend,
+   564→    recentLogs,
+   565→    daysLogged,
+   566→  };
+   567→}
+   568→
+   569→// ============ MEAL SUGGESTIONS ============
+   570→
+   571→export async function getMealSuggestions(slot?: string): Promise<{ suggestions: ClientFood[]; remaining: { calories: number; protein: number; carbs: number; fat: number }; biggestGap: string }> {
+   572→  const dash = await getDashboard();
+   573→  const goals = (dash.user as ClientUser).goals;
+   574→  const consumed = dash.consumed as { calories: number; protein: number; carbs: number; fat: number };
+   575→  const remaining = {
+   576→    calories: Math.max(0, goals.calories - consumed.calories),
+   577→    protein: Math.max(0, goals.protein - consumed.protein),
+   578→    carbs: Math.max(0, goals.carbs - consumed.carbs),
+   579→    fat: Math.max(0, goals.fat - consumed.fat),
+   580→  };
+   581→  const proteinPct = goals.protein > 0 ? remaining.protein / goals.protein : 0;
+   582→  const carbsPct = goals.carbs > 0 ? remaining.carbs / goals.carbs : 0;
+   583→  const fatPct = goals.fat > 0 ? remaining.fat / goals.fat : 0;
+   584→  let biggestGap = "protein";
+   585→  if (proteinPct >= carbsPct && proteinPct >= fatPct) biggestGap = "protein";
+   586→  else if (carbsPct >= fatPct) biggestGap = "carbs";
+   587→  else biggestGap = "fat";
+   588→  const foods = await searchFoods("", undefined, 30);
+   589→  const sorted = foods.sort((a: ClientFood, b: ClientFood) => (b[biggestGap as "protein"] as number) - (a[biggestGap as "protein"] as number));
+   590→  return { suggestions: sorted.slice(0, 8), remaining, biggestGap };
+   591→}
+   592→
+   593→// ============ EXPORT/IMPORT ============
+   594→
+   595→export async function exportData(format: "json" | "csv"): Promise<string> {
+   596→  const db = await getDB();
+   597→  const user = await ensureUser();
+   598→  const meals = await db.getAll("meals");
+   599→  const logs = await db.getAll("logs");
+   600→  const healthDaily = await db.getAll("healthDaily");
+   601→  const favorites = await db.getAll("favorites");
+   602→  const foods = await db.getAll("foods");
+   603→
+   604→  if (format === "csv") {
+   605→    const headers = ["Date", "Type", "Title", "Calories", "Protein", "Carbs", "Fat", "Water(ml)", "Workout", "Duration(min)", "Meal Slot"];
+   606→    const rows = (logs as ClientLog[]).map((l) => {
+   607→      const m = l.macros ? parseJSON(l.macros, { calories: 0, protein: 0, carbs: 0, fat: 0 }) : null;
+   608→      const w = l.workoutSummary ? parseJSON(l.workoutSummary, { type: "", durationMinutes: 0, intensity: "", caloriesBurned: 0 }) : null;
+   609→      return [l.timestamp, l.type, l.title ?? "", m?.calories ?? "", m?.protein ?? "", m?.carbs ?? "", m?.fat ?? "", l.waterMl ?? "", w?.type ?? "", w?.durationMinutes ?? "", l.mealSlot ?? ""];
+   610→    });
+   611→    return [headers, ...rows].map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(",")).join("\n");
+   612→  }
+   613→
+   614→  return JSON.stringify({ exportedAt: new Date().toISOString(), user: { ...user, goals: user.goals }, meals, logs, healthDaily, favorites, customFoods: foods.filter((f: ClientFood) => f.source === "user") }, null, 2);
+   615→}
+   616→
+   617→// ============ BARCODE ============
+   618→
+   619→export async function lookupBarcode(code: string): Promise<{ food: ClientFood; source: string }> {
+   620→  const db = await getDB();
+   621→  const allFoods = await db.getAll("foods");
+   622→  const local = allFoods.find((f: ClientFood) => f.barcode === code);
+   623→  if (local) return { food: local, source: "local" };
+   624→  // Try Open Food Facts
+   625→  const res = await fetch(`https://world.openfoodfacts.org/api/v2/product/${encodeURIComponent(code)}.json`, {
+   626→    headers: { "User-Agent": "DS-Cali/1.0" },
+   627→  });
+   628→  const data = await res.json();
+   629→  if (data.status !== 1 || !data.product) throw new Error("Product not found");
+   630→  const p = data.product;
+   631→  const n = p.nutriments || {};
+   632→  const servingG = p.serving_quantity ? Number(p.serving_quantity) : 100;
+   633→  const ratio = servingG / 100;
+   634→  const food: ClientFood = {
+   635→    id: genId(),
+   636→    name: p.product_name || "Unknown product",
+   637→    servingSize: servingG ? `${servingG}g` : "100g",
+   638→    servingWeightGrams: servingG || 100,
+   639→    calories: Math.round((Number(n["energy-kcal_100g"]) || Number(n.energy_100g) / 4.184 || 0) * ratio),
+   640→    protein: Math.round((Number(n.proteins_100g) || 0) * ratio * 10) / 10,
+   641→    carbs: Math.round((Number(n.carbohydrates_100g) || 0) * ratio * 10) / 10,
+   642→    fat: Math.round((Number(n.fat_100g) || 0) * ratio * 10) / 10,
+   643→    source: "database", barcode: code,
+   644→    category: p.categories_tags?.[0]?.replace("en:", "") ?? null,
+   645→    emoji: "📦", densityGramsPerMl: null, createdBy: "demo",
+   646→    createdAt: new Date().toISOString(),
+   647→  };
+   648→  await db.put("foods", food);
+   649→  return { food, source: "openfoodfacts" };
+   650→}
+   651→

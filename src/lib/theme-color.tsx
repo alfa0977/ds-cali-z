@@ -58,18 +58,17 @@ interface ThemeColorContext {
 const Ctx = createContext<ThemeColorContext | null>(null);
 
 export function ThemeColorProvider({ children }: { children: ReactNode }) {
-  const [color, setColorState] = useState<ThemeColorKey>("orange");
+  // Read saved theme color synchronously on the client (no setTimeout, no flash of wrong color).
+  const [color, setColorState] = useState<ThemeColorKey>(() => {
+    if (typeof window === "undefined") return "orange";
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY) as ThemeColorKey | null;
+      if (saved && PALETTES[saved]) return saved;
+    } catch {}
+    return "orange";
+  });
 
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      try {
-        const saved = localStorage.getItem(STORAGE_KEY) as ThemeColorKey | null;
-        if (saved && PALETTES[saved]) setColorState(saved);
-      } catch {}
-    }, 0);
-    return () => clearTimeout(timer);
-  }, []);
-
+  // Persist + apply CSS variables whenever the color changes.
   useEffect(() => {
     try {
       localStorage.setItem(STORAGE_KEY, color);

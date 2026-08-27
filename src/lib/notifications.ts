@@ -1,31 +1,41 @@
-// Browser notification utility — request permission, schedule, and show notifications.
+// Notification utility — delegates to Capacitor LocalNotifications in APK mode,
+// and uses the web Notification API on browser.
 // Used by the reminders feature.
+
+import {
+  getNativeNotificationPermission,
+  requestNativeNotificationPermission,
+  showNativeNotification,
+  type NativePermission,
+} from "@/lib/native-bridge";
 
 export type NotificationPermission = "default" | "granted" | "denied";
 
+function map(p: NativePermission): NotificationPermission {
+  if (p === "granted") return "granted";
+  if (p === "denied") return "denied";
+  return "default";
+}
+
 export function getNotificationPermission(): NotificationPermission {
+  // The native call is async, but this function is sync for legacy reasons.
+  // We return the cached browser value immediately; the reminders sheet also
+  // calls the async version on mount via useEffect.
   if (typeof window === "undefined" || !("Notification" in window)) return "denied";
-  return Notification.permission as NotificationPermission;
+  return (Notification.permission as NotificationPermission) ?? "default";
+}
+
+export async function getNotificationPermissionAsync(): Promise<NotificationPermission> {
+  return map(await getNativeNotificationPermission());
 }
 
 export async function requestNotificationPermission(): Promise<NotificationPermission> {
-  if (typeof window === "undefined" || !("Notification" in window)) return "denied";
-  const result = await Notification.requestPermission();
-  return result as NotificationPermission;
+  return map(await requestNativeNotificationPermission());
 }
 
 export function showNotification(title: string, options?: NotificationOptions) {
-  if (typeof window === "undefined" || !("Notification" in window)) return;
-  if (Notification.permission !== "granted") return;
-  try {
-    new Notification(title, {
-      icon: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%8D%8E%3C/text%3E%3C/svg%3E",
-      badge: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%8D%8E%3C/text%3E%3C/svg%3E",
-      ...options,
-    });
-  } catch (e) {
-    console.error("Notification error:", e);
-  }
+  // Fire-and-forget — the native bridge handles both Capacitor and web.
+  void showNativeNotification(title, options?.body);
 }
 
 // Schedule a notification at a specific time (HH:MM format)
@@ -45,7 +55,7 @@ export function scheduleNotification(
   }
   const delay = scheduled.getTime() - now.getTime();
   return window.setTimeout(() => {
-    showNotification(title, { body });
+    void showNativeNotification(title, body);
   }, delay);
 }
 
