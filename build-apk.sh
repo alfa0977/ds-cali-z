@@ -20,8 +20,42 @@ bun add @capacitor/core @capacitor/cli @capacitor/android 2>/dev/null || true
 
 # Step 2: Build static export
 echo "2️⃣  Building static files..."
-BUILD_STATIC=1 bun run build
-# next.config.ts will use output: "export" when BUILD_STATIC=1
+
+# Move API routes out during static build (they use request.url and can't be statically exported)
+API_BACKUP=""
+if [ -d "src/app/api" ]; then
+  API_BACKUP="src/app/__api_backup"
+  rm -rf "$API_BACKUP"
+  mv "src/app/api" "$API_BACKUP"
+  echo "   Temporarily moved API routes (not needed for static build)"
+fi
+
+# Use build:static (just "next build") — NOT build (which has cp commands that fail in export mode)
+BUILD_STATIC=1 bun run build:static
+
+# If the first attempt failed, retry with npx next build directly
+if [ ! -f "out/index.html" ]; then
+  echo "   ⚠ build:static did not produce out/index.html — retrying with npx next build..."
+  BUILD_STATIC=1 npx next build
+fi
+
+# Verify the out/ directory was created
+if [ ! -f "out/index.html" ]; then
+  echo "   ❌ ERROR: out/index.html not found. Build failed."
+  # Restore API routes before exiting
+  if [ -n "$API_BACKUP" ] && [ -d "$API_BACKUP" ]; then
+    mv "$API_BACKUP" "src/app/api"
+    echo "   Restored API routes"
+  fi
+  exit 1
+fi
+echo "   ✓ Static files built in ./out/ (verified index.html exists)"
+
+# Restore API routes
+if [ -n "$API_BACKUP" ] && [ -d "$API_BACKUP" ]; then
+  mv "$API_BACKUP" "src/app/api"
+  echo "   Restored API routes"
+fi
 
 # Step 3: Add Android platform (if not already)
 if [ ! -d "android" ]; then

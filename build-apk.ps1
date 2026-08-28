@@ -143,7 +143,7 @@ Write-Host ""
 # ==========================================
 Write-Host "[3/9] Building static files (this may take a few minutes)..." -ForegroundColor Yellow
 
-# Move API routes out during static build (they don't work in static export)
+# Move API routes out during static build (they don't work in static export — they use request.url)
 $apiBackup = $null
 if (Test-Path "src\app\api") {
     $apiBackup = "src\app\__api_backup"
@@ -152,27 +152,39 @@ if (Test-Path "src\app\api") {
     Write-Host "  Temporarily moved API routes (not needed for static build)" -ForegroundColor DarkGray
 }
 
+# Use build:static (just "next build") — NOT build (which has cp commands that fail in export mode)
 $env:BUILD_STATIC = "1"
-bun run build
+Write-Host "  Running: bun run build:static" -ForegroundColor DarkGray
+bun run build:static
 $buildResult = $LASTEXITCODE
-if ($buildResult -ne 0) {
-    Write-Host "  bun build failed, trying npx next build..." -ForegroundColor Yellow
+
+# If the first attempt failed, retry with npx next build directly (API routes still moved out)
+if ($buildResult -ne 0 -or -not (Test-Path "out\index.html")) {
+    Write-Host "  First build attempt failed or out/ not created. Retrying with npx next build..." -ForegroundColor Yellow
     npx next build
     $buildResult = $LASTEXITCODE
 }
 Remove-Item Env:\BUILD_STATIC
 
-# Restore API routes
+# CRITICAL: Verify the out/ directory was created BEFORE restoring API routes
+if (-not (Test-Path "out\index.html")) {
+    Write-Host "  ERROR: Static build did not produce .\out\index.html" -ForegroundColor Red
+    Write-Host "  The build may have failed silently. Check the output above for errors." -ForegroundColor Red
+    # Restore API routes before exiting
+    if ($apiBackup -and (Test-Path $apiBackup)) {
+        Move-Item $apiBackup "src\app\api"
+        Write-Host "  Restored API routes" -ForegroundColor DarkGray
+    }
+    exit 1
+}
+
+# Restore API routes (now that the build succeeded)
 if ($apiBackup -and (Test-Path $apiBackup)) {
     Move-Item $apiBackup "src\app\api"
     Write-Host "  Restored API routes" -ForegroundColor DarkGray
 }
 
-if ($buildResult -ne 0) {
-    Write-Host "  ERROR: Next.js build failed." -ForegroundColor Red
-    exit 1
-}
-Write-Host "  Static files built in .\out\" -ForegroundColor Green
+Write-Host "  Static files built in .\out\ (verified index.html exists)" -ForegroundColor Green
 Write-Host ""
 
 # ==========================================

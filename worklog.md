@@ -1143,3 +1143,56 @@ powershell -ExecutionPolicy Bypass -File build-apk.ps1
 The `@capacitor/app` package is now a regular dependency, so it will be bundled into the APK. The back button listener will register correctly and the back button will close modals / switch tabs instead of exiting the app.
 
 For real AI food recognition, follow `instructions/REMOTE-AI-SETUP.md` to run the AI VLM service on your PC and connect your phone to it over WiFi.
+
+---
+Task ID: 18
+Agent: main (developer)
+Task: Fix APK build error "Could not find the web assets directory: .\out"
+
+Work Log:
+- **Root cause:** The `package.json` `build` script was:
+  ```
+  "build": "next build && cp -r .next/static .next/standalone/.next/ && cp -r public .next/standalone/"
+  ```
+  The `cp` commands are designed for `output: "standalone"` mode (which produces `.next/standalone/`). But when `BUILD_STATIC=1` is set, Next.js uses `output: "export"` which produces an `out/` directory, NOT `.next/standalone/`. So:
+  1. `next build` succeeded → produced `out/`
+  2. `cp -r .next/static .next/standalone/.next/` **failed** because `.next/standalone/` doesn't exist in export mode
+  3. The `&&` chain stopped → overall command returned non-zero
+  4. On Windows, `cp` might not even be recognized (cmd.exe uses `copy`)
+  5. The build script's fallback `npx next build` was supposed to run, but either it didn't detect the failure correctly or it also failed
+  6. `out/` was never verified to exist → `cap copy android` failed with "Could not find the web assets directory: .\out"
+
+- **Fix 1 — Added `build:static` script** (`package.json`):
+  ```json
+  "build:static": "next build"
+  ```
+  This is just `next build` with NO `cp` commands. It works correctly in both standalone and export modes. The `cp` commands in `build` are only needed for standalone deployment, not for static export.
+
+- **Fix 2 — Updated `build-apk.ps1`** (PowerShell):
+  - Changed `bun run build` → `bun run build:static` (avoids the failing `cp` commands)
+  - Fixed the retry logic: the API routes are now restored AFTER verifying `out/index.html` exists, not before. This means if the retry needs to run, the API routes are still moved out (otherwise the retry would fail again because the API routes use `request.url` and can't be statically exported).
+  - Added a verification check: `if (-not (Test-Path "out\index.html"))` — if the build didn't produce `out/index.html`, the script exits with a clear error message.
+  - Added error handling: if the build fails, API routes are restored before the script exits (so the dev server isn't broken).
+
+- **Fix 3 — Updated `build-apk.sh`** (bash):
+  - Same fixes as the PowerShell version: `build:static` + API routes backup/restore + `out/index.html` verification.
+  - The bash script previously didn't have the API routes backup/restore logic — added it.
+
+- **Verified the build works:**
+  ```
+  ✓ Compiled successfully in 12.3s
+  ✓ Generating static pages using 1 worker (3/3) in 179.3ms
+  ---EXIT: 0---
+  out/index.html
+  API routes restored
+  ```
+
+QA Results:
+- ✅ ESLint: 0 errors, 0 warnings.
+- ✅ Static build succeeds: `BUILD_STATIC=1 bun run build:static` with API routes moved out produces `out/index.html`.
+- ✅ Build exit code: 0.
+- ✅ API routes properly restored after build.
+
+Stage Summary:
+- Fixed the APK build error. The root cause was the `package.json` `build` script including `cp` commands that fail in static export mode. Added a new `build:static` script that's just `next build`, and updated both build scripts (PowerShell + bash) to use it. Also fixed the retry logic so API routes are restored only after the build succeeds.
+- The user can now rebuild the APK: `powershell -ExecutionPolicy Bypass -File build-apk.ps1`
