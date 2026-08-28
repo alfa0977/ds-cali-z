@@ -203,10 +203,10 @@ export function useSearchFoods() {
 export function useLogFood() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (data: { foodId?: string; manualFood?: Record<string, unknown>; servings?: number }) => {
+    mutationFn: async (data: { foodId?: string; manualFood?: Record<string, unknown>; servings?: number; mealSlot?: string; timestamp?: string }) => {
       if (isStaticMode()) {
         if (data.foodId) {
-          return await clientDB.logFood(data.foodId, data.servings ?? 1);
+          return await clientDB.logFood(data.foodId, data.servings ?? 1, data.mealSlot, data.timestamp);
         }
         if (data.manualFood) {
           const mf = data.manualFood as {
@@ -229,6 +229,8 @@ export function useLogFood() {
             fat: mf.fat,
             emoji: mf.emoji,
             servings: data.servings ?? 1,
+            mealSlot: data.mealSlot,
+            timestamp: data.timestamp,
           });
         }
         throw new Error("No food data");

@@ -205,12 +205,40 @@ function BarcodeResult({
   const logFood = useLogFood();
   const { locale, t } = useI18n();
   const [servings, setServings] = useState(1);
+  const [selectedSlot, setSelectedSlot] = useState<string>(() => {
+    const h = new Date().getHours();
+    if (h < 11) return "breakfast";
+    if (h < 16) return "lunch";
+    if (h < 22) return "dinner";
+    return "snack";
+  });
+  const [mealTime, setMealTime] = useState<string>(() => {
+    const now = new Date();
+    return `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
+  });
   const macros = {
     calories: Math.round(food.calories * servings),
     protein: Math.round(food.protein * servings * 10) / 10,
     carbs: Math.round(food.carbs * servings * 10) / 10,
     fat: Math.round(food.fat * servings * 10) / 10,
   };
+
+  function confirm() {
+    const today = new Date();
+    const [hours, minutes] = mealTime.split(":").map(Number);
+    today.setHours(hours, minutes, 0, 0);
+    logFood.mutate(
+      { foodId: food.id, servings, mealSlot: selectedSlot, timestamp: today.toISOString() },
+      { onSuccess: () => setModal(null) }
+    );
+  }
+
+  const slotOptions = [
+    { key: "breakfast", emoji: "🌅", label: t("breakfast") },
+    { key: "lunch", emoji: "☀️", label: t("lunch") },
+    { key: "dinner", emoji: "🌙", label: t("dinner") },
+    { key: "snack", emoji: "🍿", label: t("snacks") },
+  ];
 
   return (
     <div className="flex-1 overflow-y-auto border-t border-border px-4 py-4">
@@ -237,6 +265,34 @@ function BarcodeResult({
         </div>
       </div>
 
+      {/* Meal slot selector */}
+      <div className="mt-3">
+        <p className="mb-2 text-xs font-semibold text-muted-foreground">{t("mealSlot")}</p>
+        <div className="flex gap-1.5">
+          {slotOptions.map((slot) => (
+            <button
+              key={slot.key}
+              onClick={() => setSelectedSlot(slot.key)}
+              className={`flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-medium transition-colors ${selectedSlot === slot.key ? "bg-foreground text-background" : "bg-secondary text-muted-foreground"}`}
+            >
+              <span>{slot.emoji}</span>
+              {slot.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Time picker */}
+      <div className="mt-3">
+        <p className="mb-2 text-xs font-semibold text-muted-foreground">{t("time")}</p>
+        <input
+          type="time"
+          value={mealTime}
+          onChange={(e) => setMealTime(e.target.value)}
+          className="w-full rounded-xl bg-secondary px-3 py-2 text-sm font-medium text-foreground outline-none"
+        />
+      </div>
+
       <div className="mt-4 grid grid-cols-2 gap-3">
         <NutBox label={t("calories")} value={macros.calories} icon="🔥" color="text-streak" />
         <NutBox label={t("carbs")} value={macros.carbs} unit="g" icon="🌾" color="text-carbs" />
@@ -248,12 +304,7 @@ function BarcodeResult({
         className="mt-4 w-full rounded-full py-3"
         size="lg"
         disabled={logFood.isPending}
-        onClick={() =>
-          logFood.mutate(
-            { foodId: food.id, servings },
-            { onSuccess: () => setModal(null) }
-          )
-        }
+        onClick={confirm}
       >
         {logFood.isPending ? t("saving") : t("logThisFood")}
       </Button>

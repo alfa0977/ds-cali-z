@@ -1,7 +1,7 @@
 "use client";
 import { useState, useMemo } from "react";
 import { ArrowLeft, Search, Plus, Pencil } from "lucide-react";
-import { useSearchFoods, useLogFood } from "@/lib/hooks";
+import { useSearchFoods } from "@/lib/hooks";
 import { useApp } from "@/lib/store";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -26,12 +26,11 @@ const CATEGORY_KEYS = [
 ] as const;
 
 export function FoodDatabaseSheet() {
-  const { setModal } = useApp();
+  const { setModal, setQuickLogPayload } = useApp();
   const { data: foods, isLoading } = useSearchFoods();
   const [q, setQ] = useState("");
   const [tabIdx, setTabIdx] = useState(0);
   const [category, setCategory] = useState<string>("All");
-  const logFood = useLogFood();
   const { locale, t } = useI18n();
 
   const tab = TAB_KEYS[tabIdx];
@@ -40,11 +39,43 @@ export function FoodDatabaseSheet() {
     if (!foods) return [];
     const query = q.trim().toLowerCase();
     let list = foods;
-    if (query) list = list.filter((f) => f.name.toLowerCase().includes(query));
+    if (query) {
+      // Search in both English and Persian names
+      list = list.filter((f) => {
+        const enName = f.name.toLowerCase();
+        const faName = translateFoodName(f.name, "fa").toLowerCase();
+        return enName.includes(query) || faName.includes(query);
+      });
+    }
     if (tab === "myFoods") list = list.filter((f) => f.source === "user");
     if (category !== "All") list = list.filter((f) => f.category === category);
     return list;
   }, [foods, q, tab, category]);
+
+  function openQuickLog(food: {
+    id: string;
+    name: string;
+    emoji: string | null;
+    calories: number;
+    protein: number;
+    carbs: number;
+    fat: number;
+    servingSize: string;
+    servingWeightGrams: number;
+  }) {
+    setQuickLogPayload({
+      foodId: food.id,
+      name: food.name,
+      emoji: food.emoji ?? "🍽️",
+      calories: food.calories,
+      protein: food.protein,
+      carbs: food.carbs,
+      fat: food.fat,
+      servingSize: food.servingSize,
+      servingWeightGrams: food.servingWeightGrams,
+    });
+    setModal("quick-log");
+  }
 
   return (
     <div className="flex h-full flex-col bg-background">
@@ -128,9 +159,8 @@ export function FoodDatabaseSheet() {
                 </div>
               </div>
               <button
-                onClick={() => logFood.mutate({ foodId: food.id, servings: 1 })}
-                disabled={logFood.isPending}
-                className="flex h-9 w-9 items-center justify-center rounded-full bg-foreground text-background transition-transform active:scale-90 disabled:opacity-50"
+                onClick={() => openQuickLog(food)}
+                className="flex h-9 w-9 items-center justify-center rounded-full bg-foreground text-background transition-transform active:scale-90"
               >
                 <Plus className="h-5 w-5" strokeWidth={2.5} />
               </button>

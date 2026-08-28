@@ -348,7 +348,7 @@ export async function logMeal(data: {
   return { mealId, logId };
 }
 
-export async function logFood(foodId: string, servings: number, mealSlot?: string): Promise<{ mealId: string; logId: string }> {
+export async function logFood(foodId: string, servings: number, mealSlot?: string, timestamp?: string): Promise<{ mealId: string; logId: string }> {
   const db = await getDB();
   const food = await db.get("foods", foodId);
   if (!food) throw new Error("Food not found");
@@ -360,7 +360,7 @@ export async function logFood(foodId: string, servings: number, mealSlot?: strin
   };
   return logMeal({
     source: "manual", ingredients: [{ name: food.name, estimatedWeightGrams: Math.round(food.servingWeightGrams * servings), confidence: 1 }],
-    macros, healthScore: 60, title: food.name, mealSlot,
+    macros, healthScore: 60, title: food.name, mealSlot, timestamp,
   });
 }
 
@@ -881,6 +881,8 @@ export async function logManualFood(data: {
   fat: number;
   emoji?: string;
   servings?: number;
+  mealSlot?: string;
+  timestamp?: string;
 }): Promise<{ mealId: string; logId: string }> {
   const servings = data.servings ?? 1;
   const macros = {
@@ -906,6 +908,8 @@ export async function logManualFood(data: {
     macros,
     healthScore: 50,
     title: data.name,
+    mealSlot: data.mealSlot,
+    timestamp: data.timestamp,
   }).then((res) => ({ ...res, mealId: res.mealId + ":" + food.id }));
 }
 

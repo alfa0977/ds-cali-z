@@ -55,9 +55,10 @@ export function QuickLogSheet() {
     const today = new Date();
     const [hours, minutes] = mealTime.split(":").map(Number);
     today.setHours(hours, minutes, 0, 0);
+    const timestamp = today.toISOString();
     if (p.foodId) {
       logFood.mutate(
-        { foodId: p.foodId, servings },
+        { foodId: p.foodId, servings, mealSlot: selectedSlot, timestamp },
         {
           onSuccess: () => {
             setModal(null);
@@ -79,6 +80,8 @@ export function QuickLogSheet() {
             emoji: p.emoji ?? "🍽️",
           },
           servings,
+          mealSlot: selectedSlot,
+          timestamp,
         },
         {
           onSuccess: () => {
