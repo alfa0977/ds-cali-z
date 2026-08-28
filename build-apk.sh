@@ -31,11 +31,15 @@ else
   echo "3️⃣  Android platform already exists"
 fi
 
-# Step 3b: Patch AndroidManifest.xml with required permissions
-echo "3️⃣b  Patching AndroidManifest.xml with permissions..."
+# Step 3b: Ensure AndroidManifest.xml has all required permissions
+echo "3️⃣b  Ensuring AndroidManifest.xml permissions..."
 MANIFEST="android/app/src/main/AndroidManifest.xml"
-if [ -f "$MANIFEST" ]; then
-  # Add permissions if not already present
+TEMPLATE="instructions/AndroidManifest.template.xml"
+if [ ! -f "$MANIFEST" ]; then
+  echo "   ⚠ AndroidManifest.xml not found — copying from template"
+  cp "$TEMPLATE" "$MANIFEST"
+else
+  # Add missing permissions
   for PERM in CAMERA POST_NOTIFICATIONS READ_EXTERNAL_STORAGE WRITE_EXTERNAL_STORAGE; do
     if ! grep -q "android.permission.$PERM" "$MANIFEST"; then
       sed -i "s|</manifest>|    <uses-permission android:name=\"android.permission.$PERM\" />\n</manifest>|" "$MANIFEST"
@@ -44,20 +48,36 @@ if [ -f "$MANIFEST" ]; then
       echo "   • $PERM already present"
     fi
   done
-  # Add camera hardware feature (not required, but helps Play Store filtering)
+  # Add camera hardware feature
   if ! grep -q "android.hardware.camera" "$MANIFEST"; then
     sed -i "s|</manifest>|    <uses-feature android:name=\"android.hardware.camera\" android:required=\"false\" />\n</manifest>|" "$MANIFEST"
     echo "   ✓ Added camera hardware feature"
   fi
-else
-  echo "   ⚠ AndroidManifest.xml not found at $MANIFEST — skipping patch"
+fi
+
+# Step 3c: Ensure strings.xml has the app name
+echo "3️⃣c  Ensuring strings.xml has app name..."
+STRINGS="android/app/src/main/res/values/strings.xml"
+if [ -f "$STRINGS" ]; then
+  if ! grep -q "app_name" "$STRINGS"; then
+    cat > "$STRINGS" << 'EOF'
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">DS-Cali</string>
+    <string name="title_activity_main">DS-Cali</string>
+    <string name="package_name">app.dscali</string>
+    <string name="custom_url_scheme">app.dscali</string>
+</resources>
+EOF
+    echo "   ✓ Created strings.xml with app name"
+  fi
 fi
 
 # Step 4: Copy web assets
 echo "4️⃣  Copying web assets..."
 bunx cap copy android
 
-# Step 5: Sync Capacitor plugins
+# Step 5: Sync Capacitor plugins (copies plugin native code into the Android project)
 echo "5️⃣  Syncing Capacitor plugins..."
 bunx cap sync android
 
@@ -77,6 +97,9 @@ if [ -f "$APK_PATH" ]; then
   echo "  adb install $APK_PATH"
   echo ""
   echo "Or transfer the file to your phone and install manually."
+  echo ""
+  echo "⚠️  IMPORTANT: Uninstall the old APK first to ensure the new"
+  echo "    permissions take effect."
 else
   echo "❌ APK build failed. Check the Gradle output above."
   exit 1

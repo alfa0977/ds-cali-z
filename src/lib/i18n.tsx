@@ -533,6 +533,12 @@ export const translations = {
   reminderTimesHint: { fa: "زمان هر یادآوری را با لمس ساعت می‌توانید تغییر دهید.", en: "Tap the time to change each reminder." },
   earlier: { fa: "زودتر", en: "Earlier" },
   later: { fa: "دیرتر", en: "Later" },
+
+  // === Round 14 new keys ===
+  // Native camera prompt (Capacitor APK)
+  tapToOpenCamera: { fa: "برای باز کردن دوربین ضربه بزنید", en: "Tap to open camera" },
+  cameraOpensNative: { fa: "دوربین دستگاه شما باز می‌شود", en: "Your device camera will open" },
+  openCamera: { fa: "باز کردن دوربین", en: "Open Camera" },
 } as const;
 
 export type TranslationKey = keyof typeof translations;

@@ -7,6 +7,21 @@
 
 import { isStaticMode } from "@/lib/env";
 
+/**
+ * Returns true if we're running inside a Capacitor native app (Android/iOS).
+ * This is a synchronous check that looks for the `window.Capacitor` global,
+ * which Capacitor injects before the WebView's JavaScript runs.
+ */
+export function isNativePlatform(): boolean {
+  if (typeof window === "undefined") return false;
+  const w = window as unknown as { Capacitor?: { isNativePlatform?: () => boolean; platform?: string } };
+  if (w.Capacitor && typeof w.Capacitor.isNativePlatform === "function") {
+    return w.Capacitor.isNativePlatform();
+  }
+  // Fallback: isStaticMode() checks protocol + window.Capacitor
+  return isStaticMode();
+}
+
 export type NativeCameraResult = {
   dataUrl: string | null;
   cancelled: boolean;
@@ -265,12 +280,14 @@ export async function showNativeNotification(title: string, body?: string): Prom
  * Register a hardware back-button listener (Capacitor App plugin).
  * Returns a cleanup function. The callback receives true if it handled the event
  * (preventing the default app-exit behavior).
+ *
+ * IMPORTANT: We do NOT gate on isStaticMode() here — we always try to import
+ * @capacitor/app. If the import fails (web browser), we do nothing. If it
+ * succeeds (APK), we register the listener. This is more robust than checking
+ * isStaticMode() because window.Capacitor might not be available yet when the
+ * React effect first runs (timing depends on WebView injection).
  */
 export function registerBackButtonHandler(cb: () => boolean | void): () => void {
-  if (!isStaticMode()) {
-    // Web fallback: handle browser Back button via history state
-    return () => {};
-  }
   let disposed = false;
   let removeListener: (() => void) | null = null;
   void (async () => {

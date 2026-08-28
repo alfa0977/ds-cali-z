@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useDashboard } from "@/lib/hooks";
 import { useI18n } from "@/lib/i18n";
@@ -20,12 +20,20 @@ function tpl(key: string, ...vals: (string | number)[]): string {
   return out;
 }
 
+const AUTO_DISMISS_MS = 4000;
+
 export function GoalCelebration() {
   const { data } = useDashboard();
   const { locale, t } = useI18n();
   const [active, setActive] = useState<Celebration | null>(null);
-  const [shown, setShown] = useState<Set<string>>(new Set());
+  // Use a ref for the "shown" set so that effect re-runs (caused by query refetches)
+  // do NOT clear the dismiss timer. The dismiss timer is owned by a separate effect.
+  const shownRef = useRef<Set<string>>(new Set());
+  const dismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Effect 1: Detect new celebrations and SHOW them.
+  // This effect re-runs whenever `data` changes (query refetch), but it only
+  // triggers a new celebration if the id hasn't been shown yet.
   useEffect(() => {
     if (!data) return;
     const goals = data.user.goals;
@@ -35,8 +43,7 @@ export function GoalCelebration() {
 
     const possible: Celebration[] = [];
 
-    // Protein goal hit
-    if (consumed.protein >= goals.protein && !shown.has("protein")) {
+    if (consumed.protein >= goals.protein && !shownRef.current.has("protein")) {
       possible.push({
         id: "protein",
         emoji: "💪",
@@ -45,8 +52,7 @@ export function GoalCelebration() {
       });
     }
 
-    // Water goal hit
-    if (water >= 2500 && !shown.has("water")) {
+    if (water >= 2500 && !shownRef.current.has("water")) {
       possible.push({
         id: "water",
         emoji: "💧",
@@ -55,8 +61,7 @@ export function GoalCelebration() {
       });
     }
 
-    // 10K steps
-    if (steps >= 10000 && !shown.has("steps")) {
+    if (steps >= 10000 && !shownRef.current.has("steps")) {
       possible.push({
         id: "steps",
         emoji: "🚶",
@@ -65,9 +70,8 @@ export function GoalCelebration() {
       });
     }
 
-    // Calorie goal on track (80-100%)
     const calPct = (consumed.calories / goals.calories) * 100;
-    if (calPct >= 80 && calPct <= 100 && !shown.has("calories")) {
+    if (calPct >= 80 && calPct <= 100 && !shownRef.current.has("calories")) {
       possible.push({
         id: "calories",
         emoji: "🎯",
@@ -78,18 +82,33 @@ export function GoalCelebration() {
 
     if (possible.length > 0) {
       const next = possible[0];
-      // Use setTimeout to defer setState outside the effect body
-      const t1 = setTimeout(() => {
-        setActive(next);
-        setShown((prev) => new Set(prev).add(next.id));
-      }, 100);
-      const t2 = setTimeout(() => setActive(null), 4100);
-      return () => {
-        clearTimeout(t1);
-        clearTimeout(t2);
-      };
+      // Mark as shown immediately so a refetch doesn't re-trigger it.
+      shownRef.current.add(next.id);
+      // Defer setActive to avoid calling setState synchronously within the effect body.
+      setTimeout(() => setActive(next), 0);
     }
-  }, [data, shown, locale, t]);
+  }, [data, locale, t]);
+
+  // Effect 2: Auto-dismiss the active celebration after AUTO_DISMISS_MS.
+  // This effect ONLY depends on `active` — it does NOT depend on `data`,
+  // so query refetches will NOT cancel the dismiss timer.
+  useEffect(() => {
+    if (!active) return;
+    dismissTimerRef.current = setTimeout(() => {
+      setActive(null);
+    }, AUTO_DISMISS_MS);
+    return () => {
+      if (dismissTimerRef.current) {
+        clearTimeout(dismissTimerRef.current);
+        dismissTimerRef.current = null;
+      }
+    };
+  }, [active]);
+
+  // Allow tapping the celebration to dismiss it early.
+  function dismiss() {
+    setActive(null);
+  }
 
   return (
     <AnimatePresence>
@@ -99,7 +118,8 @@ export function GoalCelebration() {
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: -50, scale: 0.8 }}
           transition={{ type: "spring", stiffness: 300, damping: 25 }}
-          className="fixed left-1/2 top-20 z-[60] -translate-x-1/2"
+          onClick={dismiss}
+          className="fixed left-1/2 top-20 z-[60] -translate-x-1/2 cursor-pointer"
         >
           <div className="glass card-premium flex items-center gap-3 rounded-2xl px-5 py-3 shadow-fab">
             <motion.div

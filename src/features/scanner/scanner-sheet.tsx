@@ -1,6 +1,6 @@
 "use client";
 import { useRef, useState, useEffect, useCallback } from "react";
-import { Camera, ImagePlus, X, ScanLine, Loader2, Apple, Barcode, Bookmark, Pencil, AlertTriangle } from "lucide-react";
+import { Camera, ImagePlus, X, ScanLine, Loader2, Apple, Barcode, Bookmark, Pencil, AlertTriangle, CameraOff } from "lucide-react";
 import { useAnalyzeMeal, useLogMeal, uploadMealImage } from "@/lib/hooks";
 import { useApp } from "@/lib/store";
 import { Button } from "@/components/ui/button";
@@ -9,7 +9,7 @@ import { cn } from "@/lib/utils";
 import { useI18n } from "@/lib/i18n";
 import { formatNumber } from "@/lib/date-utils";
 import { translateFoodName } from "@/lib/food-translations";
-import { takeNativePhoto, pickNativeImage, requestNativeCameraPermission } from "@/lib/native-bridge";
+import { takeNativePhoto, pickNativeImage, isNativePlatform } from "@/lib/native-bridge";
 
 interface Ingredient {
   name: string;
@@ -30,25 +30,33 @@ export function ScannerSheet() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const [image, setImage] = useState<string | null>(null);
-  const [cameraStatus, setCameraStatus] = useState<"loading" | "ok" | "denied" | "error">("loading");
+  // Initialize: on native (Capacitor) we show a "tap to open camera" prompt;
+  // on web we boot the live camera via getUserMedia.
+  const [cameraStatus, setCameraStatus] = useState<"idle" | "loading" | "ok" | "denied" | "error" | "native">(
+    () => (isNativePlatform() ? "native" : "idle")
+  );
+  const [retryCount, setRetryCount] = useState(0); // increments to force effect re-run on Retry
   const analyze = useAnalyzeMeal();
   const { t } = useI18n();
 
   // Auto-start the live camera feed when the sheet opens (and whenever we return to the
   // camera view from a captured image). The effect owns the lifecycle of the MediaStream.
+  // On the native APK (Capacitor), getUserMedia often fails in the WebView, so we detect
+  // that and switch to "native" mode (show a "Tap to open camera" button that calls
+  // the native @capacitor/camera plugin).
   useEffect(() => {
     let cancelled = false;
     let stream: MediaStream | null = null;
 
+    // Skip the live-camera boot if we're on a native platform — the native Camera plugin
+    // opens its own UI, so there's no live preview to show. The initial state is already
+    // "native" so we don't need to set it here.
+    if (isNativePlatform()) {
+      return;
+    }
+
     async function boot() {
-      // 1. Request native camera permission (Capacitor) — no-op on web.
-      const perm = await requestNativeCameraPermission();
-      if (cancelled) return;
-      if (perm === "denied") {
-        setCameraStatus("denied");
-        return;
-      }
-      // 2. Acquire the camera stream via getUserMedia.
+      setCameraStatus("loading");
       try {
         stream = await navigator.mediaDevices.getUserMedia({
           video: { facingMode: { ideal: "environment" } },
@@ -70,13 +78,9 @@ export function ScannerSheet() {
       }
     }
 
-    // Only boot the camera when we don't have a captured image to show.
-    // The initial state is already "loading" so we don't need to set it again.
     if (!image) {
       void boot();
     }
-    // When an image is showing, the camera status is irrelevant (the image
-    // overlay covers the video element), so we leave the state untouched.
 
     return () => {
       cancelled = true;
@@ -88,14 +92,7 @@ export function ScannerSheet() {
         streamRef.current = null;
       }
     };
-  }, [image]);
-
-  // Manual retry handler (used by the "denied"/"error" overlays).
-  const startCamera = useCallback(() => {
-    // Force the effect to re-run by toggling image state; when image is null
-    // and we want to re-boot the camera, we just clear any stale state.
-    setImage(null);
-  }, []);
+  }, [image, retryCount]);
 
   // Capture a still frame from the live video stream.
   function captureFrame(): string | null {
@@ -111,10 +108,21 @@ export function ScannerSheet() {
   }
 
   async function onCapture() {
-    // Try the live video frame first.
+    // On native platform, open the native camera UI.
+    if (isNativePlatform()) {
+      setCameraStatus("loading");
+      const result = await takeNativePhoto();
+      if (result.cancelled || !result.dataUrl) {
+        setCameraStatus("native");
+        return;
+      }
+      setImage(result.dataUrl);
+      analyze.mutate(result.dataUrl);
+      return;
+    }
+    // On web, try the live video frame first.
     const frame = captureFrame();
     if (frame) {
-      // Stop the camera stream now that we have a frame.
       if (streamRef.current) {
         streamRef.current.getTracks().forEach((tr) => tr.stop());
         streamRef.current = null;
@@ -133,7 +141,6 @@ export function ScannerSheet() {
   async function onPickFromGallery() {
     const result = await pickNativeImage();
     if (result.cancelled || !result.dataUrl) return;
-    // Stop the camera stream while we have a picked image.
     if (streamRef.current) {
       streamRef.current.getTracks().forEach((tr) => tr.stop());
       streamRef.current = null;
@@ -170,8 +177,8 @@ export function ScannerSheet() {
   function reset() {
     setImage(null);
     analyze.reset();
-    // Camera will re-start automatically via the useEffect above.
-    void startCamera();
+    // Force the camera effect to re-run (Retry button also uses this).
+    setRetryCount((c) => c + 1);
   }
 
   return (
@@ -191,31 +198,56 @@ export function ScannerSheet() {
           <img src={image} alt="meal" className="h-full w-full object-cover" />
         ) : (
           <>
-            {/* Live camera feed (always rendered so the stream attaches immediately) */}
-            <video ref={videoRef} className="h-full w-full object-cover" muted playsInline autoPlay />
-            {/* Camera state overlays */}
+            {/* Live camera feed (only rendered on web; on native we show a prompt instead) */}
+            {!isNativePlatform() && (
+              <video ref={videoRef} className="h-full w-full object-cover" muted playsInline autoPlay />
+            )}
+
+            {/* Native platform: show a "tap to open camera" prompt */}
+            {cameraStatus === "native" && (
+              <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-black p-6 text-center text-white">
+                <div className="flex h-20 w-20 items-center justify-center rounded-full bg-white/10">
+                  <Camera className="h-10 w-10 text-white" />
+                </div>
+                <div>
+                  <p className="text-base font-semibold">{t("tapToOpenCamera")}</p>
+                  <p className="mt-1 text-xs text-white/60">{t("cameraOpensNative")}</p>
+                </div>
+                <Button onClick={onCapture} size="lg" className="rounded-full bg-white text-black hover:bg-white/90">
+                  <Camera className="mr-2 h-5 w-5" />
+                  {t("openCamera")}
+                </Button>
+              </div>
+            )}
+
+            {/* Loading overlay */}
             {cameraStatus === "loading" && (
               <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-black/70 text-white/80">
                 <Loader2 className="h-8 w-8 animate-spin" />
                 <p className="text-xs">{t("cameraStarting")}</p>
               </div>
             )}
+
+            {/* Permission denied overlay */}
             {cameraStatus === "denied" && (
               <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-black/80 p-6 text-center text-white">
                 <AlertTriangle className="h-10 w-10 text-amber-400" />
                 <p className="text-sm font-medium">{t("cameraPermissionDenied")}</p>
-                <Button onClick={() => void startCamera()} variant="outline" className="rounded-full bg-white text-black">
+                <Button onClick={reset} variant="outline" className="rounded-full bg-white text-black">
                   <Camera className="mr-2 h-4 w-4" />
                   {t("retry")}
                 </Button>
               </div>
             )}
+
+            {/* Camera error overlay (web: getUserMedia failed) */}
             {cameraStatus === "error" && (
               <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-black/80 p-6 text-center text-white">
-                <Camera className="h-10 w-10 text-white/70" />
+                <CameraOff className="h-10 w-10 text-white/60" />
                 <p className="text-sm font-medium">{t("cameraUnavailable")}</p>
                 <div className="flex flex-col gap-2">
-                  <Button onClick={() => void startCamera()} variant="outline" className="rounded-full bg-white text-black">
+                  <Button onClick={reset} variant="outline" className="rounded-full bg-white text-black">
+                    <Camera className="mr-2 h-4 w-4" />
                     {t("retry")}
                   </Button>
                   <Button onClick={onPickFromGallery} variant="outline" className="rounded-full bg-white text-black">
@@ -225,6 +257,8 @@ export function ScannerSheet() {
                 </div>
               </div>
             )}
+
+            {/* Framing brackets (only when live camera is ok) */}
             {cameraStatus === "ok" && (
               <div className="pointer-events-none absolute inset-8">
                 <div className="absolute left-0 top-0 h-10 w-10 rounded-tl-2xl border-l-4 border-t-4 border-white/80" />
@@ -254,7 +288,7 @@ export function ScannerSheet() {
         )}
 
         {/* bottom tool bar */}
-        {!image && (
+        {!image && cameraStatus !== "loading" && (
           <div className="absolute bottom-16 left-1/2 flex -translate-x-1/2 items-center gap-4">
             <button
               onClick={() => setModal("barcode")}
@@ -308,12 +342,12 @@ export function ScannerSheet() {
         </div>
       )}
 
-      {/* capture button */}
-      {!image && (
+      {/* capture button (web only — on native, the capture button is in the "native" overlay) */}
+      {!image && !isNativePlatform() && cameraStatus === "ok" && (
         <div className="flex items-center justify-center gap-6 px-4 py-4">
           <button
             onClick={onCapture}
-            disabled={analyze.isPending || cameraStatus !== "ok"}
+            disabled={analyze.isPending}
             className="flex h-16 w-16 items-center justify-center rounded-full bg-white shadow-fab ring-4 ring-white/30 transition-transform active:scale-95 disabled:opacity-50"
           >
             <ScanLine className="h-7 w-7 text-black" />
@@ -393,7 +427,6 @@ function ResultCard({
     setPersisting(true);
     const persistedUrl = await uploadMealImage(image);
     setPersisting(false);
-    // Build timestamp from selected time
     const today = new Date();
     const [hours, minutes] = mealTime.split(":").map(Number);
     today.setHours(hours, minutes, 0, 0);
@@ -415,7 +448,6 @@ function ResultCard({
 
   return (
     <div className="border-t border-border bg-card">
-      {/* detection bubbles over image would be in a real impl; here show inline */}
       <div className="px-4 pt-4">
         <div className="flex flex-wrap gap-1.5">
           {analysis.ingredients.map((ing, i) => (
@@ -430,7 +462,6 @@ function ResultCard({
         <p className="text-xs text-muted-foreground">{translateFoodName(analysis.detectedCategory ?? "Meal", locale)}</p>
         <h2 className="text-xl font-bold">{translateFoodName(analysis.mealTitle ?? "Scanned meal", locale)}</h2>
 
-        {/* servings stepper */}
         <div className="mt-3 flex items-center gap-3">
           <span className="text-sm font-medium text-muted-foreground">{t("servings")}</span>
           <div className="flex items-center gap-3 rounded-full border border-border px-1 py-1">
@@ -440,7 +471,6 @@ function ResultCard({
           </div>
         </div>
 
-        {/* meal slot selector + time picker */}
         <div className="mt-3 flex flex-wrap items-center gap-2">
           <div className="flex gap-1.5">
             {[
@@ -467,7 +497,6 @@ function ResultCard({
           />
         </div>
 
-        {/* nutrition grid */}
         <div className="mt-4 grid grid-cols-2 gap-3">
           <NutBox label={t("calories")} value={scaledMacros.calories} unit="" icon="🔥" color="text-streak" />
           <NutBox label={t("carbs")} value={scaledMacros.carbs} unit="g" icon="🌾" color="text-carbs" />
@@ -475,7 +504,6 @@ function ResultCard({
           <NutBox label={t("fats")} value={scaledMacros.fat} unit="g" icon="💧" color="text-fats" />
         </div>
 
-        {/* health score */}
         <div className="mt-3 flex items-center gap-2 rounded-2xl bg-secondary p-3">
           <span className="text-lg">❤️</span>
           <span className="text-sm font-medium">{t("healthScore")}</span>
@@ -487,7 +515,6 @@ function ResultCard({
           </div>
         </div>
 
-        {/* ingredients editor */}
         {editing && (
           <div className="mt-4 space-y-2">
             <p className="text-xs font-semibold text-muted-foreground">{t("editIngredients")}</p>
@@ -516,7 +543,6 @@ function ResultCard({
           </div>
         )}
 
-        {/* actions */}
         <div className="mt-4 flex gap-3">
           <Button variant="outline" className="flex-1 rounded-full" onClick={() => setEditing((e) => !e)}>
             {editing ? t("doneEditing") : t("fixResults")}
