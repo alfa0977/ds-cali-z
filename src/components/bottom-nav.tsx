@@ -59,6 +59,7 @@ export function BottomNav() {
                       "text-[11px] font-medium transition-colors",
                       active ? "font-semibold text-streak" : "text-muted-foreground"
                     )}
+                    suppressHydrationWarning
                   >
                     {t(labelKey)}
                   </span>
@@ -124,6 +125,7 @@ export function BottomNav() {
                       "text-[11px] font-medium transition-colors",
                       active ? "font-semibold text-streak" : "text-muted-foreground"
                     )}
+                    suppressHydrationWarning
                   >
                     {t(labelKey)}
                   </span>

@@ -128,12 +128,12 @@ Write-Host "  Done." -ForegroundColor Green
 Write-Host ""
 
 # ==========================================
-# STEP 2: Install Capacitor + plugins
+# STEP 2: Install Capacitor core + Android platform (plugins already in package.json)
 # ==========================================
-Write-Host "[2/9] Installing Capacitor + plugins..." -ForegroundColor Yellow
-bun add @capacitor/core @capacitor/cli @capacitor/android @capacitor/app @capacitor/camera @capacitor/local-notifications 2>$null
+Write-Host "[2/9] Installing Capacitor core + Android..." -ForegroundColor Yellow
+bun add @capacitor/core @capacitor/cli @capacitor/android 2>$null
 if ($LASTEXITCODE -ne 0) {
-    npm install @capacitor/core @capacitor/cli @capacitor/android @capacitor/app @capacitor/camera @capacitor/local-notifications 2>$null
+    npm install @capacitor/core @capacitor/cli @capacitor/android 2>$null
 }
 Write-Host "  Done." -ForegroundColor Green
 Write-Host ""

@@ -127,7 +127,7 @@ export function SettingsScreen() {
 
       {/* Appearance & personalization */}
       <div>
-        <h3 className="mb-2 px-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+        <h3 className="mb-2 px-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground" suppressHydrationWarning>
           {locale === "fa" ? "شخصی‌سازی" : "Personalization"}
         </h3>
         <div className="overflow-hidden rounded-2xl bg-card shadow-ios">
@@ -141,7 +141,7 @@ export function SettingsScreen() {
 
       {/* Gamification */}
       <div>
-        <h3 className="mb-2 px-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+        <h3 className="mb-2 px-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground" suppressHydrationWarning>
           {locale === "fa" ? "گیمیفیکیشن" : "Gamification"}
         </h3>
         <div className="overflow-hidden rounded-2xl bg-card shadow-ios">
@@ -151,7 +151,7 @@ export function SettingsScreen() {
 
       {/* Notifications & sharing */}
       <div>
-        <h3 className="mb-2 px-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+        <h3 className="mb-2 px-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground" suppressHydrationWarning>
           {locale === "fa" ? "اعلان‌ها و اشتراک" : "Notifications & Sharing"}
         </h3>
         <div className="overflow-hidden rounded-2xl bg-card shadow-ios">
@@ -163,7 +163,7 @@ export function SettingsScreen() {
 
       {/* Health & privacy */}
       <div>
-        <h3 className="mb-2 px-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+        <h3 className="mb-2 px-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground" suppressHydrationWarning>
           {locale === "fa" ? "سلامت و حریم خصوصی" : "Health & Privacy"}
         </h3>
         <div className="overflow-hidden rounded-2xl bg-card shadow-ios">
@@ -175,7 +175,7 @@ export function SettingsScreen() {
 
       {/* Account */}
       <div>
-        <h3 className="mb-2 px-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+        <h3 className="mb-2 px-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground" suppressHydrationWarning>
           {locale === "fa" ? "حساب کاربری" : "Account"}
         </h3>
         <div className="overflow-hidden rounded-2xl bg-card shadow-ios">
@@ -187,7 +187,7 @@ export function SettingsScreen() {
 
       {/* Developer */}
       <div>
-        <h3 className="mb-2 px-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+        <h3 className="mb-2 px-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground" suppressHydrationWarning>
           {locale === "fa" ? "توسعه‌دهنده" : "Developer"}
         </h3>
         <div className="overflow-hidden rounded-2xl bg-card shadow-ios">

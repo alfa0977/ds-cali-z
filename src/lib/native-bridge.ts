@@ -1,9 +1,8 @@
 "use client";
 // Capacitor native bridge helpers — safe to import on web (graceful no-ops when not in Capacitor).
 // The Capacitor plugin packages (@capacitor/camera, @capacitor/app, @capacitor/local-notifications)
-// are only installed during the APK build (see build-apk.sh). In the browser sandbox they are absent,
-// so we use a runtime dynamic import via a computed module path so the bundler does NOT try to
-// resolve them at build time.
+// are installed as regular dependencies so they get bundled into both the web and APK builds.
+// On web, they detect they're not in a native environment and return no-ops/errors (which we catch).
 
 import { isStaticMode } from "@/lib/env";
 
@@ -28,50 +27,26 @@ export type NativeCameraResult = {
 };
 
 /**
- * Runtime dynamic import that the bundler cannot statically resolve.
- * Returns null if the module is unavailable (web sandbox) or fails to load.
- */
-async function tryImport(moduleName: string): Promise<Record<string, unknown> | null> {
-  try {
-    // Wrap in a Function so webpack/turbopack doesn't try to resolve at build time.
-    const dynamicImport = new Function("m", "return import(m)") as (m: string) => Promise<Record<string, unknown>>;
-    return await dynamicImport(moduleName);
-  } catch (e) {
-    console.debug(`[native-bridge] module '${moduleName}' not available:`, e);
-    return null;
-  }
-}
-
-/**
  * Take a photo using the native Capacitor Camera plugin (if available).
  * Falls back to a hidden <input type="file" capture> on the web.
  * Returns a data URL (base64) of the captured image, or null if cancelled.
  */
 export async function takeNativePhoto(): Promise<NativeCameraResult> {
-  if (isStaticMode()) {
-    const mod = await tryImport("@capacitor/camera");
-    if (mod) {
-      try {
-        const Camera = mod.Camera as {
-          getPhoto: (opts: Record<string, unknown>) => Promise<{ dataUrl?: string }>;
-        };
-        const { CameraResultType, CameraSource } = mod as {
-          CameraResultType: { DataUrl: string };
-          CameraSource: { Camera: string; Photos: string };
-        };
-        const photo = await Camera.getPhoto({
-          quality: 80,
-          allowEditing: false,
-          resultType: CameraResultType.DataUrl,
-          source: CameraSource.Camera,
-          saveToGallery: false,
-          correctOrientation: true,
-        });
-        return { dataUrl: photo.dataUrl ?? null, cancelled: false };
-      } catch (e) {
-        console.warn("Native camera failed, falling back to input:", e);
-        return { dataUrl: null, cancelled: true };
-      }
+  if (isNativePlatform()) {
+    try {
+      const { Camera, CameraResultType, CameraSource } = await import("@capacitor/camera");
+      const photo = await Camera.getPhoto({
+        quality: 80,
+        allowEditing: false,
+        resultType: CameraResultType.DataUrl,
+        source: CameraSource.Camera,
+        saveToGallery: false,
+        correctOrientation: true,
+      });
+      return { dataUrl: photo.dataUrl ?? null, cancelled: false };
+    } catch (e) {
+      console.warn("Native camera failed, falling back to input:", e);
+      return { dataUrl: null, cancelled: true };
     }
   }
   // Web fallback (also used when Capacitor module is unavailable)
@@ -110,29 +85,20 @@ export async function takeNativePhoto(): Promise<NativeCameraResult> {
  * Pick an image from the gallery using the native Capacitor Camera plugin (if available).
  */
 export async function pickNativeImage(): Promise<NativeCameraResult> {
-  if (isStaticMode()) {
-    const mod = await tryImport("@capacitor/camera");
-    if (mod) {
-      try {
-        const Camera = mod.Camera as {
-          getPhoto: (opts: Record<string, unknown>) => Promise<{ dataUrl?: string }>;
-        };
-        const { CameraResultType, CameraSource } = mod as {
-          CameraResultType: { DataUrl: string };
-          CameraSource: { Camera: string; Photos: string };
-        };
-        const photo = await Camera.getPhoto({
-          quality: 80,
-          allowEditing: false,
-          resultType: CameraResultType.DataUrl,
-          source: CameraSource.Photos,
-          correctOrientation: true,
-        });
-        return { dataUrl: photo.dataUrl ?? null, cancelled: false };
-      } catch (e) {
-        console.warn("Native image picker failed, falling back to input:", e);
-        return { dataUrl: null, cancelled: true };
-      }
+  if (isNativePlatform()) {
+    try {
+      const { Camera, CameraResultType, CameraSource } = await import("@capacitor/camera");
+      const photo = await Camera.getPhoto({
+        quality: 80,
+        allowEditing: false,
+        resultType: CameraResultType.DataUrl,
+        source: CameraSource.Photos,
+        correctOrientation: true,
+      });
+      return { dataUrl: photo.dataUrl ?? null, cancelled: false };
+    } catch (e) {
+      console.warn("Native image picker failed, falling back to input:", e);
+      return { dataUrl: null, cancelled: true };
     }
   }
   // Web fallback
@@ -173,13 +139,9 @@ export type NativePermission = "granted" | "denied" | "prompt";
  * On web, returns "granted" (the browser will prompt at capture time).
  */
 export async function requestNativeCameraPermission(): Promise<NativePermission> {
-  if (!isStaticMode()) return "granted";
-  const mod = await tryImport("@capacitor/camera");
-  if (!mod) return "granted"; // fall through to web getUserMedia
+  if (!isNativePlatform()) return "granted";
   try {
-    const Camera = mod.Camera as {
-      requestPermissions: (opts: { permissions: string[] }) => Promise<{ camera: string }>;
-    };
+    const { Camera } = await import("@capacitor/camera");
     const status = await Camera.requestPermissions({ permissions: ["camera"] });
     if (status.camera === "granted") return "granted";
     if (status.camera === "denied") return "denied";
@@ -191,23 +153,16 @@ export async function requestNativeCameraPermission(): Promise<NativePermission>
 }
 
 export async function requestNativeNotificationPermission(): Promise<NativePermission> {
-  if (isStaticMode()) {
-    const mod = await tryImport("@capacitor/local-notifications");
-    if (mod) {
-      try {
-        const LocalNotifications = mod.LocalNotifications as {
-          requestPermissions: () => Promise<{ display: string }>;
-          checkPermissions: () => Promise<{ display: string }>;
-          schedule: (opts: { notifications: Array<Record<string, unknown>> }) => Promise<unknown>;
-        };
-        const res = await LocalNotifications.requestPermissions();
-        if (res.display === "granted") return "granted";
-        if (res.display === "denied") return "denied";
-        return "prompt";
-      } catch (e) {
-        console.warn("Local-notifications permission failed:", e);
-        return "denied";
-      }
+  if (isNativePlatform()) {
+    try {
+      const { LocalNotifications } = await import("@capacitor/local-notifications");
+      const res = await LocalNotifications.requestPermissions();
+      if (res.display === "granted") return "granted";
+      if (res.display === "denied") return "denied";
+      return "prompt";
+    } catch (e) {
+      console.warn("Local-notifications permission failed:", e);
+      return "denied";
     }
   }
   // Web: use the standard Notification API
@@ -217,21 +172,16 @@ export async function requestNativeNotificationPermission(): Promise<NativePermi
 }
 
 export async function getNativeNotificationPermission(): Promise<NativePermission> {
-  if (isStaticMode()) {
-    const mod = await tryImport("@capacitor/local-notifications");
-    if (mod) {
-      try {
-        const LocalNotifications = mod.LocalNotifications as {
-          checkPermissions: () => Promise<{ display: string }>;
-        };
-        const res = await LocalNotifications.checkPermissions();
-        if (res.display === "granted") return "granted";
-        if (res.display === "denied") return "denied";
-        return "prompt";
-      } catch (e) {
-        console.warn("Local-notifications check failed:", e);
-        return "denied";
-      }
+  if (isNativePlatform()) {
+    try {
+      const { LocalNotifications } = await import("@capacitor/local-notifications");
+      const res = await LocalNotifications.checkPermissions();
+      if (res.display === "granted") return "granted";
+      if (res.display === "denied") return "denied";
+      return "prompt";
+    } catch (e) {
+      console.warn("Local-notifications check failed:", e);
+      return "denied";
     }
   }
   if (typeof window === "undefined" || !("Notification" in window)) return "denied";
@@ -239,29 +189,24 @@ export async function getNativeNotificationPermission(): Promise<NativePermissio
 }
 
 export async function showNativeNotification(title: string, body?: string): Promise<void> {
-  if (isStaticMode()) {
-    const mod = await tryImport("@capacitor/local-notifications");
-    if (mod) {
-      try {
-        const LocalNotifications = mod.LocalNotifications as {
-          schedule: (opts: { notifications: Array<Record<string, unknown>> }) => Promise<unknown>;
-        };
-        await LocalNotifications.schedule({
-          notifications: [
-            {
-              id: Math.floor(Math.random() * 1_000_000),
-              title,
-              body: body ?? "",
-              smallIcon: "ic_stat_icon",
-              iconColor: "#FF9500",
-            },
-          ],
-        });
-        return;
-      } catch (e) {
-        console.warn("Local-notifications schedule failed, falling back to web Notification:", e);
-        // fall through to web implementation
-      }
+  if (isNativePlatform()) {
+    try {
+      const { LocalNotifications } = await import("@capacitor/local-notifications");
+      await LocalNotifications.schedule({
+        notifications: [
+          {
+            id: Math.floor(Math.random() * 1_000_000),
+            title,
+            body: body ?? "",
+            smallIcon: "ic_stat_icon",
+            iconColor: "#FF9500",
+          },
+        ],
+      });
+      return;
+    } catch (e) {
+      console.warn("Local-notifications schedule failed, falling back to web Notification:", e);
+      // fall through to web implementation
     }
   }
   if (typeof window === "undefined" || !("Notification" in window)) return;
@@ -281,37 +226,41 @@ export async function showNativeNotification(title: string, body?: string): Prom
  * Returns a cleanup function. The callback receives true if it handled the event
  * (preventing the default app-exit behavior).
  *
- * IMPORTANT: We do NOT gate on isStaticMode() here — we always try to import
- * @capacitor/app. If the import fails (web browser), we do nothing. If it
- * succeeds (APK), we register the listener. This is more robust than checking
- * isStaticMode() because window.Capacitor might not be available yet when the
- * React effect first runs (timing depends on WebView injection).
+ * IMPORTANT: We always try to import @capacitor/app. If we're on web (not in a
+ * native Capacitor app), the plugin detects this and the addListener call is a
+ * no-op. If we're in the APK, the listener is registered and handles the back button.
  */
 export function registerBackButtonHandler(cb: () => boolean | void): () => void {
   let disposed = false;
   let removeListener: (() => void) | null = null;
+
   void (async () => {
-    const mod = await tryImport("@capacitor/app");
-    if (!mod || disposed) return;
     try {
-      const App = mod.App as {
-        addListener: (event: string, cb: () => void) => Promise<{ remove: () => void }>;
-        exitApp: () => void;
-      };
+      const { App } = await import("@capacitor/app");
+      if (disposed) return;
+
       const handle = await App.addListener("backButton", () => {
         const handled = cb();
         if (!handled) {
           App.exitApp();
         }
       });
+
       removeListener = () => {
-        try { handle.remove(); } catch {}
+        try {
+          handle.remove();
+        } catch {}
       };
-      if (disposed && removeListener) removeListener();
+
+      if (disposed && removeListener) {
+        removeListener();
+      }
     } catch (e) {
-      console.warn("Capacitor App backButton listener failed:", e);
+      // @capacitor/app not available (web browser) — do nothing
+      console.debug("[native-bridge] @capacitor/app not available:", e);
     }
   })();
+
   return () => {
     disposed = true;
     if (removeListener) removeListener();

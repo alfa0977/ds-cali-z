@@ -14,9 +14,9 @@ echo ""
 echo "1️⃣  Installing dependencies..."
 bun install
 
-# Step 1b: Install Capacitor plugins (idempotent)
-echo "1️⃣b  Installing Capacitor plugins..."
-bun add @capacitor/core @capacitor/cli @capacitor/android @capacitor/app @capacitor/camera @capacitor/local-notifications 2>/dev/null || true
+# Step 1b: Install Capacitor core + CLI + Android (plugins already in package.json)
+echo "1️⃣b  Installing Capacitor core + Android platform..."
+bun add @capacitor/core @capacitor/cli @capacitor/android 2>/dev/null || true
 
 # Step 2: Build static export
 echo "2️⃣  Building static files..."

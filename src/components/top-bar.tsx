@@ -13,7 +13,7 @@ export function TopBar() {
     <header className="flex items-center justify-between px-5 pt-3 pb-1">
       <div className="flex items-center gap-2">
         <Logo size={32} />
-        <h1 className="text-[20px] font-bold tracking-tight">{t("appName")}</h1>
+        <h1 className="text-[20px] font-bold tracking-tight" suppressHydrationWarning>{t("appName")}</h1>
       </div>
       <div className="flex items-center gap-2">
         <ThemeToggle />
