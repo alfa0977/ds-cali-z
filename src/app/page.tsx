@@ -25,6 +25,8 @@ import { ThemeColorSheet } from "@/features/settings/theme-color-sheet";
 import { ChallengesSheet } from "@/features/progress/challenges-sheet";
 import { PrivacyDataSheet } from "@/features/settings/privacy-data-sheet";
 import { QuickLogSheet } from "@/features/scanner/quick-log-sheet";
+import { LoginScreen } from "@/features/auth/login-screen";
+import { DeveloperSheet } from "@/features/settings/developer-sheet";
 import { PullToRefreshIndicator } from "@/components/pull-to-refresh-indicator";
 import { usePullToRefresh } from "@/lib/use-pull-to-refresh";
 import { PageTransition, SheetWrapper } from "@/components/motion";
@@ -133,6 +135,8 @@ export default function Home() {
               {modal === "challenges" && <ChallengesSheet />}
               {modal === "privacy-data" && <PrivacyDataSheet />}
               {modal === "quick-log" && <QuickLogSheet />}
+              {modal === "login" && <LoginScreen />}
+              {modal === "developer" && <DeveloperSheet />}
             </SheetWrapper>
           )}
         </AnimatePresence>

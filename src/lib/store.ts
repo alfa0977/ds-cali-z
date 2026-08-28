@@ -23,7 +23,9 @@ export type ModalKey =
   | "language"
   | "theme-color"
   | "privacy-data"
-  | "quick-log";
+  | "quick-log"
+  | "login"
+  | "developer";
 
 export interface QuickLogPayload {
   foodId?: string;

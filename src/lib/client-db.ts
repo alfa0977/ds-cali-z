@@ -648,85 +648,9 @@ export async function lookupBarcode(code: string): Promise<{ food: ClientFood; s
   return { food, source: "openfoodfacts" };
 }
 
-// ============ ANALYZE MEAL (offline heuristic) ============
-// In static/APK mode, we cannot call the server-side VLM (z-ai-web-dev-sdk requires a server key).
-// Instead we provide a heuristic analyzer that detects known sample meals by URL, and for any
-// other image returns a sensible generic "mixed plate" estimate that the user can edit.
-
-interface SampleMealDef {
-  match: string; // substring of URL or label
-  title: string;
-  ingredients: Array<{ name: string; estimatedWeightGrams: number; confidence: number }>;
-  macros: { calories: number; protein: number; carbs: number; fat: number };
-  healthScore: number;
-  detectedCategory: string;
-}
-
-const SAMPLE_MEAL_DEFS: SampleMealDef[] = [
-  {
-    match: "pancake",
-    title: "Pancakes with blueberries",
-    ingredients: [
-      { name: "Pancake", estimatedWeightGrams: 180, confidence: 0.9 },
-      { name: "Blueberries", estimatedWeightGrams: 40, confidence: 0.85 },
-      { name: "Maple syrup", estimatedWeightGrams: 20, confidence: 0.7 },
-    ],
-    macros: { calories: 520, protein: 9, carbs: 88, fat: 14 },
-    healthScore: 60,
-    detectedCategory: "Breakfast",
-  },
-  {
-    match: "salad",
-    title: "Garden salad with dressing",
-    ingredients: [
-      { name: "Mixed greens", estimatedWeightGrams: 120, confidence: 0.92 },
-      { name: "Tomato", estimatedWeightGrams: 60, confidence: 0.85 },
-      { name: "Cucumber", estimatedWeightGrams: 50, confidence: 0.8 },
-      { name: "Olive oil dressing", estimatedWeightGrams: 15, confidence: 0.7 },
-    ],
-    macros: { calories: 180, protein: 4, carbs: 14, fat: 12 },
-    healthScore: 88,
-    detectedCategory: "Lunch",
-  },
-  {
-    match: "burger",
-    title: "Cheeseburger",
-    ingredients: [
-      { name: "Beef patty", estimatedWeightGrams: 150, confidence: 0.95 },
-      { name: "Cheese", estimatedWeightGrams: 25, confidence: 0.85 },
-      { name: "Burger bun", estimatedWeightGrams: 60, confidence: 0.9 },
-      { name: "Lettuce", estimatedWeightGrams: 10, confidence: 0.6 },
-    ],
-    macros: { calories: 540, protein: 30, carbs: 38, fat: 32 },
-    healthScore: 45,
-    detectedCategory: "Lunch",
-  },
-  {
-    match: "sushi",
-    title: "Sushi platter",
-    ingredients: [
-      { name: "Sushi rice", estimatedWeightGrams: 140, confidence: 0.9 },
-      { name: "Salmon nigiri", estimatedWeightGrams: 50, confidence: 0.85 },
-      { name: "Nori", estimatedWeightGrams: 5, confidence: 0.7 },
-    ],
-    macros: { calories: 350, protein: 16, carbs: 60, fat: 6 },
-    healthScore: 72,
-    detectedCategory: "Dinner",
-  },
-];
-
-const GENERIC_MEAL: SampleMealDef = {
-  match: "",
-  title: "Mixed meal",
-  ingredients: [
-    { name: "Mixed protein", estimatedWeightGrams: 120, confidence: 0.5 },
-    { name: "Mixed vegetables", estimatedWeightGrams: 100, confidence: 0.5 },
-    { name: "Mixed carbs", estimatedWeightGrams: 90, confidence: 0.5 },
-  ],
-  macros: { calories: 480, protein: 28, carbs: 45, fat: 18 },
-  healthScore: 65,
-  detectedCategory: "Meal",
-};
+// ============ ANALYZE MEAL (multi-engine AI) ============
+// Delegates to the configured AI engine (heuristic / OpenAI / Gemini / remote Z-AI).
+// See src/lib/ai-engines/index.ts for engine configuration and implementation.
 
 export async function analyzeMeal(image: string): Promise<{
   ingredients: Array<{ name: string; estimatedWeightGrams: number; confidence: number; volumeMl?: number }>;
@@ -735,18 +659,8 @@ export async function analyzeMeal(image: string): Promise<{
   mealTitle: string | null;
   detectedCategory: string | null;
 }> {
-  // Simulate a tiny bit of latency so the loading UI feels natural
-  await new Promise((r) => setTimeout(r, 600));
-  const lower = String(image || "").toLowerCase();
-  const match = SAMPLE_MEAL_DEFS.find((s) => lower.includes(s.match));
-  const def = match ?? GENERIC_MEAL;
-  return {
-    ingredients: def.ingredients,
-    macros: def.macros,
-    healthScore: def.healthScore,
-    mealTitle: def.title,
-    detectedCategory: def.detectedCategory,
-  };
+  const { analyzeMealWithEngine } = await import("./ai-engines");
+  return analyzeMealWithEngine(image);
 }
 
 // ============ UPLOAD IMAGE (offline no-op) ============

@@ -2,14 +2,16 @@
 import { useDashboard, useUpdateUser, useImportData, exportData, deleteAccount } from "@/lib/hooks";
 import { useApp } from "@/lib/store";
 import { useI18n } from "@/lib/i18n";
+import { getSubscriptionConfig } from "@/lib/subscription";
 import {
   ChevronRight, Moon, Bell, Shield, Trash2, LogOut, Heart, Pencil,
   Download, FileText, Upload, Share2, Globe, Palette, Trophy, HelpCircle,
+  UserCircle, Cpu, Crown,
 } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { ProgressRing } from "@/components/progress-ring";
 import { toast } from "sonner";
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   AlertDialog,
@@ -31,6 +33,7 @@ export function SettingsScreen() {
   const importData = useImportData();
   const qc = useQueryClient();
   const fileRef = useRef<HTMLInputElement>(null);
+  const [subConfig, setSubConfig] = useState(() => getSubscriptionConfig());
 
   async function downloadExport(format: "json" | "csv") {
     try {
@@ -167,6 +170,28 @@ export function SettingsScreen() {
           <Row icon={Heart} label={t("healthConnections")} right={<span className="text-xs font-medium text-success">{t("connected")}</span>} onClick={() => {}} />
           <Divider />
           <Row icon={Shield} label={t("privacyData")} right={<ChevronRight className="h-4 w-4 text-muted-foreground" />} onClick={() => setModal("privacy-data")} />
+        </div>
+      </div>
+
+      {/* Account */}
+      <div>
+        <h3 className="mb-2 px-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+          {locale === "fa" ? "حساب کاربری" : "Account"}
+        </h3>
+        <div className="overflow-hidden rounded-2xl bg-card shadow-ios">
+          <Row icon={UserCircle} label={locale === "fa" ? "ورود / ثبت‌نام" : "Login / Sign up"} right={<ChevronRight className="h-4 w-4 text-muted-foreground" />} onClick={() => setModal("login")} />
+          <Divider />
+          <Row icon={Crown} label={locale === "fa" ? "پریمیوم" : "Premium"} right={<span className="text-xs font-medium text-streak">{subConfig.tier === "premium" ? "👑" : "🆓"}</span>} onClick={() => setModal("paywall")} />
+        </div>
+      </div>
+
+      {/* Developer */}
+      <div>
+        <h3 className="mb-2 px-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+          {locale === "fa" ? "توسعه‌دهنده" : "Developer"}
+        </h3>
+        <div className="overflow-hidden rounded-2xl bg-card shadow-ios">
+          <Row icon={Cpu} label={locale === "fa" ? "تنظیمات توسعه‌دهنده" : "Developer Settings"} right={<ChevronRight className="h-4 w-4 text-muted-foreground" />} onClick={() => setModal("developer")} />
         </div>
       </div>
 
