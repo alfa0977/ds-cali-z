@@ -24,6 +24,7 @@ import { LanguageSheet } from "@/features/settings/language-sheet";
 import { ThemeColorSheet } from "@/features/settings/theme-color-sheet";
 import { ChallengesSheet } from "@/features/progress/challenges-sheet";
 import { PrivacyDataSheet } from "@/features/settings/privacy-data-sheet";
+import { QuickLogSheet } from "@/features/scanner/quick-log-sheet";
 import { PullToRefreshIndicator } from "@/components/pull-to-refresh-indicator";
 import { usePullToRefresh } from "@/lib/use-pull-to-refresh";
 import { PageTransition, SheetWrapper } from "@/components/motion";
@@ -131,6 +132,7 @@ export default function Home() {
               {modal === "theme-color" && <ThemeColorSheet />}
               {modal === "challenges" && <ChallengesSheet />}
               {modal === "privacy-data" && <PrivacyDataSheet />}
+              {modal === "quick-log" && <QuickLogSheet />}
             </SheetWrapper>
           )}
         </AnimatePresence>

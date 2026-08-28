@@ -1,18 +1,16 @@
 "use client";
 import { Star, Plus, Flame } from "lucide-react";
-import { useFavorites, useLogFood } from "@/lib/hooks";
+import { useFavorites } from "@/lib/hooks";
 import { useApp } from "@/lib/store";
 import { TapCard } from "@/components/motion";
 import { motion } from "framer-motion";
-import { toast } from "sonner";
 import { useI18n } from "@/lib/i18n";
 import { formatNumber } from "@/lib/date-utils";
 import { translateFoodName } from "@/lib/food-translations";
 
 export function FavoritesQuickAdd() {
   const { data: favorites, isLoading } = useFavorites();
-  const logFood = useLogFood();
-  const { setModal } = useApp();
+  const { setModal, setQuickLogPayload } = useApp();
   const { locale, t } = useI18n();
 
   if (isLoading) return null;
@@ -21,25 +19,19 @@ export function FavoritesQuickAdd() {
     return null; // don't show section if no favorites yet
   }
 
-  function quickLog(fav: { id: string; name: string; foodId: string | null; calories: number; protein: number; carbs: number; fat: number }) {
-    if (fav.foodId) {
-      logFood.mutate({ foodId: fav.foodId, servings: 1 });
-    } else {
-      // Log as manual food using the favorite snapshot
-      logFood.mutate({
-        manualFood: {
-          name: fav.name,
-          calories: fav.calories,
-          protein: fav.protein,
-          carbs: fav.carbs,
-          fat: fav.fat,
-          servingSize: "1 serving",
-          servingWeightGrams: 100,
-          emoji: "⭐",
-        },
-      });
-    }
-    toast.success(t("loggedToast").replace("{0}", translateFoodName(fav.name, locale)));
+  function openQuickLog(fav: { id: string; name: string; foodId: string | null; calories: number; protein: number; carbs: number; fat: number; servingSize: string | null }) {
+    setQuickLogPayload({
+      foodId: fav.foodId ?? undefined,
+      name: fav.name,
+      emoji: "⭐",
+      calories: fav.calories,
+      protein: fav.protein,
+      carbs: fav.carbs,
+      fat: fav.fat,
+      servingSize: fav.servingSize ?? "1 serving",
+      servingWeightGrams: 100,
+    });
+    setModal("quick-log");
   }
 
   return (
@@ -61,8 +53,7 @@ export function FavoritesQuickAdd() {
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: i * 0.04 }}
             whileTap={{ scale: 0.95 }}
-            onClick={() => quickLog(fav)}
-            disabled={logFood.isPending}
+            onClick={() => openQuickLog(fav)}
             className="flex shrink-0 flex-col items-center gap-1 rounded-2xl bg-card p-3 shadow-ios"
             style={{ minWidth: 80 }}
           >

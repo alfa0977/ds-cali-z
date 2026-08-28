@@ -22,7 +22,21 @@ export type ModalKey =
   | "challenges"
   | "language"
   | "theme-color"
-  | "privacy-data";
+  | "privacy-data"
+  | "quick-log";
+
+export interface QuickLogPayload {
+  foodId?: string;
+  name: string;
+  emoji?: string;
+  calories: number;
+  protein: number;
+  carbs: number;
+  fat: number;
+  servingSize?: string;
+  servingWeightGrams?: number;
+  imageUrl?: string;
+}
 
 interface AppState {
   tab: TabKey;
@@ -37,11 +51,13 @@ interface AppState {
     mealId: string | null;
     timestamp?: string;
   } | null;
+  quickLogPayload: QuickLogPayload | null;
   setTab: (t: TabKey) => void;
   setModal: (m: ModalKey) => void;
   setSelectedDate: (d: string) => void;
   setLastAnalysis: (a: Record<string, unknown> | null) => void;
   setEditingLog: (l: AppState["editingLog"]) => void;
+  setQuickLogPayload: (p: QuickLogPayload | null) => void;
 }
 
 export const useApp = create<AppState>((set) => ({
@@ -50,9 +66,11 @@ export const useApp = create<AppState>((set) => ({
   selectedDate: new Date().toISOString().slice(0, 10),
   lastAnalysis: null,
   editingLog: null,
+  quickLogPayload: null,
   setTab: (tab) => set({ tab, modal: null }),
   setModal: (modal) => set({ modal }),
   setSelectedDate: (selectedDate) => set({ selectedDate }),
   setLastAnalysis: (lastAnalysis) => set({ lastAnalysis }),
   setEditingLog: (editingLog) => set({ editingLog }),
+  setQuickLogPayload: (quickLogPayload) => set({ quickLogPayload }),
 }));

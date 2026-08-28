@@ -10,6 +10,10 @@ const Toaster = ({ ...props }: ToasterProps) => {
     <Sonner
       theme={theme as ToasterProps["theme"]}
       className="toaster group"
+      // Auto-dismiss toasts after 3.5s, allow click-to-dismiss, and close on swipe.
+      duration={3500}
+      closeButton
+      richColors
       style={
         {
           "--normal-bg": "var(--popover)",

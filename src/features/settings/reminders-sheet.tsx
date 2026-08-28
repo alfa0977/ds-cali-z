@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
-import { X, Bell, Clock, Droplets, Sun, Moon, Utensils, BellRing } from "lucide-react";
+import { X, Bell, Clock, Droplets, Sun, Moon, Utensils, BellRing, ChevronLeft, ChevronRight } from "lucide-react";
 import { useApp } from "@/lib/store";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
@@ -25,31 +25,34 @@ interface Reminder {
   enabled: boolean;
 }
 
-const STORAGE_KEY = "calai_reminders";
+const STORAGE_KEY = "ds-cali-reminders-v2";
+
+const DEFAULT_REMINDERS: Reminder[] = [
+  { id: "breakfast", labelKey: "logBreakfast", descKey: "startYourDayRight", time: "08:00", icon: Sun, color: "var(--carbs)", enabled: true },
+  { id: "lunch", labelKey: "logLunch", descKey: "dontForgetMiddayMeals", time: "12:30", icon: Utensils, color: "var(--protein)", enabled: true },
+  { id: "dinner", labelKey: "logDinner", descKey: "trackYourEveningMeal", time: "19:00", icon: Moon, color: "var(--fats)", enabled: false },
+  { id: "water", labelKey: "drinkWater", descKey: "stayHydratedEvery2h", time: "10:00", icon: Droplets, color: "var(--water)", enabled: true },
+];
 
 export function RemindersSheet() {
   const { setModal } = useApp();
   const { locale, t } = useI18n();
   const [permission, setPermission] = useState<NotificationPermission>("default");
-  const [reminders, setReminders] = useState<Reminder[]>([
-    { id: "breakfast", labelKey: "logBreakfast", descKey: "startYourDayRight", time: "08:00", icon: Sun, color: "var(--carbs)", enabled: true },
-    { id: "lunch", labelKey: "logLunch", descKey: "dontForgetMiddayMeals", time: "12:30", icon: Utensils, color: "var(--protein)", enabled: true },
-    { id: "dinner", labelKey: "logDinner", descKey: "trackYourEveningMeal", time: "19:00", icon: Moon, color: "var(--fats)", enabled: false },
-    { id: "water", labelKey: "drinkWater", descKey: "stayHydratedEvery2h", time: locale === "fa" ? "هر ۲ ساعت" : "Every 2h", icon: Droplets, color: "var(--water)", enabled: true },
-  ]);
+  const [reminders, setReminders] = useState<Reminder[]>(DEFAULT_REMINDERS);
 
   // Load saved state + permission
   useEffect(() => {
     const timer = setTimeout(() => {
-      // Async permission check (works for both web Notification and Capacitor LocalNotifications)
-      void getNotificationPermissionAsync().then((perm) => {
-        setPermission(perm);
-      });
+      void getNotificationPermissionAsync().then((perm) => setPermission(perm));
       try {
         const saved = localStorage.getItem(STORAGE_KEY);
         if (saved) {
-          const parsed = JSON.parse(saved);
-          setReminders((prev) => prev.map((r) => ({ ...r, enabled: parsed[r.id] ?? r.enabled })));
+          const parsed = JSON.parse(saved) as Record<string, { enabled: boolean; time: string }>;
+          setReminders((prev) => prev.map((r) => {
+            const entry = parsed[r.id];
+            if (!entry) return r;
+            return { ...r, enabled: entry.enabled ?? r.enabled, time: entry.time ?? r.time };
+          }));
         }
       } catch {}
     }, 0);
@@ -57,10 +60,23 @@ export function RemindersSheet() {
   }, []);
 
   function toggle(id: string) {
-    setReminders((prev) => {
-      const next = prev.map((r) => (r.id === id ? { ...r, enabled: !r.enabled } : r));
-      return next;
-    });
+    setReminders((prev) => prev.map((r) => (r.id === id ? { ...r, enabled: !r.enabled } : r)));
+  }
+
+  function setTime(id: string, time: string) {
+    setReminders((prev) => prev.map((r) => (r.id === id ? { ...r, time } : r)));
+  }
+
+  // Quick hour increment/decrement for the time picker
+  function shiftTime(id: string, deltaMinutes: number) {
+    setReminders((prev) => prev.map((r) => {
+      if (r.id !== id) return r;
+      const [h, m] = r.time.split(":").map(Number);
+      const total = (h * 60 + m + deltaMinutes + 24 * 60) % (24 * 60);
+      const nh = Math.floor(total / 60);
+      const nm = total % 60;
+      return { ...r, time: `${String(nh).padStart(2, "0")}:${String(nm).padStart(2, "0")}` };
+    }));
   }
 
   async function enableNotifications() {
@@ -82,8 +98,8 @@ export function RemindersSheet() {
   function save() {
     const enabledCount = reminders.filter((r) => r.enabled).length;
     try {
-      const state: Record<string, boolean> = {};
-      reminders.forEach((r) => { state[r.id] = r.enabled; });
+      const state: Record<string, { enabled: boolean; time: string }> = {};
+      reminders.forEach((r) => { state[r.id] = { enabled: r.enabled, time: r.time }; });
       localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
     } catch {}
     toast.success(t("remindersSavedDesc").replace("{0}", formatNumber(enabledCount, locale)));
@@ -135,6 +151,9 @@ export function RemindersSheet() {
         <p className="mb-3 text-xs text-muted-foreground">
           {t("gentleNudgesDesc")}
         </p>
+        <p className="mb-3 text-xs font-medium text-muted-foreground/80">
+          {t("reminderTimesHint")}
+        </p>
 
         <div className="space-y-2">
           {reminders.map((r, i) => (
@@ -151,14 +170,39 @@ export function RemindersSheet() {
               >
                 <r.icon className="h-5 w-5" style={{ color: r.color }} />
               </div>
-              <div className="flex-1">
+              <div className="flex-1 min-w-0">
                 <div className="text-sm font-semibold">{t(r.labelKey)}</div>
                 <div className="text-xs text-muted-foreground">{t(r.descKey)}</div>
               </div>
-              <div className="flex items-center gap-3">
-                <span className="text-xs font-medium text-muted-foreground tabular-nums">{r.time}</span>
-                <Switch checked={r.enabled} onCheckedChange={() => toggle(r.id)} />
+
+              {/* Editable time picker */}
+              <div className={`flex items-center gap-1 ${r.enabled ? "" : "opacity-40"}`}>
+                <button
+                  onClick={() => shiftTime(r.id, -15)}
+                  disabled={!r.enabled}
+                  className="flex h-6 w-6 items-center justify-center rounded-full bg-secondary text-muted-foreground disabled:opacity-30"
+                  aria-label={t("earlier")}
+                >
+                  <ChevronLeft className="h-3 w-3" />
+                </button>
+                <input
+                  type="time"
+                  value={r.time}
+                  onChange={(e) => setTime(r.id, e.target.value)}
+                  disabled={!r.enabled}
+                  className="w-20 rounded-md bg-secondary px-2 py-1 text-xs font-medium tabular-nums text-foreground outline-none disabled:opacity-40"
+                />
+                <button
+                  onClick={() => shiftTime(r.id, 15)}
+                  disabled={!r.enabled}
+                  className="flex h-6 w-6 items-center justify-center rounded-full bg-secondary text-muted-foreground disabled:opacity-30"
+                  aria-label={t("later")}
+                >
+                  <ChevronRight className="h-3 w-3" />
+                </button>
               </div>
+
+              <Switch checked={r.enabled} onCheckedChange={() => toggle(r.id)} />
             </motion.div>
           ))}
         </div>

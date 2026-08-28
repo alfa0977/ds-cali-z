@@ -1,6 +1,6 @@
 "use client";
-import { useRef, useState } from "react";
-import { Camera, ImagePlus, X, ScanLine, Loader2, Apple, Barcode, Bookmark, Pencil } from "lucide-react";
+import { useRef, useState, useEffect, useCallback } from "react";
+import { Camera, ImagePlus, X, ScanLine, Loader2, Apple, Barcode, Bookmark, Pencil, AlertTriangle } from "lucide-react";
 import { useAnalyzeMeal, useLogMeal, uploadMealImage } from "@/lib/hooks";
 import { useApp } from "@/lib/store";
 import { Button } from "@/components/ui/button";
@@ -9,7 +9,7 @@ import { cn } from "@/lib/utils";
 import { useI18n } from "@/lib/i18n";
 import { formatNumber } from "@/lib/date-utils";
 import { translateFoodName } from "@/lib/food-translations";
-import { takeNativePhoto, pickNativeImage } from "@/lib/native-bridge";
+import { takeNativePhoto, pickNativeImage, requestNativeCameraPermission } from "@/lib/native-bridge";
 
 interface Ingredient {
   name: string;
@@ -27,10 +27,120 @@ const SAMPLE_MEALS = [
 
 export function ScannerSheet() {
   const { setModal } = useApp();
-  const fileRef = useRef<HTMLInputElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
   const [image, setImage] = useState<string | null>(null);
+  const [cameraStatus, setCameraStatus] = useState<"loading" | "ok" | "denied" | "error">("loading");
   const analyze = useAnalyzeMeal();
   const { t } = useI18n();
+
+  // Auto-start the live camera feed when the sheet opens (and whenever we return to the
+  // camera view from a captured image). The effect owns the lifecycle of the MediaStream.
+  useEffect(() => {
+    let cancelled = false;
+    let stream: MediaStream | null = null;
+
+    async function boot() {
+      // 1. Request native camera permission (Capacitor) — no-op on web.
+      const perm = await requestNativeCameraPermission();
+      if (cancelled) return;
+      if (perm === "denied") {
+        setCameraStatus("denied");
+        return;
+      }
+      // 2. Acquire the camera stream via getUserMedia.
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: { ideal: "environment" } },
+          audio: false,
+        });
+        if (cancelled) {
+          stream.getTracks().forEach((tr) => tr.stop());
+          return;
+        }
+        streamRef.current = stream;
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+          await videoRef.current.play().catch(() => {});
+        }
+        setCameraStatus("ok");
+      } catch (e) {
+        console.error("getUserMedia failed:", e);
+        if (!cancelled) setCameraStatus("error");
+      }
+    }
+
+    // Only boot the camera when we don't have a captured image to show.
+    // The initial state is already "loading" so we don't need to set it again.
+    if (!image) {
+      void boot();
+    }
+    // When an image is showing, the camera status is irrelevant (the image
+    // overlay covers the video element), so we leave the state untouched.
+
+    return () => {
+      cancelled = true;
+      if (stream) {
+        stream.getTracks().forEach((tr) => tr.stop());
+      }
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach((tr) => tr.stop());
+        streamRef.current = null;
+      }
+    };
+  }, [image]);
+
+  // Manual retry handler (used by the "denied"/"error" overlays).
+  const startCamera = useCallback(() => {
+    // Force the effect to re-run by toggling image state; when image is null
+    // and we want to re-boot the camera, we just clear any stale state.
+    setImage(null);
+  }, []);
+
+  // Capture a still frame from the live video stream.
+  function captureFrame(): string | null {
+    const video = videoRef.current;
+    if (!video || video.videoWidth === 0) return null;
+    const canvas = document.createElement("canvas");
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return null;
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    return canvas.toDataURL("image/jpeg", 0.85);
+  }
+
+  async function onCapture() {
+    // Try the live video frame first.
+    const frame = captureFrame();
+    if (frame) {
+      // Stop the camera stream now that we have a frame.
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach((tr) => tr.stop());
+        streamRef.current = null;
+      }
+      setImage(frame);
+      analyze.mutate(frame);
+      return;
+    }
+    // Fallback: use the native camera plugin (Capacitor) or input capture (web).
+    const result = await takeNativePhoto();
+    if (result.cancelled || !result.dataUrl) return;
+    setImage(result.dataUrl);
+    analyze.mutate(result.dataUrl);
+  }
+
+  async function onPickFromGallery() {
+    const result = await pickNativeImage();
+    if (result.cancelled || !result.dataUrl) return;
+    // Stop the camera stream while we have a picked image.
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((tr) => tr.stop());
+      streamRef.current = null;
+    }
+    setImage(result.dataUrl);
+    analyze.mutate(result.dataUrl);
+  }
 
   function onFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -38,32 +148,30 @@ export function ScannerSheet() {
     const reader = new FileReader();
     reader.onload = () => {
       const dataUrl = reader.result as string;
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach((tr) => tr.stop());
+        streamRef.current = null;
+      }
       setImage(dataUrl);
       analyze.mutate(dataUrl);
     };
     reader.readAsDataURL(file);
   }
 
-  async function capturePhoto() {
-    const result = await takeNativePhoto();
-    if (result.cancelled || !result.dataUrl) {
-      // User cancelled — show a small toast only if it wasn't a deliberate cancel
-      return;
-    }
-    setImage(result.dataUrl);
-    analyze.mutate(result.dataUrl);
-  }
-
-  async function pickFromGallery() {
-    const result = await pickNativeImage();
-    if (result.cancelled || !result.dataUrl) return;
-    setImage(result.dataUrl);
-    analyze.mutate(result.dataUrl);
-  }
-
   function handleSample(url: string) {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((tr) => tr.stop());
+      streamRef.current = null;
+    }
     setImage(url);
     analyze.mutate(url);
+  }
+
+  function reset() {
+    setImage(null);
+    analyze.reset();
+    // Camera will re-start automatically via the useEffect above.
+    void startCamera();
   }
 
   return (
@@ -82,20 +190,50 @@ export function ScannerSheet() {
         {image ? (
           <img src={image} alt="meal" className="h-full w-full object-cover" />
         ) : (
-          <div className="flex h-full flex-col items-center justify-center gap-3 text-white/70">
-            <Camera className="h-12 w-12" />
-            <p className="text-sm">{t("pointCamera")}</p>
-          </div>
-        )}
-
-        {/* framing brackets */}
-        {!image && (
-          <div className="pointer-events-none absolute inset-8">
-            <div className="absolute left-0 top-0 h-10 w-10 rounded-tl-2xl border-l-4 border-t-4 border-white/80" />
-            <div className="absolute right-0 top-0 h-10 w-10 rounded-tr-2xl border-r-4 border-t-4 border-white/80" />
-            <div className="absolute bottom-0 left-0 h-10 w-10 rounded-bl-2xl border-b-4 border-l-4 border-white/80" />
-            <div className="absolute bottom-0 right-0 h-10 w-10 rounded-br-2xl border-b-4 border-r-4 border-white/80" />
-          </div>
+          <>
+            {/* Live camera feed (always rendered so the stream attaches immediately) */}
+            <video ref={videoRef} className="h-full w-full object-cover" muted playsInline autoPlay />
+            {/* Camera state overlays */}
+            {cameraStatus === "loading" && (
+              <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-black/70 text-white/80">
+                <Loader2 className="h-8 w-8 animate-spin" />
+                <p className="text-xs">{t("cameraStarting")}</p>
+              </div>
+            )}
+            {cameraStatus === "denied" && (
+              <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-black/80 p-6 text-center text-white">
+                <AlertTriangle className="h-10 w-10 text-amber-400" />
+                <p className="text-sm font-medium">{t("cameraPermissionDenied")}</p>
+                <Button onClick={() => void startCamera()} variant="outline" className="rounded-full bg-white text-black">
+                  <Camera className="mr-2 h-4 w-4" />
+                  {t("retry")}
+                </Button>
+              </div>
+            )}
+            {cameraStatus === "error" && (
+              <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-black/80 p-6 text-center text-white">
+                <Camera className="h-10 w-10 text-white/70" />
+                <p className="text-sm font-medium">{t("cameraUnavailable")}</p>
+                <div className="flex flex-col gap-2">
+                  <Button onClick={() => void startCamera()} variant="outline" className="rounded-full bg-white text-black">
+                    {t("retry")}
+                  </Button>
+                  <Button onClick={onPickFromGallery} variant="outline" className="rounded-full bg-white text-black">
+                    <ImagePlus className="mr-2 h-4 w-4" />
+                    {t("pickFromGallery")}
+                  </Button>
+                </div>
+              </div>
+            )}
+            {cameraStatus === "ok" && (
+              <div className="pointer-events-none absolute inset-8">
+                <div className="absolute left-0 top-0 h-10 w-10 rounded-tl-2xl border-l-4 border-t-4 border-white/80" />
+                <div className="absolute right-0 top-0 h-10 w-10 rounded-tr-2xl border-r-4 border-t-4 border-white/80" />
+                <div className="absolute bottom-0 left-0 h-10 w-10 rounded-bl-2xl border-b-4 border-l-4 border-white/80" />
+                <div className="absolute bottom-0 right-0 h-10 w-10 rounded-br-2xl border-b-4 border-r-4 border-white/80" />
+              </div>
+            )}
+          </>
         )}
 
         {analyze.isPending && (
@@ -106,7 +244,7 @@ export function ScannerSheet() {
         )}
 
         {/* scan pill */}
-        {!image && !analyze.isPending && (
+        {!image && !analyze.isPending && cameraStatus === "ok" && (
           <div className="absolute bottom-4 left-1/2 -translate-x-1/2">
             <div className="flex items-center gap-2 rounded-full bg-white/95 px-4 py-2 shadow-lg">
               <Apple className="h-4 w-4 text-foreground" />
@@ -126,7 +264,7 @@ export function ScannerSheet() {
               <Barcode className="h-5 w-5" />
             </button>
             <button
-              onClick={pickFromGallery}
+              onClick={onPickFromGallery}
               className="flex h-10 w-10 items-center justify-center rounded-full bg-white/15 text-white backdrop-blur-sm active:scale-95"
               aria-label={t("searchFoods")}
             >
@@ -174,8 +312,8 @@ export function ScannerSheet() {
       {!image && (
         <div className="flex items-center justify-center gap-6 px-4 py-4">
           <button
-            onClick={capturePhoto}
-            disabled={analyze.isPending}
+            onClick={onCapture}
+            disabled={analyze.isPending || cameraStatus !== "ok"}
             className="flex h-16 w-16 items-center justify-center rounded-full bg-white shadow-fab ring-4 ring-white/30 transition-transform active:scale-95 disabled:opacity-50"
           >
             <ScanLine className="h-7 w-7 text-black" />
@@ -185,21 +323,14 @@ export function ScannerSheet() {
 
       {image && (
         <div className="px-4 py-3">
-          <Button
-            variant="outline"
-            className="w-full"
-            onClick={() => {
-              setImage(null);
-              analyze.reset();
-            }}
-          >
+          <Button variant="outline" className="w-full" onClick={reset}>
             {t("scanAnother")}
           </Button>
         </div>
       )}
 
-      {/* hidden file input as a fallback / web capture */}
-      <input ref={fileRef} type="file" accept="image/*" capture="environment" onChange={onFile} className="hidden" />
+      {/* hidden file input as a web fallback */}
+      <input id="scanner-file-input" type="file" accept="image/*" capture="environment" onChange={onFile} className="hidden" />
 
       {/* result */}
       {analyze.data && image && <ResultCard analysis={analyze.data} image={image} />}

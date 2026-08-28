@@ -1,16 +1,16 @@
 "use client";
 import { Clock, Plus, Flame } from "lucide-react";
-import { useDashboard, useLogFood } from "@/lib/hooks";
+import { useDashboard } from "@/lib/hooks";
 import { TapCard } from "@/components/motion";
 import { motion } from "framer-motion";
-import { toast } from "sonner";
+import { useApp } from "@/lib/store";
 import { useI18n } from "@/lib/i18n";
 import { formatNumber } from "@/lib/date-utils";
 import { translateFoodName } from "@/lib/food-translations";
 
 export function RecentsSection() {
   const { data } = useDashboard();
-  const logFood = useLogFood();
+  const { setModal, setQuickLogPayload } = useApp();
   const { locale, t } = useI18n();
 
   if (!data) return null;
@@ -29,21 +29,20 @@ export function RecentsSection() {
 
   if (recents.length === 0) return null;
 
-  function quickLog(item: { title: string | null; macros: { calories: number; protein: number; carbs: number; fat: number } | null }) {
+  function openQuickLog(item: { title: string | null; macros: { calories: number; protein: number; carbs: number; fat: number } | null; imageUrl: string | null }) {
     if (!item.macros) return;
-    logFood.mutate({
-      manualFood: {
-        name: item.title!,
-        calories: item.macros.calories,
-        protein: item.macros.protein,
-        carbs: item.macros.carbs,
-        fat: item.macros.fat,
-        servingSize: "1 serving",
-        servingWeightGrams: 100,
-        emoji: "🔄",
-      },
+    setQuickLogPayload({
+      name: item.title!,
+      emoji: "🔄",
+      calories: item.macros.calories,
+      protein: item.macros.protein,
+      carbs: item.macros.carbs,
+      fat: item.macros.fat,
+      servingSize: "1 serving",
+      servingWeightGrams: 100,
+      imageUrl: item.imageUrl ?? undefined,
     });
-    toast.success(t("loggedToast").replace("{0}", translateFoodName(item.title, locale)));
+    setModal("quick-log");
   }
 
   return (
@@ -60,8 +59,7 @@ export function RecentsSection() {
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: i * 0.04 }}
             whileTap={{ scale: 0.95 }}
-            onClick={() => quickLog(item)}
-            disabled={logFood.isPending}
+            onClick={() => openQuickLog(item)}
             className="flex shrink-0 flex-col items-center gap-1 rounded-2xl bg-card p-3 shadow-ios"
             style={{ minWidth: 80 }}
           >

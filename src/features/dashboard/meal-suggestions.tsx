@@ -1,16 +1,16 @@
 "use client";
 import { Sparkles, Flame, Plus } from "lucide-react";
-import { useMealSuggestions, useLogFood } from "@/lib/hooks";
+import { useMealSuggestions } from "@/lib/hooks";
 import { TapCard } from "@/components/motion";
 import { motion } from "framer-motion";
-import { toast } from "sonner";
+import { useApp } from "@/lib/store";
 import { useI18n } from "@/lib/i18n";
 import { formatNumber } from "@/lib/date-utils";
 import { translateFoodName } from "@/lib/food-translations";
 
 export function MealSuggestions() {
   const { data, isLoading } = useMealSuggestions("snack");
-  const logFood = useLogFood();
+  const { setModal, setQuickLogPayload } = useApp();
   const { locale, t } = useI18n();
 
   if (isLoading || !data?.suggestions?.length) return null;
@@ -23,11 +23,19 @@ export function MealSuggestions() {
     : t("needMoreFats");
   const gapColor = biggestGap === "protein" ? "var(--protein)" : biggestGap === "carbs" ? "var(--carbs)" : "var(--fats)";
 
-  function log(s: { id: string; name: string; foodId?: string }) {
-    logFood.mutate(
-      { foodId: s.id },
-      { onSuccess: () => toast.success(t("loggedToast").replace("{0}", translateFoodName(s.name, locale))) }
-    );
+  function openQuickLog(s: { id: string; name: string; emoji: string | null; calories: number; protein: number; carbs: number; fat: number; servingSize: string }) {
+    setQuickLogPayload({
+      foodId: s.id,
+      name: s.name,
+      emoji: s.emoji ?? "🍽️",
+      calories: s.calories,
+      protein: s.protein,
+      carbs: s.carbs,
+      fat: s.fat,
+      servingSize: s.servingSize,
+      servingWeightGrams: 100,
+    });
+    setModal("quick-log");
   }
 
   return (
@@ -49,8 +57,7 @@ export function MealSuggestions() {
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: i * 0.05 }}
             whileTap={{ scale: 0.95 }}
-            onClick={() => log(s)}
-            disabled={logFood.isPending}
+            onClick={() => openQuickLog(s)}
             className="flex shrink-0 flex-col items-center gap-1 rounded-2xl bg-card p-3 shadow-ios"
             style={{ minWidth: 88 }}
           >

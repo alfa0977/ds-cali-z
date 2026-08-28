@@ -517,6 +517,22 @@ export const translations = {
   needMoreProtein: { fa: "نیاز به پروتئین بیشتر", en: "Need more protein" },
   needMoreCarbs: { fa: "نیاز به کربوهیدرات بیشتر", en: "Need more carbs" },
   needMoreFats: { fa: "نیاز به چربی بیشتر", en: "Need more fats" },
+
+  // === Round 13 new keys ===
+  // Scanner camera states
+  retry: { fa: "تلاش دوباره", en: "Retry" },
+  pickFromGallery: { fa: "انتخاب از گالری", en: "Pick from gallery" },
+  // Back button double-press
+  pressBackAgainToExit: { fa: "برای خروج دوباره بزنید", en: "Press back again to exit" },
+  // Quick log sheet
+  logFood: { fa: "ثبت غذا", en: "Log food" },
+  mealSlot: { fa: "وعده غذایی", en: "Meal slot" },
+  time: { fa: "زمان", en: "Time" },
+  scaledMacros: { fa: "درشت‌مغذی‌های محاسبه‌شده", en: "Calculated macros" },
+  // Reminder times
+  reminderTimesHint: { fa: "زمان هر یادآوری را با لمس ساعت می‌توانید تغییر دهید.", en: "Tap the time to change each reminder." },
+  earlier: { fa: "زودتر", en: "Earlier" },
+  later: { fa: "دیرتر", en: "Later" },
 } as const;
 
 export type TranslationKey = keyof typeof translations;
